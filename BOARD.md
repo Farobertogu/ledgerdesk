@@ -4,9 +4,7 @@ Source of truth for build order: the specification's build plan (§17) — verif
 
 ## In review
 
-| Card | Increment | Branch | Closing evidence |
-|---|---|---|---|
-| I1 | Documentary baseline: proposal, WBS, Gantt, stories layer 1/2, models | `i1-documentary-baseline` | `docs/PROPOSAL.md` + `docs/LEARNING_PLAN.md` in the body; tag `baseline-v1.0` on merge |
+*(empty)*
 
 ## In progress
 
@@ -44,3 +42,4 @@ Source of truth for build order: the specification's build plan (§17) — verif
 | Card | Increment | Evidence |
 |---|---|---|
 | I0 | Repo spine: git, CI, ADR template, board, `status/`, minutes template | commit `73abba1` on `main` + CI run green |
+| I1 | Documentary baseline: proposal, WBS, Gantt, stories layer 1/2, models | PR #1 merged `--no-ff`; tag `baseline-v1.0` on the merge commit |
