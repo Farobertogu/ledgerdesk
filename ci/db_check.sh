@@ -60,7 +60,9 @@ apply_all() {
 }
 
 schema_dump() {
-  pg_dump --schema-only --no-owner -d "$1" | grep -v '^--' | grep -v '^$'
+  # \restrict / \unrestrict are psql guard lines with a token pg_dump randomises per dump:
+  # dump noise, not schema. Everything else is compared verbatim.
+  pg_dump --schema-only --no-owner -d "$1" | grep -v '^--' | grep -v '^$' | grep -Ev '^\\(un)?restrict '
 }
 schema_digest() {
   schema_dump "$1" | sha256sum | cut -d' ' -f1
