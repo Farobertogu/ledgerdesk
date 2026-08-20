@@ -84,7 +84,9 @@ apply_all() {
   done
 }
 
-schema_dump() { pg_dump --schema-only --no-owner -d "$1" | grep -v '^--' | grep -v '^$'; }
+# \restrict / \unrestrict are psql guard lines whose token pg_dump randomises per dump: dump
+# noise, not schema. Everything else is compared verbatim.
+schema_dump() { pg_dump --schema-only --no-owner -d "$1" | grep -v '^--' | grep -v '^$' | grep -Ev '^\\(un)?restrict '; }
 
 echo "== applying the migration set to a clean database"
 reset_cluster
