@@ -64,3 +64,41 @@ jobs:
           name: expected-schema
           path: ci/expected/schema.sql
           if-no-files-found: ignore
+  app:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Its own service container rather than a step inside the db job: both scripts drop the
+    # cluster-wide roles the migration set creates, so sharing one cluster would make each run
+    # depend on the order of the other.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install the PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Install dependencies
+        run: npm ci
+      - name: Build the consoles and run the application tests
+        env:
+          PGHOST: localhost
+          PGPORT: 5432
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: postgres
+        run: bash ci/app_check.sh

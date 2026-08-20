@@ -73,7 +73,7 @@ do $$
 declare missing text;
 begin
   select string_agg(p, ', ' order by p) into missing
-  from unnest(array['tenant_isolation','customer_own_rows','agent_writes','response_tenant_select',
+  from unnest(array['tenant_isolation','customer_own_rows','ticket_write_is_staff','agent_writes','response_tenant_select',
                     'ledger_writer_insert','ledger_tenant_select','ledger_quality_select',
                     'tenant_isolation_kb_article','tenant_isolation_audit',
                     'tenant_isolation_kb_gap','tenant_isolation_kb_admission']) as t(p)

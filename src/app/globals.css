@@ -1,0 +1,28 @@
+@import 'tailwindcss';
+
+/* An internal console reads better as paper than as a product page: one accent, a narrow set of
+   greys, and type that stays out of the way of a queue you scan forty times a day. */
+@theme {
+  --color-canvas: #f2f2ef;
+  --color-surface: #ffffff;
+  --color-ink: #16181d;
+  --color-muted: #5f646d;
+  --color-line: #dededa;
+  --color-accent: #1d4e4b;
+  --color-accent-soft: #e7efee;
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial,
+    sans-serif;
+  --font-mono: ui-monospace, 'SFMono-Regular', 'Cascadia Mono', Menlo, Consolas, monospace;
+}
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  background-color: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}

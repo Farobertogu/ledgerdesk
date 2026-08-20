@@ -1,0 +1,99 @@
+import { Pool, type PoolClient } from 'pg';
+
+/**
+ * The only path from the consoles to PostgreSQL.
+ *
+ * Two rules hold for every statement the application runs, and they are enforced here rather than
+ * repeated at each call site:
+ *
+ *   1. The statement runs as `app_rw`, never as the connecting role. `app_rw` owns no table and
+ *      carries no bypass, so row-level security applies to it — which is what makes the policies
+ *      in the schema the thing that isolates tenants, instead of a WHERE clause the application
+ *      could forget to write.
+ *   2. The session carries the claims the policies read through `auth.jwt()`: `org_id`, `role`
+ *      and `sub`. A request without claims is a request that sees nothing; the policies fail
+ *      closed and no application check is what stops it.
+ *
+ * Both are set with SET LOCAL / `set_config(..., is_local => true)`, so they are scoped to the
+ * transaction and cannot survive into the next borrower of a pooled connection.
+ */
+
+export type UserRole = 'customer' | 'agent' | 'supervisor';
+
+/** The claim set the database reads. Its shape is the schema's, not this module's. */
+export type Claims = {
+  org_id: string;
+  role: UserRole;
+  sub: string;
+};
+
+const APPLICATION_ROLE = 'app_rw';
+
+// Next.js reloads modules in development; without this the process would accumulate one pool per
+// reload and exhaust the server's connection slots.
+const globalForPool = globalThis as unknown as { ledgerdeskPool?: Pool };
+
+function pool(): Pool {
+  if (globalForPool.ledgerdeskPool) return globalForPool.ledgerdeskPool;
+
+  const connectionString = process.env.DATABASE_URL;
+  if (!connectionString) {
+    throw new Error(
+      'DATABASE_URL is not set. The consoles need a PostgreSQL instance with the migration set, ' +
+        'the seed and src/db/app_grants.sql applied.',
+    );
+  }
+
+  const created = new Pool({
+    connectionString,
+    max: Number(process.env.DATABASE_POOL_MAX ?? 8),
+    idleTimeoutMillis: 10_000,
+    connectionTimeoutMillis: 5_000,
+  });
+  // A pool that swallows the errors of idle clients keeps handing out dead connections.
+  created.on('error', (err) => console.error('[db] idle client error:', err.message));
+
+  globalForPool.ledgerdeskPool = created;
+  return created;
+}
+
+/**
+ * Runs `work` inside one transaction, as the application role, under `claims`.
+ *
+ * Pass `null` for the claim set of a request that has no session yet: the connection still drops
+ * to `app_rw`, and every table under row-level security returns nothing.
+ */
+export async function withAppSession<T>(
+  claims: Claims | null,
+  work: (client: PoolClient) => Promise<T>,
+): Promise<T> {
+  const client = await pool().connect();
+  try {
+    await client.query('begin');
+    await client.query(`set local role ${APPLICATION_ROLE}`);
+
+    const applied = await client.query<{ role_in_force: string }>(
+      'select set_config($1, $2, true) as claims, current_user as role_in_force',
+      ['request.jwt.claims', claims ? JSON.stringify(claims) : ''],
+    );
+
+    // Belt and braces: if this ever reports anything but app_rw, the queries below would run with
+    // privileges the policies were never written for, and every isolation test in the repository
+    // would be measuring the wrong world.
+    const roleInForce = applied.rows[0]?.role_in_force;
+    if (roleInForce !== APPLICATION_ROLE) {
+      throw new Error(
+        `expected the session to run as ${APPLICATION_ROLE}, it is running as ${roleInForce}`,
+      );
+    }
+
+    const result = await work(client);
+    await client.query('commit');
+    return result;
+  } catch (error) {
+    await client.query('rollback').catch(() => undefined);
+    throw error;
+  } finally {
+    client.release();
+  }
+}
