@@ -84,9 +84,11 @@ apply_all() {
   done
 }
 
-# \restrict / \unrestrict are psql guard lines whose token pg_dump randomises per dump: dump
-# noise, not schema. Everything else is compared verbatim.
-schema_dump() { pg_dump --schema-only --no-owner -d "$1" | grep -v '^--' | grep -v '^$' | grep -Ev '^\\(un)?restrict '; }
+# Three kinds of dump noise are filtered, everything else is compared verbatim: comments;
+# the \restrict/\unrestrict guard lines whose token pg_dump randomises per dump; and the
+# top-level session preamble (SET .../set_config), which describes the dumping client, not the
+# schema - pg_dump 17 emits SET transaction_timeout where 16 does not.
+schema_dump() { pg_dump --schema-only --no-owner -d "$1" | grep -v '^--' | grep -v '^$' | grep -Ev '^\\(un)?restrict ' | grep -Ev '^SET |^SELECT pg_catalog\.set_config'; }
 
 echo "== applying the migration set to a clean database"
 reset_cluster
@@ -232,12 +234,33 @@ expect_exit 1 $NODE_TS quality/gen/corpus.ts --seed 1 --templates quality/templa
   --out "$WORK/exit1"
 echo "test_GEN_corpus_exit_codes_are_reachable OK"
 
-export LEDGERDESK_CORPUS_JSON="$CORPUS_DIR/corpus.json"
-export LEDGERDESK_MANIFEST_JSON="$CORPUS_DIR/manifest.json"
+# The corpus and manifest reach SQL as a generated prelude with dollar-quoted contents, run in
+# the same psql session as the test that reads them. A shell backtick in a \\set would go through
+# cmd.exe on Windows and never expand the variable - this way there is no shell in the path at all.
+PRELUDE="$WORK/corpus_prelude.sql"
+if grep -q 'LDJ' "$CORPUS_DIR/corpus.json" "$CORPUS_DIR/manifest.json"; then
+  fail "the LDJ dollar-quote tag collides with generated content"
+fi
+{
+  printf 'create temp table ledgerdesk_corpus_src as select $LDJ$'
+  cat "$CORPUS_DIR/corpus.json"
+  printf '$LDJ$::jsonb as doc;\n'
+  printf 'create temp table ledgerdesk_manifest_src as select $LDJ$'
+  cat "$CORPUS_DIR/manifest.json"
+  printf '$LDJ$::jsonb as m;\n'
+  # The test switches to the generator role mid-session; the temp tables are owned by the
+  # superuser that created them and die with the session, so a blanket grant is safe.
+  printf 'grant select on ledgerdesk_corpus_src, ledgerdesk_manifest_src to public;\n'
+} > "$PRELUDE"
 
 echo "== database tests"
 for t in $TESTS; do
-  run_sql "$DB_B" "ci/sql/$t.sql" || fail "$t"
+  case "$t" in
+    test_GEN_corpus_loads_into_eval_item_with_labels)
+      psql -X -v ON_ERROR_STOP=1 -q -d "$DB_B" -f "$PRELUDE" -f "ci/sql/$t.sql" || fail "$t" ;;
+    *)
+      run_sql "$DB_B" "ci/sql/$t.sql" || fail "$t" ;;
+  esac
   echo "$t OK"
 done
 

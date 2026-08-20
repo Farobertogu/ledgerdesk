@@ -5,23 +5,22 @@
 -- must carry its ground truth: a clan, a family, a label that obeys the invariants the generator
 -- imposes on itself, and a body whose hash the database recomputes rather than trusts.
 --
--- The generator's output paths are read from LEDGERDESK_CORPUS_JSON and LEDGERDESK_MANIFEST_JSON,
--- exported by ci/db_check.sh. Everything is asserted inside a transaction that is rolled back, so
--- the suite stays independent of the order its tests run in and can be re-run on the same database.
-
-\set corpus   `cat "$LEDGERDESK_CORPUS_JSON"`
-\set manifest `cat "$LEDGERDESK_MANIFEST_JSON"`
+-- The corpus and manifest arrive as the temp tables ledgerdesk_corpus_src / ledgerdesk_manifest_src,
+-- created by the prelude ci/db_check.sh generates and runs in this same session - no shell in the
+-- path, so the mechanism is identical on every platform. Everything is asserted inside a
+-- transaction that is rolled back, so the suite stays independent of the order its tests run in
+-- and can be re-run on the same database.
 
 begin;
 
-create temp table manifest_json as select :'manifest'::jsonb as m;
+create temp table manifest_json as select m from ledgerdesk_manifest_src;
 
 set local role quality_gen;
 
 insert into eval_item (id, item_id, template_id, family, body, body_sha256, label, label_source)
 select (doc->>'id')::uuid, doc->>'item_id', doc->>'template_id', doc->>'family', doc->>'body',
        doc->>'body_sha256', doc->'label', doc->>'label_source'
-from jsonb_array_elements(:'corpus'::jsonb) as t(doc);
+from jsonb_array_elements((select doc from ledgerdesk_corpus_src)) as t(doc);
 
 reset role;
 
