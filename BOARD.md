@@ -2,17 +2,20 @@
 
 Source of truth for build order: the specification's build plan (§17) — verifiable increments, order and dependencies only. **Working rule: one branch per card; a card merges to `main` only after its named tests are green and the owner has reviewed the diff (merge `--no-ff`).** Tags mark plan gates: `baseline-v1.0`, `demo-w7`, freeze tag.
 
+## In review
+
+| Card | Increment | Branch | Closing evidence |
+|---|---|---|---|
+| I1 | Documentary baseline: proposal, WBS, Gantt, stories layer 1/2, models | `i1-documentary-baseline` | `docs/PROPOSAL.md` + `docs/LEARNING_PLAN.md` in the body; tag `baseline-v1.0` on merge |
+
 ## In progress
 
-| Card | Increment | Depends on | Closing evidence |
-|---|---|---|---|
-| I0 | Repo spine: git, CI, ADR template, board, `status/`, minutes template | — | dated commit history + green CI |
+*(empty)*
 
 ## Backlog (plan order)
 
 | Card | Increment | Depends on | Closing evidence |
 |---|---|---|---|
-| I1 | Documentary baseline: proposal, WBS, Gantt, stories layer 1/2, models | — (parallel to I0) | `docs/PROPOSAL.md` + tag `baseline-v1.0` |
 | I2 | Data spine: schema, RLS, migrations, template engine with ground truth | I0 | `test_RLS_*` green + `eval_item` populated with labels |
 | I2b | Ledger with chain + append-only tests | I2 | `test_LEDGER_*` green — before any agent writes a row |
 | I3 | App skeleton: auth, 3 roles, ticket CRUD, state machine | I2 | US-01 green + 3 navigable screens |
@@ -38,4 +41,6 @@ Source of truth for build order: the specification's build plan (§17) — verif
 
 ## Done
 
-*(empty)*
+| Card | Increment | Evidence |
+|---|---|---|
+| I0 | Repo spine: git, CI, ADR template, board, `status/`, minutes template | commit `73abba1` on `main` + CI run green |
