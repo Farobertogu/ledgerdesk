@@ -41,13 +41,13 @@ if [ -n "${GITHUB_BASE_REF:-}" ]; then
   if [ -n "$FROZEN_HIT" ]; then
     OK=""
     for f in $(printf '%s\n' "$CHANGED" | grep -E '^adr/ADR-[0-9]{3}-.*\.md$' || true); do
-      if [ -f "$f" ] && grep -q '^\*\*Status:\*\* accepted' "$f" && grep -q '^\*\*Decision date:\*\* ' "$f"; then OK=yes; fi
+      if [ -f "$f" ] && grep -q '^\*\*Status:\*\* accepted' "$f" && grep -Eq '\*\*Decision date:\*\* [0-9]{4}-[0-9]{2}-[0-9]{2}' "$f"; then OK=yes; fi
     done
     if [ -z "$OK" ] && [ -n "${GITHUB_EVENT_PATH:-}" ] && [ -f "${GITHUB_EVENT_PATH}" ] && command -v jq >/dev/null 2>&1; then
       NNN="$(jq -r '.pull_request.body // ""' "$GITHUB_EVENT_PATH" | grep -oE 'ADR: [0-9]{3}' | head -1 | grep -oE '[0-9]{3}' || true)"
       if [ -n "$NNN" ]; then
         f="$(ls adr/ADR-${NNN}-*.md 2>/dev/null | head -1 || true)"
-        if [ -n "$f" ] && grep -q '^\*\*Status:\*\* accepted' "$f" && grep -q '^\*\*Decision date:\*\* ' "$f"; then OK=yes; fi
+        if [ -n "$f" ] && grep -q '^\*\*Status:\*\* accepted' "$f" && grep -Eq '\*\*Decision date:\*\* [0-9]{4}-[0-9]{2}-[0-9]{2}' "$f"; then OK=yes; fi
       fi
     fi
     [ -n "$OK" ] || fail "adr_gate: PR touches frozen path '$FROZEN_HIT' without an accepted ADR (add adr/ADR-NNN-<slug>.md with Status accepted, or an 'ADR: NNN' line in the PR body)"
