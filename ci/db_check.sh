@@ -59,8 +59,11 @@ apply_all() {
   done
 }
 
+schema_dump() {
+  pg_dump --schema-only --no-owner -d "$1" | grep -v '^--' | grep -v '^$'
+}
 schema_digest() {
-  pg_dump --schema-only --no-owner -d "$1" | grep -v '^--' | grep -v '^$' | sha256sum | cut -d' ' -f1
+  schema_dump "$1" | sha256sum | cut -d' ' -f1
 }
 
 echo "== applying the migration set to a clean database"
@@ -68,16 +71,21 @@ reset_cluster
 maint "create database $DB_A"
 apply_all "$DB_A"
 DIGEST_A="$(schema_digest "$DB_A")"
+schema_dump "$DB_A" > /tmp/schema_a.sql
 echo "   first application OK (digest ${DIGEST_A:0:12})"
 
 reset_cluster
 maint "create database $DB_B"
 apply_all "$DB_B"
 DIGEST_B="$(schema_digest "$DB_B")"
+schema_dump "$DB_B" > /tmp/schema_b.sql
 echo "   second application OK (digest ${DIGEST_B:0:12})"
 
-[ "$DIGEST_A" = "$DIGEST_B" ] \
-  || fail "test_MIGRATIONS_forward_only_is_deterministic: two clean applications produced different schema digests ($DIGEST_A vs $DIGEST_B)"
+if [ "$DIGEST_A" != "$DIGEST_B" ]; then
+  echo "== schema diff between the two applications (first 80 lines):"
+  diff /tmp/schema_a.sql /tmp/schema_b.sql | head -80 || true
+  fail "test_MIGRATIONS_forward_only_is_deterministic: two clean applications produced different schema digests ($DIGEST_A vs $DIGEST_B)"
+fi
 echo "test_MIGRATIONS_forward_only_is_deterministic OK"
 
 echo "== seeding two organisations"
