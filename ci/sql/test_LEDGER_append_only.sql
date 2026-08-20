@@ -50,10 +50,15 @@ select pg_temp.expect_reject(
 
 -- TRUNCATE is a deletion route of its own: a row trigger never fires on it and the owner keeps
 -- the privilege, so without a statement trigger the guarantee would be a convention here.
+-- A plain TRUNCATE of ledger_entry is already refused up front by PostgreSQL itself, because the
+-- checkpoint anchor and the gap records reference it by foreign key — defence the first. CASCADE
+-- is the route that dissolves that objection by truncating the referencing tables too, and that
+-- is exactly where the statement trigger must answer — defence the second, and the one this
+-- test pins by name.
 select pg_temp.expect_reject(
-  $stmt$truncate ledger_entry$stmt$,
+  $stmt$truncate ledger_entry cascade$stmt$,
   'E_LEDGER_APPEND_ONLY',
-  'test_LEDGER_append_only/truncate');
+  'test_LEDGER_append_only/truncate_cascade');
 
 -- a chain whose anchor can be edited anchors nothing
 insert into ledger_checkpoint (run_id, seq_covered, head_row_hash, k, external_ref) values
