@@ -1,0 +1,47 @@
+{
+  "template_id": "T-ACCESS-002",
+  "family": "access",
+  "body": "Subject: {subject}\n\n{detail}\n\n{closing}",
+  "label_defaults": {
+    "category": "access",
+    "severity": 2,
+    "sentiment": 0.0,
+    "escalate": false,
+    "reason": null
+  },
+  "slots": {
+    "subject": [
+      { "value": "Locked out after password reset" },
+      { "value": "Single sign-on loop on the reporting console" },
+      { "value": "New starter cannot be added to the workspace" }
+    ],
+    "detail": [
+      {
+        "value": "I reset my password this morning and the new one is rejected on the sign-in page, although the reset email says it was changed.",
+        "label": { "severity": 2 }
+      },
+      {
+        "value": "Three of our analysts are bounced back to the sign-in page every time they open the reporting console, so nobody can pull today's figures.",
+        "label": { "severity": 3 }
+      },
+      {
+        "value": "The whole finance team lost access at 08:40 and the month-end close is due today; nobody in the group can authenticate.",
+        "label": { "severity": 4 }
+      }
+    ],
+    "closing": [
+      {
+        "value": "Please let me know what I should try next.",
+        "label": { "sentiment": 0.1 }
+      },
+      {
+        "value": "We have had no reply for two days and this is now blocking real work.",
+        "label": { "sentiment": -0.6, "escalate": true, "reason": "SENT" }
+      },
+      {
+        "value": "Please treat this as urgent: our contract states a two-hour response for access failures.",
+        "label": { "sentiment": -0.3, "escalate": true, "reason": "SLA" }
+      }
+    ]
+  }
+}

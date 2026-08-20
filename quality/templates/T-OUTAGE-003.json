@@ -1,0 +1,47 @@
+{
+  "template_id": "T-OUTAGE-003",
+  "family": "availability",
+  "body": "Subject: {subject}\n\n{detail}\n\n{closing}",
+  "label_defaults": {
+    "category": "availability",
+    "severity": 3,
+    "sentiment": -0.1,
+    "escalate": false,
+    "reason": null
+  },
+  "slots": {
+    "subject": [
+      { "value": "Exports timing out since this morning" },
+      { "value": "Dashboard returns a 503 intermittently" },
+      { "value": "Scheduled sync has not run for two days" }
+    ],
+    "detail": [
+      {
+        "value": "Nightly exports have been timing out since about 06:00. Retrying by hand works roughly one time in three.",
+        "label": { "severity": 3 }
+      },
+      {
+        "value": "The dashboard returns a 503 for about one request in five. It clears on reload, so the data seems to be there.",
+        "label": { "severity": 2 }
+      },
+      {
+        "value": "The scheduled sync has not produced a run since Tuesday and downstream reporting is now two days stale for every team that reads it.",
+        "label": { "severity": 4 }
+      }
+    ],
+    "closing": [
+      {
+        "value": "Is there a known issue, or should we look at our own side?",
+        "label": { "sentiment": 0.0 }
+      },
+      {
+        "value": "This is the third outage this quarter and we are reviewing whether to renew.",
+        "label": { "sentiment": -0.8, "escalate": true, "reason": "SENT" }
+      },
+      {
+        "value": "Our agreement puts a four-hour restoration target on this and we are past it.",
+        "label": { "sentiment": -0.3, "escalate": true, "reason": "SLA" }
+      }
+    ]
+  }
+}

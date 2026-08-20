@@ -1,0 +1,47 @@
+{
+  "template_id": "T-BILL-001",
+  "family": "billing",
+  "body": "Subject: {subject}\n\n{detail}\n\n{closing}",
+  "label_defaults": {
+    "category": "billing",
+    "severity": 2,
+    "sentiment": 0.0,
+    "escalate": false,
+    "reason": null
+  },
+  "slots": {
+    "subject": [
+      { "value": "Duplicate charge on invoice INV-10021" },
+      { "value": "Invoice INV-10044 does not match my plan" },
+      { "value": "Charged after cancelling — INV-10190" }
+    ],
+    "detail": [
+      {
+        "value": "My card was billed A$49.00 twice for the same invoice on 3 March. The second line shows the same reference as the first.",
+        "label": { "severity": 2 }
+      },
+      {
+        "value": "Our account was billed A$1,240.00 twice on 11 April and the second charge has already cleared, which has taken the operating account below its float.",
+        "label": { "severity": 3 }
+      },
+      {
+        "value": "We have been billed for 240 seats every month since January while our signed order is for 40. Four invoices are affected and finance has frozen payment on all of them.",
+        "label": { "severity": 4 }
+      }
+    ],
+    "closing": [
+      {
+        "value": "Could you check the invoice and refund the extra amount when you get a chance?",
+        "label": { "sentiment": 0.1 }
+      },
+      {
+        "value": "This is the second time this month and I am losing patience with it.",
+        "label": { "sentiment": -0.7, "escalate": true, "reason": "SENT" }
+      },
+      {
+        "value": "I would like to raise a formal complaint about the billing handling and have it recorded.",
+        "label": { "sentiment": -0.4, "escalate": true, "reason": "POLICY" }
+      }
+    ]
+  }
+}

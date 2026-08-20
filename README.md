@@ -16,11 +16,14 @@ Capstone project — COIT20273 Software Design and Development Project, CQUniver
 |---|---|
 | `docs/` | proposal, learning plan, provenance |
 | `adr/` | architecture decision records (ADRs) |
+| `migrations/` | numbered SQL migrations, forward-only |
+| `seed/` | seed data with fixed identifiers (two organisations) |
+| `quality/` | the quality layer: schemas, generators, templates and their parameters |
 | `status/` | weekly status updates |
 | `reports/` | generated evidence (test reports, batteries, sensitivity tables) — created as artifacts land |
 | `minutes/` | mentor meeting minutes |
 | `BOARD.md` | build board — verifiable increments I0–I18 (+ I2b) |
-| `ci/` | repository checks (run locally and in CI) |
+| `ci/` | repository and database checks (run locally and in CI) |
 
 ## Conventions
 
