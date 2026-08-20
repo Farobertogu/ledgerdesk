@@ -24,7 +24,6 @@ Capstone project — COIT20273 Software Design and Development Project, CQUniver
 
 ## Conventions
 
-- **Language: English everywhere** — documentation, code, comments, commit messages, branch names, board, status updates and minutes.
 - One branch per board card; a card merges to `main` only after its named tests are green and the owner has reviewed the diff (merge `--no-ff`).
 - Tags mark plan gates: `baseline-v1.0`, `demo-w7`, freeze tag. History is never rewritten once a card is merged; corrections land as new dated commits.
 - No licence file yet by owner decision; all rights reserved until decided.
