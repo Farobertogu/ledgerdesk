@@ -30,4 +30,4 @@ Capstone project — COIT20273 Software Design and Development Project, CQUniver
 
 ## Status
 
-Increment **I0** (repository spine) in progress. Next: **I1** documentary baseline, sealed with the immutable tag `baseline-v1.0`.
+Build order: **25 verifiable increments** on `BOARD.md`. I0 and I1 are done; the documentary baseline is sealed with the immutable tag `baseline-v1.0`. The process gate (I0b) is in review; first code card is I2 (data spine).
