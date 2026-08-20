@@ -1,0 +1,6 @@
+# Line endings are part of the contract, not a preference: the corpus generator digests the
+# template files to seed the partition of the sealed sets, so a checkout that converts CRLF would
+# repartition the same corpus. Normalise everything to LF in the repository.
+* text=auto eol=lf
+quality/templates/*.json text eol=lf
+quality/params/*.json text eol=lf

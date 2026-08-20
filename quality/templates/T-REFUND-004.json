@@ -1,0 +1,47 @@
+{
+  "template_id": "T-REFUND-004",
+  "family": "refunds",
+  "body": "Subject: {subject}\n\n{detail}\n\n{closing}",
+  "label_defaults": {
+    "category": "refunds",
+    "severity": 2,
+    "sentiment": -0.2,
+    "escalate": false,
+    "reason": null
+  },
+  "slots": {
+    "subject": [
+      { "value": "Refund enquiry" },
+      { "value": "Request about a refund" },
+      { "value": "Credit note enquiry" }
+    ],
+    "detail": [
+      {
+        "value": "We cancelled on 2 March and would like the unused portion of the term refunded to the original card.",
+        "label": { "severity": 2 }
+      },
+      {
+        "value": "Twelve of the twenty seats on the March invoice were never activated and we are asking for those to be refunded.",
+        "label": { "severity": 2 }
+      },
+      {
+        "value": "The renewal went through after we had given notice, and we are asking for the full A$3,600.00 back rather than a credit.",
+        "label": { "severity": 3 }
+      }
+    ],
+    "closing": [
+      {
+        "value": "Could you confirm what the process is and how long it takes?",
+        "label": { "sentiment": 0.0 }
+      },
+      {
+        "value": "If this is not resolved this week we will ask our legal team to look at the contract.",
+        "label": { "sentiment": -0.6, "escalate": true, "reason": "POLICY" }
+      },
+      {
+        "value": "Thank you for looking into it, we have been happy with the service otherwise.",
+        "label": { "sentiment": 0.4 }
+      }
+    ]
+  }
+}

@@ -1,23 +1,14 @@
-name: ci
+name: regen-expected
+# Regenerates ci/expected/schema.sql from a clean application of the migration set, with the same
+# PostgreSQL and pg_dump versions the ci workflow uses. Manual trigger only: the regenerated file
+# comes back as an artifact, is reviewed as a diff, and is committed by a person — never by CI.
 on:
-  push:
-    branches: [main]
-  pull_request:
+  workflow_dispatch:
 concurrency:
   group: '${{ github.workflow }}-${{ github.ref }}'
   cancel-in-progress: true
 jobs:
-  check:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-      - name: Repository structure check
-        run: bash ci/check.sh
-  db:
+  regen:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     services:
@@ -41,26 +32,18 @@ jobs:
           node-version: '22'
       - name: Install the PostgreSQL client
         run: sudo apt-get update && sudo apt-get install -y postgresql-client
-      - name: Migrations and database tests
+      - name: Regenerate the expected schema
         env:
           PGHOST: localhost
           PGPORT: 5432
           PGUSER: postgres
           PGPASSWORD: postgres
           PGDATABASE: postgres
-        # Bootstrap of the golden schema: when ci/expected/schema.sql is absent, this run generates
-        # it, uploads it as an artifact for review, and still fails — the merge stays blocked until
-        # a person commits the reviewed file. Once on main, regen-expected.yml is the regeneration path.
-        run: |
-          if [ ! -f ci/expected/schema.sql ]; then
-            LEDGERDESK_WRITE_EXPECTED=yes bash ci/db_check.sh
-            echo "::error::ci/expected/schema.sql was missing. It was generated in this run and uploaded as an artifact; review the file and commit it."
-            exit 1
-          fi
-          bash ci/db_check.sh
+          LEDGERDESK_WRITE_EXPECTED: 'yes'
+        run: bash ci/db_check.sh
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: expected-schema
           path: ci/expected/schema.sql
-          if-no-files-found: ignore
+          if-no-files-found: error

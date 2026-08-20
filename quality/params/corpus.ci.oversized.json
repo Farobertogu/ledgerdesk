@@ -1,0 +1,13 @@
+{
+  "purpose": "CI fixture: sizes the four sets beyond what the template space can produce, so the headroom self-test must fail with exit 3. Not a run input.",
+  "schema_version": "1.1",
+  "builder_version": "corpus.ts/1.0.0",
+  "canonical_order": "sorted_by_item_id_then_shuffled",
+  "min_margin_ratio": 0.1,
+  "sizes": {
+    "selection": 50,
+    "report": 50,
+    "ood": 50,
+    "blind_label": 50
+  }
+}

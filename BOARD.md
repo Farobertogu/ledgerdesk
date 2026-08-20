@@ -1,23 +1,22 @@
 # Build board
 
-Source of truth for build order: the specification's build plan, as amended — **25 verifiable increments**, order and dependencies only. **Working rule: one branch per card (`card/<ID>-<slug>`); a card merges to `main` only after its named tests are green and the owner has reviewed the PR (merge `--no-ff`).** Tags mark plan gates: `baseline-v1.0` (sealed), `demo-w7`, `freeze-a4`. `main` is protected: merge by PR with the `check` job green.
+Source of truth for build order: the specification's build plan, as amended — **25 verifiable increments**, order and dependencies only. **Working rule: one branch per card (`card/<ID>-<slug>`); a card merges to `main` only after its named tests are green and the owner has reviewed the PR (merge `--no-ff`).** Tags mark plan gates: `baseline-v1.0` (sealed), `demo-w7`, `freeze-a4`. `main` is protected: merge by PR with the `check` **and `db`** jobs green — the `db` job is where every closing test of a data card actually runs.
 
 ## In review
 
-| Card | Increment | Branch | Closing evidence |
-|---|---|---|---|
-| I0b | Process gate: `adr_gate` step in CI · `FROZEN_PATHS` · PR template · protection of `main` | `card/I0b-process-gate` | a test PR touching a frozen path **without** an ADR comes out **red**, and the same PR **with** its accepted ADR comes out **green**; both runs linked from this card |
+*(empty)*
 
 ## In progress
 
-*(empty)*
+| Card | Increment | Branch | Closing evidence |
+|---|---|---|---|
+| I2 | Data spine: schema, RLS, migrations, template engine with ground truth — **absorbs I2b under ADR-018**, because the ledger is part of the schema and has to be right before the first row is written | `card/I2-data-spine` | `test_RLS_*` and `test_LEDGER_*` green + `eval_item` populated with labels |
+| I2b | Ledger with chain + append-only tests — **delivered inside I2**, same branch and same PR; it does not close on its own | `card/I2-data-spine` | `test_LEDGER_*` green, in the PR that closes I2 |
 
 ## Backlog (plan order)
 
 | Card | Increment | Depends on | Closing evidence |
 |---|---|---|---|
-| I2 | Data spine: schema, RLS, migrations, template engine with ground truth | I0 | `test_RLS_*` green + `eval_item` populated with labels |
-| I2b | Ledger with chain + append-only tests | I2 | `test_LEDGER_*` green — before any agent writes a row |
 | I3 | App skeleton: auth, 3 roles, ticket CRUD, state machine | I2 | US-01 green + 3 navigable screens |
 | I4 | LLM gateway + PII redaction + canary — before any agent | I2 | `test_SEC_pii_never_leaves`, `test_SEC_no_direct_sdk_import` |
 | I5 | Pure algorithm + 14 edge cases + starvation property + sensitivity table | I2 | 14 named tests + `reports/weight_sensitivity.md` |
@@ -49,3 +48,4 @@ Source of truth for build order: the specification's build plan, as amended — 
 |---|---|---|
 | I0 | Repo spine: git, CI, ADR template, board, `status/`, minutes template | commit `73abba1` on `main` + CI run green |
 | I1 | Documentary baseline: proposal, WBS, Gantt, stories layer 1/2, models | PR #1 merged `--no-ff`; tag `baseline-v1.0` on the merge commit |
+| I0b | Process gate: `adr_gate` in CI · `FROZEN_PATHS` · PR template · protection of `main` | PR #2 merged; evidence pair on PR #3: **red** [run 32401784489](https://github.com/Farobertogu/ledgerdesk/actions/runs/32401784489) (frozen path without ADR) → **green** [run 32401951976](https://github.com/Farobertogu/ledgerdesk/actions/runs/32401951976) (same path covered by ADR-018) |

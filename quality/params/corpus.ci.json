@@ -1,0 +1,13 @@
+{
+  "purpose": "CI smoke input for the corpus generator. The four set sizes below are NOT the sealed sizing fields of the run: those are emitted by the derivator before the first scored run and are never typed into a file. This input exists so the generator's three self-tests can run on every push.",
+  "schema_version": "1.1",
+  "builder_version": "corpus.ts/1.0.0",
+  "canonical_order": "sorted_by_item_id_then_shuffled",
+  "min_margin_ratio": 0.1,
+  "sizes": {
+    "selection": 24,
+    "report": 24,
+    "ood": 12,
+    "blind_label": 30
+  }
+}
