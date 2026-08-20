@@ -1,0 +1,6 @@
+# Frozen scope. A PR touching any path below must add or reference an accepted ADR (see adr/).
+# This gate is necessary, not sufficient: a domain or corpus change that touches no listed path
+# is caught by the PR template's fourth checkbox, not by this file.
+# On tag demo-w7 this file gains the src/ globs (application freeze mechanism).
+migrations/
+quality/schemas/
