@@ -48,4 +48,19 @@ jobs:
           PGUSER: postgres
           PGPASSWORD: postgres
           PGDATABASE: postgres
-        run: bash ci/db_check.sh
+        # Bootstrap of the golden schema: when ci/expected/schema.sql is absent, this run generates
+        # it, uploads it as an artifact for review, and still fails — the merge stays blocked until
+        # a person commits the reviewed file. Once on main, regen-expected.yml is the regeneration path.
+        run: |
+          if [ ! -f ci/expected/schema.sql ]; then
+            LEDGERDESK_WRITE_EXPECTED=yes bash ci/db_check.sh
+            echo "::error::ci/expected/schema.sql was missing. It was generated in this run and uploaded as an artifact; review the file and commit it."
+            exit 1
+          fi
+          bash ci/db_check.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: expected-schema
+          path: ci/expected/schema.sql
+          if-no-files-found: ignore
