@@ -10,14 +10,12 @@ Source of truth for build order: the specification's build plan, as amended — 
 
 | Card | Increment | Branch | Closing evidence |
 |---|---|---|---|
-| I2 | Data spine: schema, RLS, migrations, template engine with ground truth — **absorbs I2b under ADR-018**, because the ledger is part of the schema and has to be right before the first row is written | `card/I2-data-spine` | `test_RLS_*` and `test_LEDGER_*` green + `eval_item` populated with labels |
-| I2b | Ledger with chain + append-only tests — **delivered inside I2**, same branch and same PR; it does not close on its own | `card/I2-data-spine` | `test_LEDGER_*` green, in the PR that closes I2 |
+| I3 | App skeleton: auth, 3 roles, ticket CRUD, state machine | `card/I3-app-skeleton` | US-01 green + 3 navigable screens |
 
 ## Backlog (plan order)
 
 | Card | Increment | Depends on | Closing evidence |
 |---|---|---|---|
-| I3 | App skeleton: auth, 3 roles, ticket CRUD, state machine | I2 | US-01 green + 3 navigable screens |
 | I4 | LLM gateway + PII redaction + canary — before any agent | I2 | `test_SEC_pii_never_leaves`, `test_SEC_no_direct_sdk_import` |
 | I5 | Pure algorithm + 14 edge cases + starvation property + sensitivity table | I2 | 14 named tests + `reports/weight_sensitivity.md` |
 | I6 | Triage agent | I4, I5, I2b | US-02 + first ledger rows |
@@ -49,3 +47,5 @@ Source of truth for build order: the specification's build plan, as amended — 
 | I0 | Repo spine: git, CI, ADR template, board, `status/`, minutes template | commit `73abba1` on `main` + CI run green |
 | I1 | Documentary baseline: proposal, WBS, Gantt, stories layer 1/2, models | PR #1 merged `--no-ff`; tag `baseline-v1.0` on the merge commit |
 | I0b | Process gate: `adr_gate` in CI · `FROZEN_PATHS` · PR template · protection of `main` | PR #2 merged; evidence pair on PR #3: **red** [run 32401784489](https://github.com/Farobertogu/ledgerdesk/actions/runs/32401784489) (frozen path without ADR) → **green** [run 32401951976](https://github.com/Farobertogu/ledgerdesk/actions/runs/32401951976) (same path covered by ADR-018) |
+| I2 | Data spine: schema, RLS, migrations, template engine with ground truth — absorbed I2b under ADR-018 | PR #3 merged `--no-ff` after an adversarial review (33 fixes + 32 hardenings, six dated amendments in ADR-018); thirteen database and generator tests green on two platforms: CI [run 32413806720](https://github.com/Farobertogu/ledgerdesk/actions/runs/32413806720) and a local PostgreSQL 16 container |
+| I2b | Ledger with chain + append-only tests — delivered inside I2 | same PR: `test_LEDGER_append_only` and `test_LEDGER_class_payload` green (chain monotonicity, one-child-per-head, truncate locks, per-class payload contract: 8 positive + 42 negative cases) |
