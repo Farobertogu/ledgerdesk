@@ -17,3 +17,5 @@ Forward-only. One numbered file per change; no destructive edits to an applied m
 - **The platform objects come first.** The migrations grant to and revoke from the roles the managed platform provides, and the policies read request claims through its `auth` schema. On a bare server those objects come from `ci/sql/00_platform_shim.sql`, which is a test fixture and deliberately not a migration: keeping it out of this directory is what lets the applied schema stay equal to the published one in both directions.
 
 The four roles the set creates are cluster-wide rather than per-database, so a second clean application needs them dropped first — `ci/db_check.sh` does that between its two runs, which is how `test_MIGRATIONS_forward_only_is_deterministic` gets two independent applications to compare.
+
+The applied schema is then diffed, in both directions and with no exception list, against `ci/expected/schema.sql`. That file is the committed record of what this set produces; see `ci/expected/README.md` for how to generate it.

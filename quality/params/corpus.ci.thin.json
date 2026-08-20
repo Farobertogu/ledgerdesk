@@ -1,0 +1,13 @@
+{
+  "purpose": "CI fixture: the four sets fit, but the margin left over is below the declared minimum, so the headroom self-test must fail with exit 3 on its second branch. Not a run input.",
+  "schema_version": "1.1",
+  "builder_version": "corpus.ts/1.0.0",
+  "canonical_order": "sorted_by_item_id_then_shuffled",
+  "min_margin_ratio": 0.1,
+  "sizes": {
+    "selection": 30,
+    "report": 30,
+    "ood": 20,
+    "blind_label": 25
+  }
+}

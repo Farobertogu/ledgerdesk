@@ -1,15 +1,20 @@
 #!/usr/bin/env bash
-# Repository checks — run locally and in CI. Steps: structure, branch_name, adr_gate.
-set -e
+# Repository checks — run locally and in CI. Steps: structure, schema, branch_name, adr_gate.
+set -euo pipefail
 fail() { echo "CI FAIL: $1"; exit 1; }
 
 # --- structure ---
-for f in README.md BOARD.md docs/PROVENANCE.md adr/TEMPLATE.md adr/README.md minutes/TEMPLATE.md CODEOWNERS FROZEN_PATHS .github/pull_request_template.md; do
+for f in README.md BOARD.md docs/PROVENANCE.md adr/TEMPLATE.md adr/README.md minutes/TEMPLATE.md CODEOWNERS FROZEN_PATHS .github/pull_request_template.md ci/check.sh ci/db_check.sh migrations/README.md; do
   [ -f "$f" ] || fail "missing $f"
 done
 ls status/*.md >/dev/null 2>&1 || fail "no weekly status file in status/"
+ls ci/sql/test_*.sql >/dev/null 2>&1 || fail "no SQL tests in ci/sql/"
 grep -q "## Backlog" BOARD.md || fail "BOARD.md missing Backlog section"
 echo "structure OK"
+
+# --- schema: the sealed-manifest schema is a frozen path; this is its executable cover.
+command -v node >/dev/null 2>&1 || fail "node is not on PATH (test_SPLITS_schema_accepts_and_rejects needs it)"
+node ci/schema_check.mjs || fail "test_SPLITS_schema_accepts_and_rejects"
 
 # --- branch_name: every branch except main must match card/<ID>-<slug>, ID from BOARD.md.
 #     Single named exemption: i1-documentary-baseline (merged before this rule existed).

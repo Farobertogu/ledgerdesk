@@ -26,7 +26,14 @@ create table quality_report.eval_outcome (
   row_hash     text        not null,
   unique (attempt_id, role, item_id)
 );
+alter table quality_report.eval_outcome add constraint eval_outcome_hash_shape check (
+  row_hash ~ '^[a-f0-9]{64}$'
+  and (prev_hash = 'GENESIS' or prev_hash ~ '^[a-f0-9]{64}$')
+  and row_hash <> prev_hash);
+
 revoke update, delete, truncate on quality_report.eval_outcome
   from public, authenticated, anon, service_role;
 create trigger trg_eval_outcome_no_update before update or delete on quality_report.eval_outcome
   for each row execute function ledger_immutable();        -- same E_LEDGER_APPEND_ONLY
+create trigger trg_eval_outcome_no_truncate before truncate on quality_report.eval_outcome
+  for each statement execute function ledger_immutable();

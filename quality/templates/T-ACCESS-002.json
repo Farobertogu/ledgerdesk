@@ -11,9 +11,9 @@
   },
   "slots": {
     "subject": [
-      { "value": "Locked out after password reset" },
-      { "value": "Single sign-on loop on the reporting console" },
-      { "value": "New starter cannot be added to the workspace" }
+      { "value": "Question about signing in" },
+      { "value": "Sign-in problem on our account" },
+      { "value": "Access issue to report" }
     ],
     "detail": [
       {

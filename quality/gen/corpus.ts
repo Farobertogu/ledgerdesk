@@ -12,10 +12,22 @@
  *   Output    the corpus plus a signed manifest: template_id per item, counts per family, and
  *             the sha256 of every body.
  *   Exit 0    corpus and manifest emitted, headroom satisfied.
- *   Exit 1    a parameter is missing, or the run is not reproducible from the triple.
- *   Exit 2    the manifest does not reconcile against the emitted bodies.
+ *   Exit 1    a parameter is missing, a template is malformed, or the templates changed under
+ *             the run. Cross-process reproducibility is NOT proved here: it is proved by
+ *             test_GEN_corpus_deterministic_from_triple in ci/db_check.sh.
+ *   Exit 2    the manifest does not reconcile against the emitted bodies. This is a defence
+ *             against corrupt writing and has no test today: reconcile() only reads back what
+ *             this same process just wrote, so the branch is unreachable without a verify mode.
  *   Exit 3    headroom self-test failed.
  *   Non-zero fails the build.
+ *
+ *   Signature manifest_sha256 = sha256 of the canonical JSON (object keys sorted, no whitespace)
+ *             of every manifest field EXCEPT manifest_sha256 itself. built_at and run_id are
+ *             inside that scope, so the signature is reproducible from the triple ONLY when
+ *             --built-at is pinned; the corpus and the partition are reproducible from the
+ *             triple unconditionally.
+ *   Digests   corpus_sha256 covers items WITH their labels; content_sha256 per kind covers
+ *             ids bound to body hashes and NOT labels — the label vector is committed separately.
  *
  * This generator emits nothing a blind rater may see: template_id, slot parameters and every
  * label-carrying field stay inside the corpus and the manifest. The de-identification generator
@@ -27,7 +39,7 @@
  */
 
 import { createHash } from 'node:crypto';
-import { readdirSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { readdirSync, readFileSync, writeFileSync, mkdirSync, writeSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
 // --------------------------------------------------------------------------- types
@@ -93,11 +105,14 @@ type Build = {
 
 const KIND_ORDER: KindName[] = ['selection', 'report', 'ood', 'blind_label'];
 const REASONS = ['CONF', 'SENT', 'TIER', 'RETRY', 'SLA', 'GROUND', 'POLICY', 'LANG'];
+const LABEL_KEYS: readonly string[] = ['category', 'severity', 'sentiment', 'escalate', 'reason'];
 
 // --------------------------------------------------------------------------- primitives
 
 function fail(code: number, message: string): never {
-  process.stderr.write(`corpus: ${message}\n`);
+  // writeSync, not process.stderr.write: on a pipe the asynchronous write can be lost when the
+  // process exits in the same tick, and the diagnostic is the whole point of a non-zero exit.
+  writeSync(2, `corpus: ${message}\n`);
   process.exit(code);
 }
 
@@ -188,10 +203,26 @@ function parseArgs(argv: string[]): Args {
   }
   const seed = Number(flags.seed);
   if (!Number.isInteger(seed)) fail(1, `--seed must be an integer, got '${flags.seed}'`);
+
+  // The manifest declares the templates path verbatim, so the spelling of the flag must not be
+  // able to change the signature: normalise it and refuse anything that is not repository-relative.
+  const templatesArg = flags.templates.replace(/\\/g, '/').replace(/^\.\//, '').replace(/\/+$/, '');
+  if (templatesArg === '' || templatesArg.startsWith('/') || /^[A-Za-z]:/.test(templatesArg)) {
+    fail(1, '--templates must be a repository-relative path (the manifest declares it verbatim)');
+  }
+  if (flags['built-at'] !== undefined
+      && !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,3})?Z$/.test(flags['built-at'])) {
+    fail(1, `--built-at must be an ISO-8601 UTC timestamp, got '${flags['built-at']}'`);
+  }
+  if (flags['run-id'] !== undefined
+      && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(flags['run-id'])) {
+    fail(1, `--run-id must be a lowercase uuid, got '${flags['run-id']}'`);
+  }
+
   return {
     seed,
     templatesDir: resolve(flags.templates),
-    templatesArg: flags.templates,
+    templatesArg,
     paramsPath: resolve(flags.params),
     outDir: resolve(flags.out),
     runId: flags['run-id'] ?? null,
@@ -219,8 +250,22 @@ function loadParams(path: string): Params {
       fail(1, `parameters file ${path} needs an integer size >= 1 for kind '${kind}'`);
     }
   }
-  if (typeof raw.min_margin_ratio !== 'number' || raw.min_margin_ratio < 0) {
-    fail(1, `parameters file ${path} needs a non-negative 'min_margin_ratio'`);
+  for (const k of Object.keys(sizes)) {
+    if (!(KIND_ORDER as readonly string[]).includes(k)) {
+      fail(1, `parameters file ${path} declares an unknown kind '${k}' in sizes (the four kinds are ${KIND_ORDER.join(', ')})`);
+    }
+  }
+  if (typeof raw.min_margin_ratio !== 'number' || !(raw.min_margin_ratio > 0)) {
+    fail(1, `parameters file ${path} needs a POSITIVE 'min_margin_ratio': a margin of 0 makes the sealed report split recoverable exactly by complement`);
+  }
+  if (raw.schema_version !== '1.1') {
+    fail(1, `parameters file ${path}: schema_version must be '1.1' — the sealing contract rejects '1.0'`);
+  }
+  if (raw.canonical_order !== 'sorted_by_item_id_then_shuffled') {
+    fail(1, `parameters file ${path}: canonical_order must be 'sorted_by_item_id_then_shuffled' (the const of the sealed manifest schema)`);
+  }
+  if (typeof raw.builder_version !== 'string' || raw.builder_version.trim() === '') {
+    fail(1, `parameters file ${path} needs a non-empty 'builder_version'`);
   }
   return raw as Params;
 }
@@ -241,8 +286,15 @@ function loadTemplates(dir: string): { templates: Template[]; inputSha256: strin
   for (const name of names) {
     const path = join(dir, name);
     const text = readFileSync(path, 'utf8');
-    fingerprints.push(`${name}:${sha256(text)}`);
-    const t = JSON.parse(text) as Template;
+    // The digest is taken over the text normalised to LF, not over the bytes on disk: it seeds the
+    // shuffle, and a checkout that converts line endings would otherwise repartition the corpus.
+    fingerprints.push(`${name}:${sha256(text.replace(/\r\n/g, '\n'))}`);
+    let t: Template;
+    try {
+      t = JSON.parse(text) as Template;
+    } catch (error) {
+      return fail(1, `template ${name} is not valid JSON: ${(error as Error).message}`);
+    }
 
     for (const key of ['template_id', 'family', 'body', 'label_defaults', 'slots'] as const) {
       if (t[key] === undefined) fail(1, `template ${name} is missing '${key}'`);
@@ -252,8 +304,23 @@ function loadTemplates(dir: string): { templates: Template[]; inputSha256: strin
 
     const defaults = t.label_defaults;
     if (typeof defaults.category !== 'string' || typeof defaults.severity !== 'number'
-      || typeof defaults.sentiment !== 'number' || typeof defaults.escalate !== 'boolean') {
+      || typeof defaults.sentiment !== 'number' || typeof defaults.escalate !== 'boolean'
+      || !('reason' in defaults) || (defaults.reason !== null && typeof defaults.reason !== 'string')) {
       fail(1, `template ${name} has an incomplete label_defaults block`);
+    }
+    if (defaults.reason !== null && !REASONS.includes(defaults.reason)) {
+      fail(1, `template ${name} label_defaults uses reason '${defaults.reason}', which is outside the closed alphabet`);
+    }
+
+    if (t.slots === null || typeof t.slots !== 'object' || Array.isArray(t.slots)) {
+      fail(1, `template ${name} has a 'slots' that is not an object`);
+    }
+    if (typeof t.body !== 'string' || t.body.trim() === '') {
+      fail(1, `template ${name} has an empty or non-string 'body'`);
+    }
+    if (typeof t.template_id !== 'string' || typeof t.family !== 'string'
+      || t.template_id === '' || t.family === '') {
+      fail(1, `template ${name} has an empty or non-string 'template_id' or 'family'`);
     }
 
     const slotNames = Object.keys(t.slots).sort();
@@ -268,9 +335,14 @@ function loadTemplates(dir: string): { templates: Template[]; inputSha256: strin
         if (reason !== undefined && reason !== null && !REASONS.includes(reason)) {
           fail(1, `template ${name} slot '${slot}' uses reason '${reason}', which is outside the closed alphabet`);
         }
+        for (const k of Object.keys(option.label ?? {})) {
+          if (!LABEL_KEYS.includes(k)) {
+            fail(1, `template ${name} slot '${slot}' contributes unknown label field '${k}'`);
+          }
+        }
       }
     }
-    const placeholders = t.body.match(/\{[a-z_]+\}/g) ?? [];
+    const placeholders = t.body.match(/\{[^{}]*\}/g) ?? [];
     for (const placeholder of placeholders) {
       const slot = placeholder.slice(1, -1);
       if (!slotNames.includes(slot)) fail(1, `template ${name} uses '{${slot}}' with no slot of that name`);
@@ -310,7 +382,13 @@ function itemsFromTemplate(t: Template): Item[] {
       if (option.label) Object.assign(label, option.label);
     });
     if (!label.escalate) label.reason = null;
-    const item_id = `${t.template_id}-${String(index).padStart(4, '0')}`;
+    else if (label.reason === null || label.reason === undefined) {
+      fail(1, `template ${t.template_id} combination ${index} escalates without a reason code`);
+    }
+    // The id may not encode the label. template_id plus the cartesian index decode exactly to the
+    // slot combination, which IS the ground truth, and the manifest publishes the blind pool's
+    // ids: hashing the two together keeps the id opaque while staying reproducible.
+    const item_id = `I-${sha256(`${t.template_id}|${index}`).slice(0, 16)}`;
     return {
       id: derivedUuid(item_id),
       item_id,
@@ -333,6 +411,9 @@ function build(seed: number, templates: Template[], inputSha256: string, sizes: 
   const items: Item[] = [];
   for (const t of templates) items.push(...itemsFromTemplate(t));
   items.sort(byItemId);
+  if (new Set(items.map((i) => i.item_id)).size !== items.length) {
+    fail(1, 'duplicate item_id: the partition is disjoint by construction only over unique ids');
+  }
 
   // canonical order: sorted by item_id, THEN shuffled with the seeded stream. Never set,
   // dict, glob or directory order.
@@ -410,6 +491,9 @@ function headroom(b: Build, params: Params): { ok: boolean; message: string; rep
   if (overlap !== '') {
     return { ok: false, message: `headroom self-test failed: the four sets are not disjoint (${overlap})`, report };
   }
+  if (margin < 1) {
+    return { ok: false, message: 'headroom self-test failed: margin 0 exposes the report split by complement', report };
+  }
   if (margin < minMarginItems) {
     return { ok: false, message: `headroom self-test failed: margin ${margin} is below the declared minimum of ${minMarginItems} items (${params.min_margin_ratio} of ${required})`, report };
   }
@@ -442,6 +526,12 @@ function reconcile(outDir: string): string {
 
   for (const kind of KIND_ORDER) {
     const entry = manifest.kinds[kind] as SplitEntry;
+    if (entry.item_ids === null) {
+      // null is the sealed form of the report split; any other kind carrying it is a defect.
+      if (kind !== 'report') return `kind '${kind}' has item_ids null, which only 'report' may have after sealing`;
+      continue;
+    }
+    if (!Array.isArray(entry.item_ids)) return `kind '${kind}' has no item_ids array to reconcile`;
     if (entry.item_ids.length !== entry.n) return `kind '${kind}' declares n=${entry.n} and lists ${entry.item_ids.length} ids`;
     const members: Item[] = [];
     for (const id of entry.item_ids) {
@@ -466,9 +556,14 @@ function main(argv: string[]): void {
   const { templates, inputSha256 } = loadTemplates(args.templatesDir);
 
   const first = build(args.seed, templates, inputSha256, params.sizes);
-  const second = build(args.seed, templates, inputSha256, params.sizes);
-  if (first.corpus_sha256 !== second.corpus_sha256 || first.partition_sha256 !== second.partition_sha256) {
-    fail(1, 'the run is not reproducible from the triple: two builds of (seed, templates, parameters) produced different digests');
+  // The second build re-reads the directory, so this catches an unstable read or a templates
+  // directory that changes under the run. Cross-process reproducibility is proved in CI, not here.
+  const reread = loadTemplates(args.templatesDir);
+  const second = build(args.seed, reread.templates, reread.inputSha256, params.sizes);
+  if (reread.inputSha256 !== inputSha256
+    || first.corpus_sha256 !== second.corpus_sha256
+    || first.partition_sha256 !== second.partition_sha256) {
+    fail(1, 'the templates changed under the run: two builds of (seed, templates, parameters) produced different digests');
   }
 
   const head = headroom(first, params);

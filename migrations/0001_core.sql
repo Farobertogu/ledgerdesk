@@ -26,7 +26,10 @@ create type kb_gap_state as enum ('OPEN','NOT_DOCUMENTABLE','CLOSED');
 -- Defined here because audit_event (this migration) and quality_report.eval_outcome
 -- (0004) both hang off it; 0002 re-declares it idempotently with the ledger.
 -- ---------------------------------------------------------------------------
-create or replace function ledger_immutable() returns trigger language plpgsql as $$
+create or replace function ledger_immutable() returns trigger
+  language plpgsql
+  set search_path = pg_catalog, pg_temp
+as $$
 begin raise exception 'E_LEDGER_APPEND_ONLY'; end $$;
 
 -- ---------------------------------------------------------------------------
@@ -101,7 +104,12 @@ create table prompt_version (
 
 -- Immutable except promoted_at: a prompt whose text changes after a run makes the
 -- generations incomparable, which is the same reason the ledger is append-only.
-create or replace function prompt_version_only_promoted_at() returns trigger language plpgsql as $$
+-- search_path is pinned because the body resolves the jsonb minus operator through it: a role
+-- with CREATE on a schema of its own could otherwise define one and neutralise the immutability.
+create or replace function prompt_version_only_promoted_at() returns trigger
+  language plpgsql
+  set search_path = pg_catalog, pg_temp
+as $$
 begin
   if (to_jsonb(new) - 'promoted_at') is distinct from (to_jsonb(old) - 'promoted_at') then
     raise exception 'E_PROMPT_VERSION_INMUTABLE';
@@ -203,12 +211,42 @@ create table audit_event (
   prev_hash   text        not null,
   row_hash    text        not null
 );
+alter table audit_event add constraint audit_hash_shape check (
+  row_hash ~ '^[a-f0-9]{64}$'
+  and (prev_hash = 'GENESIS' or prev_hash ~ '^[a-f0-9]{64}$')
+  and row_hash <> prev_hash);
+
 revoke update, delete, truncate on audit_event from public, authenticated, anon, service_role;
 create trigger trg_audit_no_update before update or delete on audit_event
   for each row execute function ledger_immutable();
+-- A row trigger never fires on TRUNCATE, and the revoke above does not reach the owner — which is
+-- the role the migrations and CI run as. Without this, append-only is a convention for TRUNCATE.
+create trigger trg_audit_no_truncate before truncate on audit_event
+  for each statement execute function ledger_immutable();
 alter table audit_event enable row level security;
 create policy tenant_isolation_audit on audit_event
   using (org_id = (auth.jwt() ->> 'org_id')::uuid);
+
+-- The chain is a mechanism here too, not two columns nobody verifies. The scope is the
+-- organisation because audit_event has no run_id; the lock namespace is 1 so it never shares
+-- space with the ledger's own advisory lock.
+create or replace function audit_event_link() returns trigger
+  language plpgsql
+  security definer
+  set search_path = public, pg_temp
+as $$
+declare head text;
+begin
+  perform pg_advisory_xact_lock(hashtextextended(new.org_id::text, 1));
+  select row_hash into head from audit_event where org_id = new.org_id order by id desc limit 1;
+  if new.prev_hash is distinct from coalesce(head,'GENESIS') then
+    raise exception 'E_LEDGER_CHAIN_BROKEN';
+  end if;
+  return new;
+end $$;
+create trigger trg_audit_link before insert on audit_event
+  for each row execute function audit_event_link();
+create unique index audit_one_child_per_head on audit_event (org_id, prev_hash);
 
 -- ---------------------------------------------------------------------------
 -- 11 · kb_gap — the knowledge-gap record, in columns instead of prose
@@ -240,6 +278,35 @@ alter table kb_gap enable row level security;
 create policy tenant_isolation_kb_gap on kb_gap
   using (org_id = (auth.jwt() ->> 'org_id')::uuid);
 
+-- CLOSED is written by one function and only one. The guard reads a session marker that only
+-- kb_gap_close_by_check() sets, so no application path can close a gap by hand: the check above
+-- forbids a CLOSED row without its witnesses, and this forbids reaching CLOSED at all otherwise.
+create or replace function kb_gap_state_guard() returns trigger
+  language plpgsql
+  set search_path = pg_catalog, pg_temp
+as $$
+begin
+  if new.state is distinct from old.state
+     and coalesce(current_setting('ledgerdesk.kb_gap_close', true), '') <> old.id::text then
+    raise exception 'E_KB_GAP_CIERRE_NO_VERIFICADO';
+  end if;
+  return new;
+end $$;
+create trigger trg_kb_gap_state_guard before update on kb_gap
+  for each row execute function kb_gap_state_guard();
+
+create or replace function kb_gap_close_by_check(p_gap uuid, p_ledger bigint)
+  returns void
+  language plpgsql
+  set search_path = public, pg_temp
+as $$
+begin
+  perform set_config('ledgerdesk.kb_gap_close', p_gap::text, true);
+  update kb_gap set state = 'CLOSED', closed_by_check_at = now(), closing_ledger_ref = p_ledger
+   where id = p_gap;
+  perform set_config('ledgerdesk.kb_gap_close', '', true);
+end $$;
+
 -- ---------------------------------------------------------------------------
 -- 12 · Row-level security, non-ledger half
 -- The ledger's own enable/policies/grants descend to 0002, where the table exists.
@@ -251,14 +318,35 @@ alter table response enable row level security;
 create policy tenant_isolation on ticket
   using (org_id = (auth.jwt() ->> 'org_id')::uuid);
 
--- role isolation: a customer sees only their own tickets
-create policy customer_own_rows on ticket for select
+-- Role isolation: a customer sees only their own tickets. RESTRICTIVE on purpose — a permissive
+-- policy would be OR-ed with tenant_isolation and every customer would see the whole tenant. The
+-- org_id clause stays inside it so that deleting tenant_isolation still fails closed.
+create policy customer_own_rows on ticket as restrictive for select
   using (org_id = (auth.jwt() ->> 'org_id')::uuid
          and ( (auth.jwt() ->> 'role') in ('agent','supervisor') or customer_id = auth.uid() ));
 
--- write path: only server actions with a re-checked role
+-- Write path: only server actions with a re-checked role, and only inside the tenant. response
+-- carries no org_id, so the tenant is reached through its ticket; without the with check an
+-- update could move a row out of the tenant it was allowed to touch.
 create policy agent_writes on response for update
-  using ((auth.jwt() ->> 'role') in ('agent','supervisor'));
+  using ((auth.jwt() ->> 'role') in ('agent','supervisor')
+         and exists (select 1 from ticket t where t.id = response.ticket_id
+                      and t.org_id = (auth.jwt() ->> 'org_id')::uuid))
+  with check ((auth.jwt() ->> 'role') in ('agent','supervisor')
+         and exists (select 1 from ticket t where t.id = response.ticket_id
+                      and t.org_id = (auth.jwt() ->> 'org_id')::uuid));
+
+-- Read path for response: with row-level security enabled and only an update policy, the table
+-- would be unreadable for every role but the owner, and the draft has to be readable to be shown.
+create policy response_tenant_select on response for select
+  using (exists (select 1 from ticket t where t.id = response.ticket_id
+                  and t.org_id = (auth.jwt() ->> 'org_id')::uuid));
+
+-- human_edit carries NO row-level security in this migration, and that is declared rather than
+-- overlooked: it holds no tenant column of its own and no role has any grant on it yet. It is
+-- reached only through response, and its policy lands with the console that writes it.
+
+create index response_ticket_idx on response (ticket_id);  -- the draft is read by ticket
 
 -- the application role can never read the report schema
 revoke usage on schema quality_report from authenticated, anon;
@@ -274,5 +362,9 @@ create role quality_eval;  -- evaluator: the ONLY writer of eval_result
 
 grant insert, select on eval_item   to quality_gen;    -- exception 1
 grant insert, select on eval_result to quality_eval;   -- exception 2
-grant select on eval_item, eval_split, eval_result, prompt_version to quality_ro, app_rw;
+-- eval_item holds every body of the corpus and every ground-truth label, and it carries no
+-- row-level security: access to it is all or nothing. The application reads the aggregate, never
+-- the per-item detail, so it is granted the other three tables and not this one.
+grant select on eval_item, eval_split, eval_result, prompt_version to quality_ro;
+grant select on            eval_split, eval_result, prompt_version to app_rw;
 grant usage on schema quality_report to quality_ro, quality_eval;

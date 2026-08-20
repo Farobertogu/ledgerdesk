@@ -6,14 +6,14 @@
     "category": "refunds",
     "severity": 2,
     "sentiment": -0.2,
-    "escalate": true,
-    "reason": "POLICY"
+    "escalate": false,
+    "reason": null
   },
   "slots": {
     "subject": [
-      { "value": "Refund request for the unused term" },
-      { "value": "Refund for the seats we never activated" },
-      { "value": "Requesting a credit note for March" }
+      { "value": "Refund enquiry" },
+      { "value": "Request about a refund" },
+      { "value": "Credit note enquiry" }
     ],
     "detail": [
       {
@@ -36,7 +36,7 @@
       },
       {
         "value": "If this is not resolved this week we will ask our legal team to look at the contract.",
-        "label": { "sentiment": -0.6 }
+        "label": { "sentiment": -0.6, "escalate": true, "reason": "POLICY" }
       },
       {
         "value": "Thank you for looking into it, we have been happy with the service otherwise.",

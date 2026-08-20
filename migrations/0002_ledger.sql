@@ -71,10 +71,16 @@ create table ledger_entry (
 
 -- append-only, by mechanism and not by convention
 revoke update, delete, truncate on ledger_entry from public, authenticated, anon, service_role;
-create or replace function ledger_immutable() returns trigger language plpgsql as $$
+create or replace function ledger_immutable() returns trigger
+  language plpgsql
+  set search_path = pg_catalog, pg_temp
+as $$
 begin raise exception 'E_LEDGER_APPEND_ONLY'; end $$;
 create trigger trg_ledger_no_update before update or delete on ledger_entry
   for each row execute function ledger_immutable();
+-- A row trigger never fires on TRUNCATE, and the revoke above does not reach the owner.
+create trigger trg_ledger_no_truncate before truncate on ledger_entry
+  for each statement execute function ledger_immutable();
 
 -- ---------------------------------------------------------------------------
 -- 3 · The chain, and the completeness the writer may not skip
@@ -89,24 +95,39 @@ create trigger trg_ledger_no_update before update or delete on ledger_entry
 create or replace function ledger_link() returns trigger
   language plpgsql
   security definer
-  set search_path = public, pg_temp
+  set search_path = pg_catalog, public, pg_temp
 as $$
 declare
-  head text;
-  required text[];
+  head      text;
+  head_seq  bigint;
+  required  text[];
 begin
-  -- serialise per run: two concurrent inserts can otherwise read the same head and both
-  -- chain against it, which unique (run_id, seq) only catches when seq collides too
+  -- The head read below is correct only under READ COMMITTED: at any stricter level the snapshot
+  -- predates the lock and a stale head would be accepted.
+  if current_setting('transaction_isolation') <> 'read committed' then
+    raise exception 'E_LEDGER_CHAIN_BROKEN';
+  end if;
+
+  -- Serialise per run UNDER READ COMMITTED; the snapshot of a REPEATABLE READ transaction
+  -- predates the lock, and what closes that case is the unique index on (run_id, prev_hash).
   perform pg_advisory_xact_lock(hashtextextended(new.run_id::text, 0));
 
-  select coalesce(row_hash,'GENESIS') into head
+  select seq, row_hash into head_seq, head
     from ledger_entry where run_id = new.run_id order by seq desc limit 1;
+  -- The head is the LAST row: a seq that does not advance forks the chain without forging a hash.
+  if head_seq is not null and new.seq <= head_seq then
+    raise exception 'E_LEDGER_CHAIN_BROKEN';
+  end if;
   if new.prev_hash is distinct from coalesce(head,'GENESIS') then
     raise exception 'E_LEDGER_CHAIN_BROKEN';
   end if;
 
-  if new.class = 'agent_call'
-     and (new.model_returned is null or new.input_path is null or new.state_hash is null) then
+  if new.class = 'agent_call' and (
+       new.prompt_version_id is null or new.model_requested is null or
+       new.model_returned    is null or new.sampling        is null or
+       new.input_hash        is null or new.input_path      is null or
+       new.prompt_hash       is null or new.response_hash   is null or
+       new.state_hash        is null) then
     raise exception 'E_LEDGER_FILA_INCOMPLETA';
   end if;
 
@@ -128,8 +149,26 @@ begin
     when 'checkpoint'         then array['seq_covered','head_row_hash','k']
     else null::text[]
   end;
-  if required is not null and not (new.output ?& required) then
+  -- Presence is not enough where the contract says NAMED: a key carrying JSON null names nothing.
+  -- failing_conjunct is the single key allowed to be null, and only in the state that authorises it.
+  if required is not null and exists (
+       select 1 from unnest(required) as k
+        where k <> 'failing_conjunct'
+          and (new.output -> k is null or jsonb_typeof(new.output -> k) = 'null')) then
     raise exception 'E_LEDGER_FILA_INCOMPLETA';
+  end if;
+
+  if new.class = 'promotion_attempt' then
+    if (new.output -> 'failing_conjunct') is null then
+      raise exception 'E_LEDGER_FILA_INCOMPLETA';
+    end if;
+    if jsonb_typeof(new.output -> 'failing_conjunct') = 'null'
+       and (new.output ->> 'outcome') is distinct from 'PROMOTED' then
+      raise exception 'E_LEDGER_FILA_INCOMPLETA';
+    end if;
+    if (new.output ->> 'outcome') = 'ABORTED' and (new.output -> 'abort_reason') is null then
+      raise exception 'E_LEDGER_FILA_INCOMPLETA';
+    end if;
   end if;
 
   return new;
@@ -177,6 +216,26 @@ alter table ledger_entry add constraint ledger_agent_identity check (
 
 alter table ledger_entry add constraint ledger_agreement_r3_has_split check (
   class <> 'agreement_r3' or split_id is not null);
+
+-- The cost sentinels become mechanical: a row that did not call the model may not inflate the
+-- budget that the consumption counter recomputes from the chain.
+alter table ledger_entry add constraint ledger_nonmodel_costs_zero check (
+  class = 'agent_call'
+  or (tokens_in = 0 and tokens_out = 0 and cost_aud = 0 and latency_ms = 0 and restarts = 0));
+
+-- Shape of the chain columns: not proof that a hash is the right one, but no room for the empty
+-- string, a space, or a row that closes a trivial loop on itself.
+alter table ledger_entry add constraint ledger_hash_shape check (
+  row_hash ~ '^[a-f0-9]{64}$'
+  and (prev_hash = 'GENESIS' or prev_hash ~ '^[a-f0-9]{64}$')
+  and row_hash <> prev_hash);
+
+-- A head has at most one child, by mechanism: unique (run_id, seq) only catches the exact
+-- collision, and this is also what closes the stale-head race at any isolation level, because
+-- uniqueness is evaluated against the physical index and not against the snapshot.
+create unique index ledger_one_child_per_head on ledger_entry (run_id, prev_hash);
+
+create index ledger_ticket_idx on ledger_entry (ticket_id, seq) where ticket_id is not null;
 
 -- ---------------------------------------------------------------------------
 -- 5 · start and its terminal
@@ -237,6 +296,16 @@ create table ledger_checkpoint (
 revoke update, delete, truncate on ledger_checkpoint from public, authenticated, anon, service_role;
 create trigger trg_checkpoint_no_update before update or delete on ledger_checkpoint
   for each row execute function ledger_immutable();
+create trigger trg_checkpoint_no_truncate before truncate on ledger_checkpoint
+  for each statement execute function ledger_immutable();
+
+-- An anchor may not point at a row that does not exist: the anchor is append-only, so a false
+-- one could never be removed. unique (run_id, seq) above is exactly the destination it needs.
+alter table ledger_checkpoint add constraint fk_checkpoint_row
+  foreign key (run_id, seq_covered) references ledger_entry (run_id, seq);
+
+alter table ledger_checkpoint add constraint checkpoint_hash_shape check (
+  head_row_hash ~ '^[a-f0-9]{64}$');
 
 -- ---------------------------------------------------------------------------
 -- 8 · The two knowledge-gap references to the ledger

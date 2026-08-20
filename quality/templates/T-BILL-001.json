@@ -11,9 +11,9 @@
   },
   "slots": {
     "subject": [
-      { "value": "Duplicate charge on invoice INV-10021" },
-      { "value": "Invoice INV-10044 does not match my plan" },
-      { "value": "Charged after cancelling — INV-10190" }
+      { "value": "Question about a recent invoice" },
+      { "value": "Invoice discrepancy to review" },
+      { "value": "Billing query on our account" }
     ],
     "detail": [
       {

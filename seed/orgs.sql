@@ -52,14 +52,22 @@ insert into ticket (id, org_id, account_id, customer_id, subject, body_raw, chan
    'web', 'en', timestamptz '2026-08-18 11:00:00+10', 'NEW',
    '5a1a0000-0000-4000-8000-000000000004', timestamptz '2026-08-18 11:30:00+10', 'ch-refund-term');
 
-insert into kb_article (id, org_id, kb_snapshot, canonical_key, title, body, body_sha256, citable) values
+-- one draft per organisation: without them the tenant isolation of the write path has nothing
+-- to be demonstrated against
+insert into response (id, ticket_id, draft) values
+  ('4e500001-0000-4000-8000-000000000001', 'aaaa0001-0000-4000-8000-000000000001',
+   'Thank you for reporting the duplicate charge. We are checking the invoice now.'),
+  ('4e500002-0000-4000-8000-000000000001', 'bbbb0001-0000-4000-8000-000000000001',
+   'Thank you for reporting the sign-in problem. We are looking at your account now.');
+
+insert into kb_article (id, org_id, kb_snapshot, canonical_key, title, body, body_sha256, citable, created_at) values
   ('c0de0001-0000-4000-8000-000000000001', '11111111-1111-4111-8111-111111111111', 'kb-2026-08-01',
    'billing/duplicate-charge', 'Duplicate charges',
    'A duplicate charge is refunded to the original payment method within five business days of confirmation.',
    encode(sha256(convert_to('A duplicate charge is refunded to the original payment method within five business days of confirmation.', 'UTF8')), 'hex'),
-   true),
+   true, timestamptz '2026-08-01 00:00:00+10'),
   ('c0de0002-0000-4000-8000-000000000001', '22222222-2222-4222-8222-222222222222', 'kb-2026-08-01',
    'access/password-reset', 'Password reset',
    'A password reset link expires after thirty minutes; requesting a second link invalidates the first.',
    encode(sha256(convert_to('A password reset link expires after thirty minutes; requesting a second link invalidates the first.', 'UTF8')), 'hex'),
-   true);
+   true, timestamptz '2026-08-01 00:00:00+10');

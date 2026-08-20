@@ -11,9 +11,9 @@
   },
   "slots": {
     "subject": [
-      { "value": "Exports timing out since this morning" },
-      { "value": "Dashboard returns a 503 intermittently" },
-      { "value": "Scheduled sync has not run for two days" }
+      { "value": "Service problem to report" },
+      { "value": "Something is not working as expected" },
+      { "value": "Availability issue on our account" }
     ],
     "detail": [
       {
