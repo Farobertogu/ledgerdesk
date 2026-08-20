@@ -29,9 +29,10 @@ fi
 # --- adr_gate: a PR that touches frozen scope must add or reference an accepted ADR.
 #     Runs only in PR context (GITHUB_BASE_REF set); locally it is skipped.
 if [ -n "${GITHUB_BASE_REF:-}" ]; then
-  git fetch -q origin "$GITHUB_BASE_REF" --depth=50 2>/dev/null || true
-  CHANGED="$(git diff --name-only "origin/${GITHUB_BASE_REF}...HEAD" 2>/dev/null || true)"
-  [ -n "$CHANGED" ] || CHANGED="$(git diff --name-only HEAD~1 2>/dev/null || true)"
+  git fetch -q origin "$GITHUB_BASE_REF" --depth=1 2>/dev/null || git fetch -q origin "$GITHUB_BASE_REF" || true
+  # Endpoint diff: works on shallow clones (no merge-base needed). An empty diff in PR context is an error, never a pass.
+  CHANGED="$(git diff --name-only "origin/${GITHUB_BASE_REF}" HEAD 2>/dev/null || true)"
+  [ -n "$CHANGED" ] || fail "adr_gate: could not compute the PR diff against ${GITHUB_BASE_REF} (fail-closed)"
   FROZEN_HIT=""
   while IFS= read -r p; do
     case "$p" in ''|\#*) continue;; esac
