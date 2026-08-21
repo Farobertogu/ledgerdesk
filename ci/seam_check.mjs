@@ -22,7 +22,7 @@ const CODE = /\.(?:[cm]?[jt]sx?)$/;
 const SKIP = new Set(['node_modules', '.next', '.git', 'dist', 'build', 'coverage']);
 
 /**
- * The single chokepoint a model SDK is allowed to be imported from. It does not exist yet — the
+ * The single chokepoint a model SDK is allowed to be imported from. It may or may not exist yet — the
  * gateway is a later increment — and that is precisely why the rule is written now: a check
  * authored after the SDK arrives is a check that lets the first violation through.
  */

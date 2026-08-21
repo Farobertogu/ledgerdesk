@@ -622,6 +622,7 @@ GRANT SELECT ON TABLE public.eval_split TO app_rw;
 GRANT SELECT,INSERT ON TABLE public.ledger_entry TO app_rw;
 GRANT SELECT ON TABLE public.ledger_entry TO quality_ro;
 GRANT SELECT ON TABLE public.ledger_entry TO quality_eval;
+GRANT USAGE ON SEQUENCE public.ledger_entry_id_seq TO app_rw;
 GRANT SELECT ON TABLE public.org TO app_rw;
 GRANT SELECT ON TABLE public.prompt_version TO quality_ro;
 GRANT SELECT ON TABLE public.prompt_version TO app_rw;

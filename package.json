@@ -14,7 +14,8 @@
     "dev": "next dev --port 3000",
     "build": "next build",
     "start": "next start --port 3000",
-    "test:app": "node --test tests/app/"
+    "test:app": "node --test tests/app/",
+    "test:gateway": "node --experimental-strip-types --test --test-concurrency=1 tests/gateway/"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "4.3.3",
