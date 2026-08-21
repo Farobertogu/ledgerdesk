@@ -1,10 +1,19 @@
 import { formatInstant } from '@/components/format';
 import { StatusPill } from '@/components/StatusPill';
 import { TransitionControls } from '@/components/TransitionControls';
-import { transitionsFrom } from '@/server/states';
+import type { UserRole } from '@/server/db';
+import { isAvailableTo, transitionsFrom } from '@/server/states';
 import type { Ticket } from '@/server/tickets';
 
-export function QueueTable({ tickets, actionable }: { tickets: Ticket[]; actionable: boolean }) {
+export function QueueTable({
+  tickets,
+  role,
+  actionable,
+}: {
+  tickets: Ticket[];
+  role: UserRole;
+  actionable: boolean;
+}) {
   if (tickets.length === 0) {
     return <p className="text-sm text-muted">No tickets are visible to this session.</p>;
   }
@@ -37,7 +46,16 @@ export function QueueTable({ tickets, actionable }: { tickets: Ticket[]; actiona
                 <td className="py-3">
                   <TransitionControls
                     ticketId={ticket.id}
-                    transitions={transitionsFrom(ticket.status)}
+                    // Availability is decided here, with the session's role, and travels to the
+                    // client already resolved — the console never works it out for itself.
+                    transitions={transitionsFrom(ticket.status).map((transition) => ({
+                      to: transition.to,
+                      guard: transition.guard,
+                      guardedBy: transition.requiresRole
+                        ? `${transition.guardedBy} (${transition.requiresRole.join(' or ')})`
+                        : transition.guardedBy,
+                      available: isAvailableTo(transition, role),
+                    }))}
                   />
                 </td>
               ) : null}

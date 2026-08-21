@@ -33,10 +33,15 @@ const STATES = [
   'TRIAGE_FAILED',
 ];
 
-/** Edges a console may take today: the specification publishes no further guard for either. */
+/**
+ * Edges a console may take today. `ESCALATED → RESOLVED` is narrower than the other two: it is the
+ * supervisor's, which is why the matrix below is driven by a supervisor session — the only one
+ * that can take all three. The role restriction itself has its own test further down.
+ */
 const CONSOLE_EDGES = [
   ['SENT', 'RESOLVED'],
   ['RESOLVED', 'CLOSED'],
+  ['ESCALATED', 'RESOLVED'],
 ];
 
 /** Edges the machine publishes whose guard belongs to a component of a later card. */
@@ -120,7 +125,7 @@ describe('test_APP_state_machine_enforced_server_side', () => {
     for (const from of STATES) {
       const ticketId = fixture.get(from);
       for (const to of STATES) {
-        const response = await request(agentA, `/api/tickets/${ticketId}/transition`, {
+        const response = await request(supervisorA, `/api/tickets/${ticketId}/transition`, {
           method: 'POST',
           body: { to },
         });
@@ -156,7 +161,41 @@ describe('test_APP_state_machine_enforced_server_side', () => {
 
     // The size of the machine is part of the contract: an edge quietly added or removed changes
     // these three numbers even when every individual pair still classifies as this test expects.
-    assert.deepEqual(seen, { console: 2, guarded: 16, illegal: 82 });
+    assert.deepEqual(seen, { console: 3, guarded: 16, illegal: 81 });
+  });
+
+  // ESCALATED → RESOLVED is the supervisor's edge and nobody else's. It is the only place in the
+  // machine where standing is narrower than the write path, so it gets its own three cases.
+  it('gives the escalation exit to the supervisor and to no other role', async () => {
+    const ticketId = fixture.get('ESCALATED');
+
+    await park(ticketId, 'ESCALATED');
+    const asAgent = await request(agentA, `/api/tickets/${ticketId}/transition`, {
+      method: 'POST',
+      body: { to: 'RESOLVED' },
+    });
+    assert.equal(asAgent.status, 403, 'an agent closed out an escalation');
+    assert.equal(asAgent.body.error.code, 'E_ROLE_NOT_PERMITTED');
+    assert.deepEqual(asAgent.body.error.requires_role, ['supervisor']);
+    assert.equal(await statusOf(ticketId), 'ESCALATED', 'the refused agent moved the row');
+
+    const asCustomer = await request(customerA, `/api/tickets/${ticketId}/transition`, {
+      method: 'POST',
+      body: { to: 'RESOLVED' },
+    });
+    assert.equal(asCustomer.status, 403);
+    assert.equal(asCustomer.body.error.code, 'E_ROLE_NOT_PERMITTED');
+    assert.equal(await statusOf(ticketId), 'ESCALATED', 'the refused customer moved the row');
+
+    const asSupervisor = await request(supervisorA, `/api/tickets/${ticketId}/transition`, {
+      method: 'POST',
+      body: { to: 'RESOLVED' },
+    });
+    assert.equal(asSupervisor.status, 200, 'the supervisor cannot take their own edge');
+    assert.equal(asSupervisor.body.ticket.status, 'RESOLVED');
+    assert.equal(await statusOf(ticketId), 'RESOLVED', 'the applied transition did not persist');
+
+    await park(ticketId, 'ESCALATED');
   });
 
   it('advances a ticket along a chain of legal edges', async () => {

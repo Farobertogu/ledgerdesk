@@ -54,7 +54,7 @@ export default async function QueuePage() {
         title="Queue"
         hint="A dashed control is an edge the machine publishes whose guard is evaluated by a component that has not been built yet; hover it for the guard and its owner."
       >
-        <QueueTable tickets={tickets} actionable />
+        <QueueTable tickets={tickets} role={identity.role} actionable />
       </Panel>
     </>
   );

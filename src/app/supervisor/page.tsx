@@ -81,8 +81,11 @@ export default async function SupervisorPage() {
       </Panel>
 
       <div className="mt-6">
-        <Panel title="Queue" hint="A supervisor holds the same write role as an agent on this table.">
-          <QueueTable tickets={tickets} actionable />
+        <Panel
+          title="Queue"
+          hint="A supervisor holds the agent's write role and one edge the agent does not: closing out what was escalated."
+        >
+          <QueueTable tickets={tickets} role={identity.role} actionable />
         </Panel>
       </div>
     </>

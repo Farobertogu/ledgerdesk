@@ -2,7 +2,7 @@ import type { PoolClient } from 'pg';
 
 import { withAppSession, type Claims } from '@/server/db';
 import { AppError } from '@/server/errors';
-import { findTransition, isAvailableNow, type TicketState } from '@/server/states';
+import { findTransition, isGuardAvailable, type TicketState } from '@/server/states';
 
 /**
  * Every read below is written WITHOUT a tenant predicate, and that is the point: the rows a
@@ -223,12 +223,23 @@ export async function transitionTicket(
         { from: current.status, to },
       );
     }
-    if (!isAvailableNow(transition)) {
+    if (!isGuardAvailable(transition)) {
       throw new AppError(
         'E_TRANSITION_GUARD_UNAVAILABLE',
         409,
         `the guard of ${current.status} → ${to} is evaluated by ${transition.guardedBy}, which is not built yet`,
         { from: current.status, to, guard: transition.guard, guarded_by: transition.guardedBy },
+      );
+    }
+
+    // Some edges are narrower than the write path. The console disables what it knows it cannot
+    // take, but that is a courtesy to the person clicking; standing is decided here.
+    if (transition.requiresRole && !transition.requiresRole.includes(claims.role)) {
+      throw new AppError(
+        'E_ROLE_NOT_PERMITTED',
+        403,
+        `${current.status} → ${to} is taken by ${transition.requiresRole.join(' or ')}`,
+        { from: current.status, to, role: claims.role, requires_role: transition.requiresRole },
       );
     }
 

@@ -16,6 +16,8 @@
  *                                                └──────── REOPENED ◄────────────────────┘
  */
 
+import type { UserRole } from '@/server/db';
+
 export const TICKET_STATES = [
   'NEW',
   'TRIAGED',
@@ -57,6 +59,15 @@ export type Transition = {
   /** The guard as the specification states it. */
   guard: string;
   guardedBy: GuardOwner;
+  /**
+   * The roles that may take this edge, when it is narrower than the write path itself.
+   *
+   * Kept apart from `guardedBy` because they answer different questions — *has anyone evaluated
+   * the guard yet?* and *who has standing to take this edge?* — and folding the second into the
+   * enum of the first would tangle them the moment a third combination appears. Absent means
+   * every role the write path admits, which the schema already limits to staff.
+   */
+  requiresRole?: readonly UserRole[];
 };
 
 /** Every state except ESCALATED itself can escalate: the published guard row reads `* → ESCALATED`. */
@@ -116,10 +127,19 @@ export const TRANSITIONS: readonly Transition[] = [
     guardedBy: 'console',
   },
   {
+    from: 'ESCALATED',
+    to: 'RESOLVED',
+    guard: 'taken from the supervisor console; the human closes what was escalated to a human',
+    guardedBy: 'console',
+    requiresRole: ['supervisor'],
+  },
+  {
     from: 'CLOSED',
     to: 'REOPENED',
     guard:
-      'a customer reply inside the retention window; the SLA clock restarts and retries are preserved',
+      'a customer reply inside the retention window; the SLA clock restarts and retries are preserved. ' +
+      'The customer supplies the event (their reply); staff or the system executes the state transition — ' +
+      'the staff-only write policy is correct and permanent',
     guardedBy: 'reopen-window',
   },
   {
@@ -140,7 +160,13 @@ export function findTransition(from: TicketState, to: TicketState): Transition |
   return TRANSITIONS.find((transition) => transition.from === from && transition.to === to);
 }
 
-/** True when the edge is one a person may take from a console today. */
-export function isAvailableNow(transition: Transition): boolean {
+/** True when the edge's guard is evaluated by a person at a console rather than by a component. */
+export function isGuardAvailable(transition: Transition): boolean {
   return transition.guardedBy === 'console';
+}
+
+/** True when `role` may take this edge today. The server decides this; a console only mirrors it. */
+export function isAvailableTo(transition: Transition, role: UserRole): boolean {
+  if (!isGuardAvailable(transition)) return false;
+  return transition.requiresRole ? transition.requiresRole.includes(role) : true;
 }
