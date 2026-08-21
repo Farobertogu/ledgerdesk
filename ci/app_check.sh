@@ -45,7 +45,11 @@ MIGRATIONS="$(ls migrations/[0-9][0-9][0-9][0-9]_*.sql | sort)"
 
 # Explicit, because the order is part of it. The reconciliation after the run fails the build if a
 # test file exists in tests/app/ and is not named here.
-TESTS="tests/app/test_US01_ticket_created_and_acknowledged.mjs tests/app/test_APP_state_machine_enforced_server_side.mjs"
+# test_APP_composition_root_serves_two_orgs is FIRST, and that is part of the test rather than a
+# preference: the triage runtimes are cached for the life of the server process, so "two
+# organisations starting at the same instant" is a state that exists exactly once, before anything
+# else has triaged anything.
+TESTS="tests/app/test_APP_composition_root_serves_two_orgs.mjs tests/app/test_US01_ticket_created_and_acknowledged.mjs tests/app/test_APP_state_machine_enforced_server_side.mjs tests/app/test_APP_intake_dedupe_collapses_to_incumbent.mjs tests/app/test_APP_recordstage_escalates_without_model.mjs tests/app/test_APP_escalation_atomic_with_triage.mjs tests/app/test_APP_retry_seed_from_persisted_counter.mjs tests/app/test_INT_triage_ticket_to_chain.mjs"
 
 maint() { psql -X -v ON_ERROR_STOP=1 -q -d "$MAINT_DB" -c "$1" >/dev/null; }
 run_sql() { psql -X -v ON_ERROR_STOP=1 -q -d "$1" -f "$2"; }
@@ -117,8 +121,13 @@ stop_server() {
 }
 
 echo "== application tests"
+# One file at a time. They share one server and one database, and two of them are about facts of
+# that whole database at a moment — how many rows the chain holds for a ticket, and what happens
+# when a write to `ticket` is refused by an injected trigger that is necessarily global to the
+# table. A suite whose verdict depends on the scheduler is a suite that is green on one machine and
+# red on another.
 # shellcheck disable=SC2086
-node --test $TESTS || fail "the application tests did not pass"
+node --test --test-concurrency=1 $TESTS || fail "the application tests did not pass"
 
 for f in tests/app/test_*.mjs; do
   case " $TESTS " in

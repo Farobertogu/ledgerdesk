@@ -1,0 +1,175 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ledgerdesk/agents/schemas/agent_io.schema.json",
+  "title": "Agent input and output envelopes",
+  "description": "The two envelopes that cross the model chokepoint. The input is what the gateway digests into input_hash; the output is what the agent-layer validator reads and the only place a triage verdict comes from.",
+  "$defs": {
+    "agent_input": {
+      "type": "object",
+      "description": "What the gateway assembles and digests. The raw body never appears in it.",
+      "required": [
+        "schema_version",
+        "agent",
+        "ticket_id",
+        "body_redacted",
+        "kb_context",
+        "locale"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "1.0"
+        },
+        "agent": {
+          "enum": [
+            "triage",
+            "draft",
+            "validate",
+            "evolve"
+          ]
+        },
+        "prompt_version_id": {
+          "type": "string"
+        },
+        "ticket_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Null for a call that belongs to no ticket, which is how a corpus item is scored."
+        },
+        "body_redacted": {
+          "type": "string",
+          "maxLength": 8192
+        },
+        "kb_context": {
+          "type": "array",
+          "description": "Always present, empty when there is none: a digest needs a total function.",
+          "items": {
+            "type": "object",
+            "required": [
+              "kb_id",
+              "excerpt"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "kb_id": {
+                "type": "string"
+              },
+              "excerpt": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "locale": {
+          "type": "string"
+        }
+      }
+    },
+    "agent_output": {
+      "type": "object",
+      "description": "What an agent answers. confidence is required at the ROOT, which is the one field the ledger has a column for and reads independently of any validator.",
+      "required": [
+        "schema_version",
+        "agent",
+        "confidence"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "1.0"
+        },
+        "agent": {
+          "enum": [
+            "triage",
+            "draft",
+            "validate",
+            "evolve"
+          ]
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "triage": {
+          "$ref": "#/$defs/triage_block"
+        },
+        "draft": {
+          "$ref": "#/$defs/draft_block"
+        },
+        "validate": {
+          "$ref": "#/$defs/validate_block"
+        }
+      }
+    },
+    "triage_block": {
+      "type": "object",
+      "description": "The triage verdict. Its three fields are the only source of the ticket columns of the same names.",
+      "required": [
+        "category",
+        "severity",
+        "sentiment"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "category": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "severity": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4
+        },
+        "sentiment": {
+          "type": "number",
+          "minimum": -1,
+          "maximum": 1
+        }
+      }
+    },
+    "draft_block": {
+      "type": "object",
+      "description": "Reserved for the drafting agent. No writer exists yet.",
+      "required": [
+        "answer",
+        "citations"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "answer": {
+          "type": "string"
+        },
+        "citations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "validate_block": {
+      "type": "object",
+      "description": "Reserved for the grounding validator. No writer exists yet.",
+      "required": [
+        "grounded",
+        "unsupported_claims"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "grounded": {
+          "type": "boolean"
+        },
+        "unsupported_claims": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

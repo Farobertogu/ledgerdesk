@@ -26,6 +26,8 @@
  *     state and the sampling parameters, is looked up in the chain. A hit answers from the response
  *     already recorded, with no provider call and no cost — which is also why the lookup precedes
  *     the ceiling: a call that spends nothing is not a call the ceiling has any business refusing.
+ *     Under the `replay` flag this step is the whole pipeline: a miss is `E_REPLAY_CACHE_MISS` and
+ *     the steps below never run.
  *  4. **Ceiling.** Consumption is recomputed from the chain, never from a counter this process
  *     holds, plus what this process has committed to and not yet recorded. Over the cut, the call
  *     is refused with a typed error and no row is written, because no call was made.
@@ -167,6 +169,17 @@ export type GatewayConfig = {
   /** How many times the process behind this gateway has been restarted, for the column of that name. */
   restarts?: number;
   cache?: boolean;
+  /**
+   * Replay: the chain answers, or nothing does.
+   *
+   * A build flag rather than a per-call option, because it is a property of the *process* — a run
+   * in which some calls reached a provider and others were replayed is a run whose cost figures
+   * describe two different worlds. Under it the cache is mandatory, the provider is never
+   * invoked, and a lookup that misses is `E_REPLAY_CACHE_MISS` rather than a call. That is what
+   * makes "replay from the ledger requires no network" true in the present tense, and it is what
+   * lets a demonstration be rehearsed with the network unplugged.
+   */
+  replay?: boolean;
   now?: () => Date;
   /** Injectable so a test can pin the token. Never injected in production. */
   canary_token?: () => string;
@@ -334,7 +347,17 @@ export function createGateway(config: GatewayConfig): Gateway {
     }
   }
 
-  const cacheEnabled = config.cache ?? true;
+  const replay = config.replay ?? false;
+  // Refused at construction and not at the first miss: a replay build with its cache switched off
+  // can answer nothing at all, and a configuration that can only fail is a defect of the caller.
+  if (replay && config.cache === false) {
+    throw new GatewayError(
+      'E_CONFIG_INVALID',
+      'replay reads its answers from the chain, so it cannot run with the cache disabled',
+    );
+  }
+
+  const cacheEnabled = replay || (config.cache ?? true);
   const restarts = config.restarts ?? 0;
   const now = config.now ?? (() => new Date());
   const mintCanary = config.canary_token ?? defaultCanaryToken;
@@ -521,6 +544,23 @@ export function createGateway(config: GatewayConfig): Gateway {
           ledger: { id: appended.id, seq: appended.seq, row_hash: appended.row_hash },
         };
       }
+    }
+
+    // Replay ends here or it does not end. The refusal is raised before the ceiling and before the
+    // egress scan because there is nothing left to check: no payload will be built, no money can be
+    // spent, and no row can be written for a call that is not going to happen.
+    if (replay) {
+      throw new GatewayError(
+        'E_REPLAY_CACHE_MISS',
+        'the chain holds no answer for this call and replay does not make one',
+        {
+          agent: request.agent,
+          ticket_id: request.ticket_id,
+          input_hash,
+          state_hash,
+          seed: request.seed,
+        },
+      );
     }
 
     // --- 4 · the ceiling, recomputed from the chain --------------------------------------------
@@ -738,12 +778,19 @@ export function createGateway(config: GatewayConfig): Gateway {
   }
 
   /**
-   * The ceiling cutting is worth recording once per run, not once per refusal.
+   * The ceiling cutting is worth recording once per process, not once per refusal.
    *
    * After the breaker trips, every subsequent call is refused by the same fact. Filing each one
    * would turn the audit chain — which is append-only, so nothing can be tidied away afterwards —
    * into a list of the same event repeated until somebody noticed. The first cut is the event; the
    * rest are its consequence.
+   *
+   * **Declared residual: the flag lives in this closure, so its scope is the process and not the
+   * run.** A process restarted against a chain that is already over its cut files the cut a second
+   * time, and the chain cannot be tidied. What would close it is asking the audit chain whether
+   * this run has already filed this action before writing — a query the sink does not expose
+   * today. The residual is one row per restart in an over-budget run, and it is stated here rather
+   * than left for a reader to infer from a variable's lifetime.
    */
   let budgetCutRecorded = false;
 

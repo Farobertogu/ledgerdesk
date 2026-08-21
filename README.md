@@ -19,7 +19,8 @@ Capstone project — COIT20273 Software Design and Development Project, CQUniver
 | `migrations/` | numbered SQL migrations, forward-only |
 | `seed/` | seed data with fixed identifiers (two organisations) |
 | `src/` | the three consoles: Next.js App Router, TypeScript, Tailwind |
-| `tests/` | integration tests that speak HTTP to the running consoles |
+| `agents/` | the model chokepoint, the ledger writer, the agent contracts and their providers |
+| `tests/` | the algorithm and agent-contract tests, and the integration tests that speak HTTP to the running consoles |
 | `quality/` | the quality layer: schemas, generators, templates and their parameters |
 | `status/` | weekly status updates |
 | `reports/` | generated evidence (test reports, batteries, sensitivity tables) — created as artifacts land |

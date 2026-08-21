@@ -27,6 +27,28 @@ export type Claims = {
   sub: string;
 };
 
+/**
+ * The claim set a component runs under: an organisation, a role, and no subject.
+ *
+ * `sub` is absent and its absence is the point. The policies that admit a ticket write read `role`
+ * and `org_id` — `ticket_write_is_staff`, `tenant_isolation`, and the staff branch of
+ * `customer_own_rows` — and `auth.uid()` is nullable and is not consulted on an UPDATE. Putting a
+ * nil UUID there would assert that some user took the edge, which is false; leaving it out says
+ * what is true, that no person did. ADR-023 §8 records the decision and the two alternatives it
+ * was taken over.
+ *
+ * Note what this narrows: a session with no `sub` cannot satisfy `customer_id = auth.uid()`, so
+ * these claims see a customer's rows only through the staff branch — which is the branch a
+ * component is entitled to and the only one it ever uses.
+ */
+export type MachineClaims = {
+  org_id: string;
+  role: UserRole;
+};
+
+/** Either identity a statement can run under. Both are read by the policies the same way. */
+export type SessionClaims = Claims | MachineClaims;
+
 const APPLICATION_ROLE = 'app_rw';
 
 // Next.js reloads modules in development; without this the process would accumulate one pool per
@@ -64,7 +86,7 @@ function pool(): Pool {
  * to `app_rw`, and every table under row-level security returns nothing.
  */
 export async function withAppSession<T>(
-  claims: Claims | null,
+  claims: SessionClaims | null,
   work: (client: PoolClient) => Promise<T>,
 ): Promise<T> {
   const client = await pool().connect();

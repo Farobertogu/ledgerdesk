@@ -415,7 +415,14 @@ CREATE TABLE public.ticket (
     breached_at timestamp with time zone,
     retries integer DEFAULT 0 NOT NULL,
     dedupe_key text,
+    priority numeric(9,6),
+    escalation_reason text,
+    escalation_clause text,
+    body_sha256 text,
     CONSTRAINT ticket_confidence_check CHECK (((confidence >= (0)::numeric) AND (confidence <= (1)::numeric))),
+    CONSTRAINT ticket_escalated_has_reason CHECK (((status <> 'ESCALATED'::public.ticket_state) OR ((escalation_reason IS NOT NULL) AND (escalation_clause IS NOT NULL)))),
+    CONSTRAINT ticket_escalation_reason_check CHECK ((escalation_reason = ANY (ARRAY['CONF'::text, 'SENT'::text, 'TIER'::text, 'RETRY'::text, 'SLA'::text, 'GROUND'::text, 'POLICY'::text, 'LANG'::text]))),
+    CONSTRAINT ticket_priority_check CHECK (((priority >= (0)::numeric) AND (priority <= (1)::numeric))),
     CONSTRAINT ticket_sentiment_check CHECK (((sentiment >= ('-1'::integer)::numeric) AND (sentiment <= (1)::numeric))),
     CONSTRAINT ticket_severity_check CHECK (((severity >= 1) AND (severity <= 4)))
 );
@@ -507,6 +514,7 @@ CREATE UNIQUE INDEX ledger_start_unique_per_attempt ON public.ledger_entry USING
 CREATE UNIQUE INDEX ledger_terminal_unique_per_attempt ON public.ledger_entry USING btree (((output ->> 'attempt_id'::text))) WHERE (class = 'promotion_attempt'::public.ledger_class);
 CREATE INDEX ledger_ticket_idx ON public.ledger_entry USING btree (ticket_id, seq) WHERE (ticket_id IS NOT NULL);
 CREATE INDEX response_ticket_idx ON public.response USING btree (ticket_id);
+CREATE INDEX ticket_body_sha256_idx ON public.ticket USING btree (org_id, body_sha256, created_at DESC);
 CREATE INDEX ticket_queue_idx ON public.ticket USING btree (org_id, status, sla_due_at);
 CREATE TRIGGER trg_audit_link BEFORE INSERT ON public.audit_event FOR EACH ROW EXECUTE FUNCTION public.audit_event_link();
 CREATE TRIGGER trg_audit_no_truncate BEFORE TRUNCATE ON public.audit_event FOR EACH STATEMENT EXECUTE FUNCTION public.ledger_immutable();
@@ -627,6 +635,6 @@ GRANT SELECT ON TABLE public.ledger_entry TO quality_eval;
 GRANT USAGE ON SEQUENCE public.ledger_entry_id_seq TO app_rw;
 GRANT SELECT ON TABLE public.org TO app_rw;
 GRANT SELECT ON TABLE public.prompt_version TO quality_ro;
-GRANT SELECT ON TABLE public.prompt_version TO app_rw;
+GRANT SELECT,INSERT ON TABLE public.prompt_version TO app_rw;
 GRANT SELECT ON TABLE public.sla_policy TO app_rw;
 GRANT SELECT,INSERT,UPDATE ON TABLE public.ticket TO app_rw;

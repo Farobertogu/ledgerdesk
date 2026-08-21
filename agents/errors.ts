@@ -49,6 +49,13 @@ export const GATEWAY_ERROR_CODES = [
   'E_MODELO_INESPERADO',
   /** The chain could not be extended, so the call is not recorded and is reported as failed. */
   'E_LEDGER_WRITE_FAILED',
+  /**
+   * Replay was asked for and the chain does not hold this call, so there is nothing to replay.
+   *
+   * Added by ADR-023, which is what this register means by "a recorded decision". Under the replay
+   * flag the provider is never invoked, so a miss cannot fall back to a call — it is the answer.
+   */
+  'E_REPLAY_CACHE_MISS',
 ] as const;
 
 export type GatewayErrorCode = (typeof GATEWAY_ERROR_CODES)[number];

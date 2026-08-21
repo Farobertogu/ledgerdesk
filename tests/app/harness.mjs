@@ -126,12 +126,67 @@ export async function identities() {
   };
 }
 
-/** Removes every row this run created. A test that leaves rows behind changes the next run. */
+/**
+ * Removes every row this run created. A test that leaves rows behind changes the next run.
+ *
+ * It only reaches tickets that nothing has recorded against. `ledger_entry` is append-only by
+ * trigger — for the owner too — so a ticket a triage cycle has paid for cannot be deleted, and the
+ * tests that produce one say so and leave their rows where they are. `ci/app_check.sh` builds its
+ * database from nothing and drops it afterwards, so what those tests leave behind is a database
+ * that no longer exists.
+ */
 export async function cleanup() {
   await asOwner(async (client) => {
-    await client.query('delete from ticket where dedupe_key like $1 or subject like $2', [
-      `apptest-${RUN_ID}%`,
-      `%[${RUN_ID}]%`,
-    ]);
+    await client.query(
+      `delete from ticket
+        where (dedupe_key like $1 or subject like $2)
+          and not exists (select 1 from ledger_entry l where l.ticket_id = ticket.id)`,
+      [`apptest-${RUN_ID}%`, `%[${RUN_ID}]%`],
+    );
   });
+}
+
+/** One ticket as the database holds it, read past every policy. */
+export async function ticketRow(ticketId) {
+  return asOwner(async (client) => {
+    const result = await client.query('select * from ticket where id = $1', [ticketId]);
+    return result.rows[0] ?? null;
+  });
+}
+
+/** Every ledger row written against a ticket, oldest first. */
+export async function ledgerRowsFor(ticketId) {
+  return asOwner(async (client) => {
+    const result = await client.query(
+      'select * from ledger_entry where ticket_id = $1 order by id',
+      [ticketId],
+    );
+    return result.rows;
+  });
+}
+
+/** Every audit event filed against a ticket, oldest first. */
+export async function auditRowsFor(ticketId) {
+  return asOwner(async (client) => {
+    const result = await client.query(
+      'select * from audit_event where object_type = $1 and object_id = $2 order by id',
+      ['ticket', ticketId],
+    );
+    return result.rows;
+  });
+}
+
+/** Fires one triage cycle through the endpoint that exists to fire one. */
+export async function triage(cookie, ticketId) {
+  return request(cookie, `/api/tickets/${ticketId}/triage`, { method: 'POST' });
+}
+
+/**
+ * Files a ticket through the real intake and returns the whole response.
+ *
+ * The subject carries the run marker so that `cleanup` can find it, and the body carries whatever
+ * the test needs the fixture provider to answer to.
+ */
+export async function fileTicket(cookie, { subject, body }) {
+  return request(cookie, '/api/tickets', { method: 'POST', body: { subject, body } });
 }
