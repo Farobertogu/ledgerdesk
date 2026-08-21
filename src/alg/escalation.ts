@@ -27,9 +27,16 @@ import type { AccountTier, QueueFeatures, Severity } from './priority.ts';
 import { assertInstant, isBreached, normalisedSeverity } from './priority.ts';
 
 /**
- * The closed alphabet. Eight indices, no ninth, and nothing outside it may be stored as a reason.
- * The set is closed on purpose: a channel whose values can be enumerated carries a bounded amount
- * of information, and an open one carries whatever the producer decides to put in it.
+ * The closed alphabet. Eight indices, and nothing outside it may be stored as a reason. The set is
+ * closed on purpose: a channel whose values can be enumerated carries a bounded amount of
+ * information, and an open one carries whatever the producer decides to put in it.
+ *
+ * **A ninth index is reserved and is not taken.** `INCONSIST` — two sources that both claim to
+ * answer and do not agree — is named as reserved by the dated decision in ADR-023 §2. Naming it
+ * costs nothing and buys the thing an open channel never has: the next person who meets that case
+ * finds a reservation instead of inventing a synonym for it. It enters the alphabet only with its
+ * own record, its own tally, and a rewrite of the check constraint that carries these values in the
+ * schema. The array below does not change until then, and neither does anything that counts it.
  */
 export const ESCALATION_REASONS = [
   'CONF',

@@ -1,0 +1,155 @@
+{
+  "$comment": [
+    "The frozen demonstration dataset: three beats, each with two interchangeable tickets, and the",
+    "authored triage answers that make them land where they are meant to land.",
+    "",
+    "Every ticket declares the clause it is written to fire, and that claim is CHECKED rather than",
+    "asserted: test_TRIAGE_demo_dataset_is_authored_for_its_beats runs each authored envelope",
+    "through the strict validator and each ticket through the published rule, and fails the build if",
+    "the reason that survives the precedence is not the one named here. A demonstration whose",
+    "fixtures have quietly drifted is a demonstration that produces the wrong verdict on the day, in",
+    "front of the people it was written for.",
+    "",
+    "Two tickets per beat because a rehearsal needs a second attempt. They are different tickets and",
+    "not one ticket twice: the chokepoint's cache is keyed on an input digest that carries the ticket",
+    "identifier, so re-running the same ticket is a cache hit — free, reproducible, and NOT a fresh",
+    "call. Re-running its twin is a real call. Both are useful and they answer different questions.",
+    "",
+    "created_at is not in this file. seed/demo_load.mjs stamps it at load time, because the SLA",
+    "clause is a fact about the clock: a dataset with a fixed timestamp escalates every one of its",
+    "tickets on SLA the moment it is a day old, before any model is asked, and the beat that was",
+    "supposed to show triage shows a breach instead.",
+    "",
+    "The organisation, account and customer identifiers are the ones seed/orgs.sql fixes."
+  ],
+  "tickets": [
+    {
+      "id": "d0000017-000a-4000-8000-000000000001",
+      "beat": "escalation-on-sentiment",
+      "variant": "A",
+      "org_id": "22222222-2222-4222-8222-222222222222",
+      "account_id": "2acc0000-0000-4000-8000-000000000001",
+      "customer_id": "2b000000-0000-4000-8000-000000000001",
+      "dedupe_key": "demo-sent-a",
+      "language": "en",
+      "subject": "Invoice wrong again and payment is now frozen",
+      "body": "Our monthly invoice has been wrong for the third quarter running and nobody has come back to us. Finance has frozen payment on the whole account and I am the one explaining it upstairs every week. I need someone who can fix the billing record itself, not another apology.",
+      "intended": {
+        "reason": "SENT",
+        "clause": "sentiment_at_or_below_threshold",
+        "why": "A premium account at severity 3 satisfies the TIER clause too. The intra-stage order is CONF, SENT, TIER, so the answer is authored with a confidence well above the floor and a sentiment below the threshold: CONF cannot fire, SENT fires first, and TIER never gets asked. The reason stored is the one about the customer, which is the one a supervisor can act on."
+      }
+    },
+    {
+      "id": "d0000017-000b-4000-8000-000000000001",
+      "beat": "escalation-on-sentiment",
+      "variant": "B",
+      "org_id": "22222222-2222-4222-8222-222222222222",
+      "account_id": "2acc0000-0000-4000-8000-000000000001",
+      "customer_id": "2b000000-0000-4000-8000-000000000001",
+      "dedupe_key": "demo-sent-b",
+      "language": "en",
+      "subject": "Same billing error, fourth month, no answer",
+      "body": "This is the fourth month in a row that the seat count on our bill does not match what we signed for. Two people have promised a call back and neither has happened. I have run out of patience explaining the same thing to a new person every time.",
+      "intended": {
+        "reason": "SENT",
+        "clause": "sentiment_at_or_below_threshold",
+        "why": "The twin of variant A, written differently so that its digest, and therefore its cache key, is its own."
+      }
+    },
+    {
+      "id": "d0000021-000a-4000-8000-000000000001",
+      "beat": "triage-without-escalation",
+      "variant": "A",
+      "org_id": "11111111-1111-4111-8111-111111111111",
+      "account_id": "1acc0000-0000-4000-8000-000000000001",
+      "customer_id": "1a000000-0000-4000-8000-000000000001",
+      "dedupe_key": "demo-triage-a",
+      "language": "en",
+      "subject": "Which plan covers a second export destination",
+      "body": "We currently export the nightly file to one destination and would like to add a second one for our warehouse team. Could you tell me which plan covers that and whether it changes our monthly total?",
+      "intended": {
+        "reason": null,
+        "clause": null,
+        "why": "The beat that shows a triage rather than an escalation: a standard account, a calm enquiry, a confident answer. No clause fires, the ticket lands in TRIAGED with all six columns filled and a priority computed, and the ledger holds one row that says what it cost."
+      }
+    },
+    {
+      "id": "d0000021-000b-4000-8000-000000000001",
+      "beat": "triage-without-escalation",
+      "variant": "B",
+      "org_id": "11111111-1111-4111-8111-111111111111",
+      "account_id": "1acc0000-0000-4000-8000-000000000001",
+      "customer_id": "1a000000-0000-4000-8000-000000000001",
+      "dedupe_key": "demo-triage-b",
+      "language": "en",
+      "subject": "Can we schedule the nightly job an hour later",
+      "body": "Our nightly job currently starts at midnight and we would prefer it to start at one in the morning so it does not overlap with our own batch. Is that something we can change ourselves or do you need to do it?",
+      "intended": {
+        "reason": null,
+        "clause": null,
+        "why": "The twin of variant A."
+      }
+    },
+    {
+      "id": "d0000031-000a-4000-8000-000000000001",
+      "beat": "escalation-before-any-model-call",
+      "variant": "A",
+      "org_id": "11111111-1111-4111-8111-111111111111",
+      "account_id": "1acc0000-0000-4000-8000-000000000001",
+      "customer_id": "1a000000-0000-4000-8000-000000000001",
+      "dedupe_key": "demo-policy-a",
+      "language": "en",
+      "subject": "Passing this to our solicitors",
+      "body": "We have asked twice for the duplicate charges to be corrected and nothing has moved. Our solicitors have the file now and will be in touch about breach of contract if this is not resolved this week.",
+      "intended": {
+        "reason": "POLICY",
+        "clause": "policy_flag_raised",
+        "why": "The deterministic matcher raises the legal flag from the ticket's own record, so the rule fires at the record stage and the ticket escalates WITHOUT a model call. No triage_fixture is authored for it, because the provider is never reached: the ledger stays empty for this ticket and its triage columns stay null, which is the honest picture of an escalation nobody had to pay for."
+      }
+    },
+    {
+      "id": "d0000031-000b-4000-8000-000000000001",
+      "beat": "escalation-before-any-model-call",
+      "variant": "B",
+      "org_id": "11111111-1111-4111-8111-111111111111",
+      "account_id": "1acc0000-0000-4000-8000-000000000001",
+      "customer_id": "1a000000-0000-4000-8000-000000000001",
+      "dedupe_key": "demo-policy-b",
+      "language": "en",
+      "subject": "Formal complaint about the last two invoices",
+      "body": "I would like to raise a formal complaint about the handling of our last two invoices. We were told the correction had been applied and it has not been, and I would like that on record.",
+      "intended": {
+        "reason": "POLICY",
+        "clause": "policy_flag_raised",
+        "why": "The twin of variant A, raising the complaint flag instead of the legal one. Same beat, same code, a different written rule underneath it."
+      }
+    }
+  ],
+  "triage_fixtures": [
+    {
+      "match": "third quarter running",
+      "answer": {
+        "verdict": { "category": "billing", "severity": 3, "sentiment": -0.72, "confidence": 0.88 }
+      }
+    },
+    {
+      "match": "fourth month in a row",
+      "answer": {
+        "verdict": { "category": "billing", "severity": 3, "sentiment": -0.68, "confidence": 0.86 }
+      }
+    },
+    {
+      "match": "one destination and would like to add a second",
+      "answer": {
+        "verdict": { "category": "billing", "severity": 2, "sentiment": 0.15, "confidence": 0.91 }
+      }
+    },
+    {
+      "match": "nightly job currently starts",
+      "answer": {
+        "verdict": { "category": "access", "severity": 1, "sentiment": 0.2, "confidence": 0.9 }
+      }
+    }
+  ]
+}

@@ -31,7 +31,7 @@ node ci/seam_check.mjs || fail "test_ARCH_seam_holds"
 node -e 'const [a,b]=process.versions.node.split(".").map(Number); if (a<22 || (a===22 && b<6)) { console.error("node >= 22.6 required (package.json engines)"); process.exit(1); }' \
   || fail "node runtime below the declared engine"
 
-ALG_TESTS="tests/alg/test_ALG_edge_cases.mjs tests/alg/test_ALG_escalation_clauses.mjs tests/alg/test_ALG_no_starvation_property.mjs tests/alg/test_ALG_db_order_matches_heap_order.mjs tests/alg/test_ALG_replay_is_reproducible.mjs"
+ALG_TESTS="tests/alg/test_ALG_edge_cases.mjs tests/alg/test_ALG_escalation_clauses.mjs tests/alg/test_ALG_no_starvation_property.mjs tests/alg/test_ALG_db_order_matches_heap_order.mjs tests/alg/test_ALG_replay_is_reproducible.mjs tests/alg/test_ALG_policy_matcher_is_deterministic.mjs tests/alg/test_ALG_features_quantised_to_storage.mjs tests/alg/test_ALG_features_sentinels.mjs"
 # shellcheck disable=SC2086
 node --experimental-strip-types --test $ALG_TESTS || fail "the algorithm tests did not pass"
 
@@ -59,6 +59,46 @@ node --experimental-strip-types src/alg/sensitivity.ts --check --out reports/wei
 
 echo "test_ARCH_harness_is_not_a_production_path OK"
 echo "algorithm OK (14 published edge cases, the escalation clauses, and reports/weight_sensitivity.md regenerated and diffed)"
+
+# --- agent contract: the envelope validator, and the demonstration dataset it judges.
+#
+#     These need no database, no model and no server: the validator is a pure function of text, and
+#     the dataset is a file. They run here so that a change to either fails in the fastest job
+#     rather than in the one that builds a database first.
+TRIAGE_TESTS="tests/triage/test_TRIAGE_envelope_rejects_missing_block.mjs tests/triage/test_TRIAGE_envelope_rejects_foreign_blocks.mjs tests/triage/test_TRIAGE_envelope_never_lenient.mjs tests/triage/test_TRIAGE_run_registry_claims_without_awaiting.mjs tests/triage/test_TRIAGE_demo_dataset_is_authored_for_its_beats.mjs"
+# shellcheck disable=SC2086
+node --experimental-strip-types --test $TRIAGE_TESTS || fail "the agent contract tests did not pass"
+
+for f in tests/triage/test_*.mjs; do
+  case " $TRIAGE_TESTS " in
+    *" $f "*) ;;
+    *) fail "$f exists and is not in the TRIAGE_TESTS list" ;;
+  esac
+done
+
+# The published agent schema is generated from `agents/triage/schema.ts` and committed, exactly as
+# reports/weight_sensitivity.md is. It matters more than a report does: `prompt_version.schema_hash`
+# is the digest of THAT FILE, so a hand-edit would make every prompt registration name a contract
+# the process does not hold. A stale file and an edited one fail identically.
+node --experimental-strip-types -e '
+  import("./agents/triage/schema.ts").then(async (schema) => {
+    const { readFileSync } = await import("node:fs");
+    let onDisk;
+    try {
+      onDisk = readFileSync(schema.AGENT_IO_SCHEMA_PATH, "utf8");
+    } catch {
+      console.error(schema.AGENT_IO_SCHEMA_PATH + " is missing");
+      process.exit(1);
+    }
+    if (onDisk !== schema.AGENT_IO_SCHEMA_TEXT) {
+      console.error(schema.AGENT_IO_SCHEMA_PATH + " differs from agents/triage/schema.ts; regenerate it instead of editing it");
+      process.exit(1);
+    }
+    console.log("test_TRIAGE_published_schema_is_current OK (sha256 " + schema.AGENT_IO_SCHEMA_SHA256.slice(0, 12) + ")");
+  }).catch((error) => { console.error(error); process.exit(1); });
+' || fail "test_TRIAGE_published_schema_is_current"
+
+echo "agent contract OK (strict envelope validator, published schema diffed, demonstration dataset checked against the rule)"
 
 # --- branch_name: every branch except main must match card/<ID>-<slug>, ID from BOARD.md.
 #     Single named exemption: i1-documentary-baseline (merged before this rule existed).

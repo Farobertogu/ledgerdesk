@@ -44,7 +44,7 @@ MIGRATIONS="$(ls migrations/[0-9][0-9][0-9][0-9]_*.sql | sort)"
 
 # The test list stays explicit because the order is part of it; the reconciliation at the end
 # fails the build if a test file exists and is not named here.
-TESTS="test_MIGRATIONS_schema_matches_spec test_ARCH_quality_role_is_readonly test_RLS_ticket_org_isolation test_RLS_customer_cannot_read_other_customer test_SEED_one_account_per_org test_LEDGER_append_only test_LEDGER_class_payload test_GEN_corpus_loads_into_eval_item_with_labels"
+TESTS="test_MIGRATIONS_schema_matches_spec test_ARCH_quality_role_is_readonly test_RLS_ticket_org_isolation test_RLS_customer_cannot_read_other_customer test_SEED_one_account_per_org test_LEDGER_append_only test_LEDGER_class_payload test_SQL_escalated_requires_reason test_GEN_corpus_loads_into_eval_item_with_labels"
 
 # -X: a developer's ~/.psqlrc is read after -v and could reopen ON_ERROR_STOP. It is the one
 # place where the user's environment could change the verdict.

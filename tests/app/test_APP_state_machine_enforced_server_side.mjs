@@ -85,9 +85,16 @@ describe('test_APP_state_machine_enforced_server_side', () => {
       );
 
       for (const state of STATES) {
+        // A fixture parked in ESCALATED has to carry a reason and a clause: 0008 makes that an
+        // invariant of the state, not a convention of whoever writes the row. It is supplied once
+        // here and never cleared, which is also what the invariant's one-directionality allows —
+        // a ticket that leaves ESCALATED keeps the record of why it was there, so parking the row
+        // back into ESCALATED later needs nothing further.
+        const escalated = state === 'ESCALATED';
         const inserted = await client.query(
-          `insert into ticket (id, org_id, account_id, customer_id, subject, body_raw, status, dedupe_key)
-           values (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7)
+          `insert into ticket (id, org_id, account_id, customer_id, subject, body_raw, status,
+                               dedupe_key, escalation_reason, escalation_clause)
+           values (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9)
            returning id`,
           [
             people.northwindCustomer.org_id,
@@ -97,6 +104,8 @@ describe('test_APP_state_machine_enforced_server_side', () => {
             'state machine fixture',
             state,
             `apptest-${RUN_ID}-${state}`,
+            escalated ? 'SLA' : null,
+            escalated ? 'sla_breached' : null,
           ],
         );
         fixture.set(state, inserted.rows[0].id);
