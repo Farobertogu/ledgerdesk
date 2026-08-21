@@ -20,6 +20,29 @@ node ci/schema_check.mjs || fail "test_SPLITS_schema_accepts_and_rejects"
 #     trusted. Static: no database, no install, no build, so it runs in this job and not the others.
 node ci/seam_check.mjs || fail "test_ARCH_seam_holds"
 
+# --- algorithm: the priority and the escalation rule are pure functions of a feature vector, so
+#     their tests need no database, no model and no install — they belong in this job. The list is
+#     explicit because the order is part of it; the reconciliation after the run fails the build if
+#     a test file exists in tests/alg/ and is not named here.
+ALG_TESTS="tests/alg/test_ALG_edge_cases.mjs tests/alg/test_ALG_escalation_clauses.mjs tests/alg/test_ALG_no_starvation_property.mjs tests/alg/test_ALG_db_order_matches_heap_order.mjs"
+# shellcheck disable=SC2086
+node --experimental-strip-types --test $ALG_TESTS || fail "the algorithm tests did not pass"
+
+for f in tests/alg/test_*.mjs; do
+  case " $ALG_TESTS " in
+    *" $f "*) ;;
+    *) fail "$f exists and is not in the ALG_TESTS list" ;;
+  esac
+done
+
+# The sensitivity report is generated, so it is regenerated here and compared instead of believed.
+# A hand-edit and a stale file fail identically, which is the point: nothing in reports/ is written
+# by a person.
+node --experimental-strip-types src/alg/sensitivity.ts --check --out reports/weight_sensitivity.md \
+  || fail "reports/weight_sensitivity.md is stale or was edited by hand (regenerate with: node --experimental-strip-types src/alg/sensitivity.ts)"
+
+echo "algorithm OK (14 published edge cases, the escalation clauses, and reports/weight_sensitivity.md regenerated and diffed)"
+
 # --- branch_name: every branch except main must match card/<ID>-<slug>, ID from BOARD.md.
 #     Single named exemption: i1-documentary-baseline (merged before this rule existed).
 BRANCH="${GITHUB_HEAD_REF:-$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo '')}"
