@@ -132,6 +132,43 @@ export function simTicketId(index: number): string {
   return `T-${String(index).padStart(6, '0')}`;
 }
 
+/** The grid the arrival instants are snapped to. See `exponentialGapMs` for why one exists. */
+export const ARRIVAL_GRID_MS = 1_000;
+
+/**
+ * One inter-arrival gap, drawn by inverse transform and snapped to a one-second grid.
+ *
+ * `Math.log` is the only transcendental in this module and the standard specifies it as
+ * *implementation-approximated* — two engine versions may differ in the last bit, and a gap that
+ * differs by one millisecond produces a different stream, a different month, and a different
+ * report. The grid is the mitigation: the queue is swept every thirty seconds, so millisecond
+ * precision in an arrival instant was never meaningful, and rounding to whole seconds means a
+ * last-bit difference has to land within one part in 10¹³ of a half-second boundary to change
+ * anything. It is a reduction of the exposure, not its elimination, which is why the stream also
+ * carries a pinned digest that fails loudly and by name if the engine ever moves.
+ *
+ * `1 - u` keeps the argument of the logarithm off zero.
+ */
+export function exponentialGapMs(u: number, meanMs: number): number {
+  const raw = -meanMs * Math.log(1 - u);
+  return Math.max(ARRIVAL_GRID_MS, Math.round(raw / ARRIVAL_GRID_MS) * ARRIVAL_GRID_MS);
+}
+
+/**
+ * A digest of the whole arrival stream, so that a change in it is a named failure rather than a
+ * mysterious difference in a generated report three steps downstream.
+ */
+export function arrivalStreamDigest(tickets: readonly SimTicket[]): string {
+  const hash = createHash('sha256');
+  for (const ticket of tickets) {
+    hash.update(
+      `${ticket.id}|${ticket.createdAt}|${ticket.slaDueAt}|${ticket.severity}|${ticket.sentiment}|${ticket.tier}|${ticket.valueBand}\n`,
+      'utf8',
+    );
+  }
+  return hash.digest('hex');
+}
+
 /**
  * A seeded stream of arrivals, sorted by arrival instant by construction.
  *
@@ -158,10 +195,8 @@ export function generateArrivals(options: Partial<ArrivalOptions> = {}): SimTick
   let cursor = config.startAt;
 
   for (let index = 1; index <= config.count; index++) {
-    // Inverse transform on the exponential at the peak rate, thinned by the intensity of the hour
-    // it lands in. `1 - u` keeps the argument of the logarithm off zero.
     for (;;) {
-      cursor += Math.max(1, Math.round(-config.peakInterArrivalMs * Math.log(1 - rng())));
+      cursor += exponentialGapMs(rng(), config.peakInterArrivalMs);
       if (rng() < arrivalIntensity(cursor, config)) break;
     }
     const tier: AccountTier = rng() < config.premiumShare ? 'premium' : 'standard';
@@ -178,21 +213,11 @@ export function generateArrivals(options: Partial<ArrivalOptions> = {}): SimTick
       valueBand,
       createdAt: cursor,
       slaDueAt: cursor + slaWindowMs,
-      now: cursor,
       slaWindowMs,
     });
   }
 
   return tickets;
-}
-
-/** The order key of a ticket evaluated at an instant that is not the one stored on it. */
-export function keyAt(
-  ticket: SimTicket,
-  now: number,
-  weights: PriorityWeights = DEFAULT_PRIORITY_WEIGHTS,
-): QueueKey {
-  return queueKey({ ...ticket, now }, weights);
 }
 
 type HeapEntry = { ticket: SimTicket; key: QueueKey };
@@ -282,7 +307,7 @@ export function makeQueueHeap(weights: PriorityWeights = DEFAULT_PRIORITY_WEIGHT
 
   return {
     push(ticket, now) {
-      pushEntry({ ticket, key: keyAt(ticket, now, weights) });
+      pushEntry({ ticket, key: queueKey(ticket, now, weights) });
     },
 
     popNext(now) {
@@ -292,7 +317,7 @@ export function makeQueueHeap(weights: PriorityWeights = DEFAULT_PRIORITY_WEIGHT
       for (let step = 0; step < bound; step++) {
         const candidate = popRoot();
         if (candidate === null) return null;
-        const revalidated = keyAt(candidate.ticket, now, weights);
+        const revalidated = queueKey(candidate.ticket, now, weights);
         const next = entries[0];
         if (next === undefined || compareQueueKeys(revalidated, next.key) <= 0) {
           return candidate.ticket;
@@ -304,7 +329,7 @@ export function makeQueueHeap(weights: PriorityWeights = DEFAULT_PRIORITY_WEIGHT
 
     rebuild(now) {
       for (const entry of entries) {
-        entry.key = keyAt(entry.ticket, now, weights);
+        entry.key = queueKey(entry.ticket, now, weights);
       }
       for (let index = (entries.length >> 1) - 1; index >= 0; index--) {
         siftDown(index);
@@ -482,7 +507,7 @@ export function rankSnapshot(
   weights: PriorityWeights = DEFAULT_PRIORITY_WEIGHTS,
 ): string[] {
   return snapshot.waiting
-    .map((ticket) => ({ id: ticket.id, key: keyAt(ticket, snapshot.at, weights) }))
+    .map((ticket) => ({ id: ticket.id, key: queueKey(ticket, snapshot.at, weights) }))
     .sort((a, b) => compareQueueKeys(a.key, b.key))
     .map((row) => row.id);
 }
@@ -576,7 +601,7 @@ export function storedOrder(
   weights: PriorityWeights = DEFAULT_PRIORITY_WEIGHTS,
 ): string[] {
   return tickets
-    .map((ticket) => ({ id: ticket.id, key: keyAt(ticket, now, weights) }))
+    .map((ticket) => ({ id: ticket.id, key: queueKey(ticket, now, weights) }))
     .sort((a, b) => compareStoredRows(a.key, b.key))
     .map((row) => row.id);
 }

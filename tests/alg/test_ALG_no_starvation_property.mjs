@@ -64,10 +64,10 @@ test('test_ALG_no_starvation_property', (t) => {
     const window = ticket.slaDueAt - ticket.createdAt;
     // Three instants spread across and beyond the window, always moving forward.
     let now = ticket.createdAt - Math.floor(rng() * window);
-    let previous = computePriority({ ...ticket, now }).score;
+    let previous = computePriority(ticket, now).score;
     for (let step = 0; step < 4; step++) {
       now += Math.floor(rng() * window * 1.5) + 1;
-      const score = computePriority({ ...ticket, now }).score;
+      const score = computePriority(ticket, now).score;
       assert.ok(
         score >= previous - 1e-12,
         `the score of ${ticket.id} fell as time passed: ${previous} then ${score}`,
@@ -75,10 +75,10 @@ test('test_ALG_no_starvation_property', (t) => {
       previous = score;
     }
     // At the due instant urgency is spent, and it stays spent afterwards.
-    const atDue = computePriority({ ...ticket, now: ticket.slaDueAt });
+    const atDue = computePriority(ticket, ticket.slaDueAt);
     assert.equal(atDue.components.urgency.normalised, 1);
     assert.equal(atDue.breached, false, 'a ticket is not breached at its due instant, only past it');
-    const pastDue = computePriority({ ...ticket, now: ticket.slaDueAt + 1 });
+    const pastDue = computePriority(ticket, ticket.slaDueAt + 1);
     assert.equal(pastDue.components.urgency.normalised, 1);
     assert.equal(pastDue.breached, true);
     assert.ok(pastDue.score >= atDue.score - 1e-12);
@@ -97,23 +97,51 @@ test('test_ALG_no_starvation_property', (t) => {
       valueBand: 1,
       createdAt: 0,
       slaDueAt: 1_000,
-      now: 1_000 + Math.floor(rng() * 1e6) + 1,
     };
+    const now = 1_000 + Math.floor(rng() * 1e6) + 1;
     const freshTicket = {
       id: `T-A-${index}`,
       severity: 4,
       sentiment: -1,
       tier: 'premium',
       valueBand: 5,
-      createdAt: breachedTicket.now - 1,
-      slaDueAt: breachedTicket.now + 1_000,
-      now: breachedTicket.now,
+      createdAt: now - 1,
+      slaDueAt: now + 1_000,
     };
-    assert.ok(computePriority(freshTicket).score > computePriority(breachedTicket).score);
+    assert.ok(computePriority(freshTicket, now).score > computePriority(breachedTicket, now).score);
     assert.ok(
-      compareQueueKeys(queueKey(breachedTicket), queueKey(freshTicket)) < 0,
+      compareQueueKeys(queueKey(breachedTicket, now), queueKey(freshTicket, now)) < 0,
       'a breached ticket must precede a non-breached one whatever the two scores are',
     );
+  }
+
+  // ---- 2b. The dominance inequality: who can still overtake a breached ticket -------------------
+  //
+  // This is the sharp form of the bound and it holds as an inequality, not as a tendency. Once a
+  // ticket is breached, the only tickets that can be served before it are those with a **strictly
+  // greater** priority. Everything else — every later arrival, however severe, however furious,
+  // however valuable the account — is behind it, because a non-breached ticket loses on the first
+  // column and an equally-scoring breached one loses on age. So the set that can overtake a waiting
+  // ticket is not "the future": it is a fixed class fixed by its own score, and the wait is that
+  // class's arrivals divided by the service rate. That is what makes the wait finite whenever the
+  // service rate exceeds the arrival rate, and it is provable rather than measured.
+  const overtakers = generateArrivals({ seed: 'ledgerdesk/alg/starvation/dominance', count: 1_500 });
+  for (const waiting of overtakers.slice(0, 300)) {
+    const now = waiting.slaDueAt + 1; // the instant it breaches
+    const waitingKey = queueKey(waiting, now);
+    assert.equal(waitingKey.breached, true);
+
+    for (const later of overtakers.slice(300, 600)) {
+      // Any ticket created after it, evaluated at the same instant.
+      const rival = { ...later, id: `R-${later.id}`, createdAt: waiting.createdAt + 1 };
+      const rivalKey = queueKey(rival, now);
+      if (rivalKey.priority <= waitingKey.priority) {
+        assert.ok(
+          compareQueueKeys(waitingKey, rivalKey) < 0,
+          `${rival.id} does not outscore the breached ${waiting.id} yet was placed in front of it`,
+        );
+      }
+    }
   }
 
   // ---- 3. Ten thousand arrivals, replayed ------------------------------------------------------

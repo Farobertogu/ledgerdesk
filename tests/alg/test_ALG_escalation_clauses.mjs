@@ -12,6 +12,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
+  CLAUSE_STAGE,
   ESCALATION_CLAUSES,
   ESCALATION_REASONS,
   clauseByName,
@@ -20,7 +21,7 @@ import {
   isEscalationReason,
   isSupportedLanguage,
 } from '../../src/alg/escalation.ts';
-import { HOUR, T0, THRESHOLDS, escalationTicket } from './fixtures.mjs';
+import { HOUR, NOW, T0, THRESHOLDS, escalationTicket } from './fixtures.mjs';
 
 /**
  * One field change per clause, each chosen to trip that clause and nothing else.
@@ -32,7 +33,7 @@ import { HOUR, T0, THRESHOLDS, escalationTicket } from './fixtures.mjs';
 const TRIPS = {
   language_out_of_scope: { language: 'pt-BR' },
   policy_flag_raised: { policyFlags: ['refund'] },
-  sla_breached: { now: T0 + 5 * HOUR },
+  sla_breached: { slaDueAt: NOW - HOUR },
   retry_budget_exhausted: { retries: THRESHOLDS.maxRetries + 1 },
   confidence_below_threshold: { confidence: THRESHOLDS.confidence - 0.01 },
   sentiment_at_or_below_threshold: { sentiment: THRESHOLDS.sentiment },
@@ -67,11 +68,50 @@ test('test_ALG_escalation_alphabet_is_closed', () => {
   assert.equal(clauseByName('no_such_clause'), undefined);
 });
 
+test('test_ALG_escalation_precedence_follows_its_stated_criterion', () => {
+  // The first criterion is stage: everything a ticket's own record settles is decided before
+  // anything needing triage, and triage before anything needing a retrieved draft. The reason
+  // stored is therefore a statement about when the system knew, never about what a model said.
+  const rank = { record: 0, triage: 1, draft: 2 };
+  const stages = CLAUSE_NAMES.map((name) => rank[CLAUSE_STAGE[name]]);
+  assert.equal(stages.length, 8);
+  for (let index = 1; index < stages.length; index++) {
+    assert.ok(
+      stages[index] >= stages[index - 1],
+      `${CLAUSE_NAMES[index]} is decidable earlier than ${CLAUSE_NAMES[index - 1]} yet is evaluated after it`,
+    );
+  }
+  assert.deepEqual(stages, [0, 0, 0, 0, 1, 1, 1, 2], 'the stage profile of the published order');
+
+  // The second criterion, inside a stage: the rarer and costlier code goes first. The case that
+  // fixes it is a legal threat written in a language the system does not answer in. Both clauses
+  // are settled by the record, so the stage does not separate them — and only one of the two
+  // reasons routes the ticket to somebody who handles legal exposure.
+  const legalInSpanish = escalationTicket({ language: 'es-CO', policyFlags: ['legal'] });
+  const verdict = evaluateEscalation(legalInSpanish, NOW, THRESHOLDS);
+  assert.equal(verdict.escalate, true);
+  assert.equal(verdict.reason, 'POLICY', 'a legal flag must not be filed as a translation problem');
+
+  // Both clauses did fire; the audit view shows them and the single stored reason does not.
+  const fired = evaluateEscalationClauses(legalInSpanish, NOW, THRESHOLDS)
+    .filter((outcome) => outcome.fired)
+    .map((outcome) => outcome.reason);
+  assert.deepEqual(fired, ['POLICY', 'LANG']);
+
+  // And the most redundant code yields to every other in its stage. `breached` is the first column
+  // of the order key and has its own timestamp, so nobody loses the fact by storing another reason;
+  // it still reports itself whenever it is the only thing true.
+  const breachedAndFlagged = escalationTicket({ slaDueAt: NOW - HOUR, policyFlags: ['safety'] });
+  assert.equal(evaluateEscalation(breachedAndFlagged, NOW, THRESHOLDS).reason, 'POLICY');
+  const breachedOnly = escalationTicket({ slaDueAt: NOW - HOUR });
+  assert.equal(evaluateEscalation(breachedOnly, NOW, THRESHOLDS).reason, 'SLA');
+});
+
 test('test_ALG_escalation_quiet_ticket_does_not_escalate', () => {
-  const verdict = evaluateEscalation(escalationTicket(), THRESHOLDS);
+  const verdict = evaluateEscalation(escalationTicket(), NOW, THRESHOLDS);
   assert.deepEqual(verdict, { escalate: false, reason: null, clause: null });
 
-  const outcomes = evaluateEscalationClauses(escalationTicket(), THRESHOLDS);
+  const outcomes = evaluateEscalationClauses(escalationTicket(), NOW, THRESHOLDS);
   assert.equal(outcomes.length, 8);
   assert.deepEqual(outcomes.filter((outcome) => outcome.fired), []);
 });
@@ -81,13 +121,13 @@ test('test_ALG_escalation_each_clause_fires_with_its_own_reason', () => {
 
   for (const clause of ESCALATION_CLAUSES) {
     const ticket = escalationTicket(TRIPS[clause.name]);
-    const verdict = evaluateEscalation(ticket, THRESHOLDS);
+    const verdict = evaluateEscalation(ticket, NOW, THRESHOLDS);
 
     assert.equal(verdict.escalate, true, `${clause.name} did not fire on its own case`);
     assert.equal(verdict.reason, clause.reason, `${clause.name} reported the wrong reason`);
     assert.equal(verdict.clause, clause.name);
 
-    const fired = evaluateEscalationClauses(ticket, THRESHOLDS).filter((outcome) => outcome.fired);
+    const fired = evaluateEscalationClauses(ticket, NOW, THRESHOLDS).filter((outcome) => outcome.fired);
     assert.deepEqual(
       fired.map((outcome) => outcome.clause),
       [clause.name],
@@ -105,7 +145,7 @@ test('test_ALG_escalation_reports_the_first_clause_in_the_published_order', () =
     const tripped = CLAUSE_NAMES.filter((_, index) => (mask & (1 << index)) !== 0);
     const ticket = escalationTicket(Object.assign({}, ...tripped.map((name) => TRIPS[name])));
 
-    const fired = evaluateEscalationClauses(ticket, THRESHOLDS)
+    const fired = evaluateEscalationClauses(ticket, NOW, THRESHOLDS)
       .filter((outcome) => outcome.fired)
       .map((outcome) => outcome.clause);
     assert.deepEqual(
@@ -114,7 +154,7 @@ test('test_ALG_escalation_reports_the_first_clause_in_the_published_order', () =
       `the clauses that fired were not the ones tripped (mask ${mask})`,
     );
 
-    const verdict = evaluateEscalation(ticket, THRESHOLDS);
+    const verdict = evaluateEscalation(ticket, NOW, THRESHOLDS);
     if (tripped.length === 0) {
       assert.deepEqual(verdict, { escalate: false, reason: null, clause: null });
     } else {
@@ -137,6 +177,7 @@ test('test_ALG_escalation_is_monotone_in_its_clauses', () => {
     const tripped = CLAUSE_NAMES.filter((_, index) => (mask & (1 << index)) !== 0);
     const before = evaluateEscalation(
       escalationTicket(Object.assign({}, ...tripped.map((name) => TRIPS[name]))),
+      NOW,
       THRESHOLDS,
     );
     if (!before.escalate) continue;
@@ -145,6 +186,7 @@ test('test_ALG_escalation_is_monotone_in_its_clauses', () => {
       if (tripped.includes(extra)) continue;
       const after = evaluateEscalation(
         escalationTicket(Object.assign({}, ...[...tripped, extra].map((name) => TRIPS[name]))),
+        NOW,
         THRESHOLDS,
       );
       assert.equal(after.escalate, true, `adding ${extra} to {${tripped.join(', ')}} cancelled the escalation`);
@@ -173,7 +215,7 @@ test('test_ALG_escalation_account_never_suppresses', () => {
         ...Object.assign({}, ...others.map((name) => TRIPS[name])),
         ...account,
       });
-      const verdict = evaluateEscalation(ticket, THRESHOLDS);
+      const verdict = evaluateEscalation(ticket, NOW, THRESHOLDS);
       assert.equal(
         verdict.escalate,
         true,
@@ -187,22 +229,24 @@ test('test_ALG_escalation_thresholds_are_parameters_not_constants', () => {
   // A rule whose verdict does not move with its thresholds is a constant wearing a rule's clothes.
   const ticket = escalationTicket({ confidence: 0.6, sentiment: -0.4, retries: 2 });
 
-  assert.equal(evaluateEscalation(ticket, { ...THRESHOLDS, confidence: 0.5 }).escalate, false);
-  assert.equal(evaluateEscalation(ticket, { ...THRESHOLDS, confidence: 0.7 }).reason, 'CONF');
+  assert.equal(evaluateEscalation(ticket, NOW, { ...THRESHOLDS, confidence: 0.5 }).escalate, false);
+  assert.equal(evaluateEscalation(ticket, NOW, { ...THRESHOLDS, confidence: 0.7 }).reason, 'CONF');
 
-  assert.equal(evaluateEscalation(ticket, { ...THRESHOLDS, confidence: 0.5, sentiment: -0.5 }).escalate, false);
-  assert.equal(evaluateEscalation(ticket, { ...THRESHOLDS, confidence: 0.5, sentiment: -0.3 }).reason, 'SENT');
+  assert.equal(evaluateEscalation(ticket, NOW, { ...THRESHOLDS, confidence: 0.5, sentiment: -0.5 }).escalate, false);
+  assert.equal(evaluateEscalation(ticket, NOW, { ...THRESHOLDS, confidence: 0.5, sentiment: -0.3 }).reason, 'SENT');
 
-  assert.equal(evaluateEscalation(ticket, { ...THRESHOLDS, confidence: 0.5, maxRetries: 2 }).escalate, false);
-  assert.equal(evaluateEscalation(ticket, { ...THRESHOLDS, confidence: 0.5, maxRetries: 1 }).reason, 'RETRY');
+  assert.equal(evaluateEscalation(ticket, NOW, { ...THRESHOLDS, confidence: 0.5, maxRetries: 2 }).escalate, false);
+  assert.equal(evaluateEscalation(ticket, NOW, { ...THRESHOLDS, confidence: 0.5, maxRetries: 1 }).reason, 'RETRY');
 
   // The supported set is a parameter too, and the match is on the primary subtag.
   assert.equal(isSupportedLanguage('es-CO', ['en']), false);
   assert.equal(isSupportedLanguage('es-CO', ['en', 'es']), true);
   assert.equal(isSupportedLanguage('ES', ['es']), true);
   assert.equal(
-    evaluateEscalation(escalationTicket({ language: 'es-CO' }), { ...THRESHOLDS, supportedLanguages: ['en', 'es'] })
-      .escalate,
+    evaluateEscalation(escalationTicket({ language: 'es-CO' }), NOW, {
+      ...THRESHOLDS,
+      supportedLanguages: ['en', 'es'],
+    }).escalate,
     false,
   );
 });

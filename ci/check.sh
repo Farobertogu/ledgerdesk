@@ -24,9 +24,25 @@ node ci/seam_check.mjs || fail "test_ARCH_seam_holds"
 #     their tests need no database, no model and no install — they belong in this job. The list is
 #     explicit because the order is part of it; the reconciliation after the run fails the build if
 #     a test file exists in tests/alg/ and is not named here.
-ALG_TESTS="tests/alg/test_ALG_edge_cases.mjs tests/alg/test_ALG_escalation_clauses.mjs tests/alg/test_ALG_no_starvation_property.mjs tests/alg/test_ALG_db_order_matches_heap_order.mjs"
+#
+#     The tests import TypeScript directly and are stripped by the runtime, so the engine floor of
+#     package.json is a requirement here and not a preference. Checked, so that an older runtime
+#     reports itself instead of failing as an unreadable syntax error inside a module.
+node -e 'const [a,b]=process.versions.node.split(".").map(Number); if (a<22 || (a===22 && b<6)) { console.error("node >= 22.6 required (package.json engines)"); process.exit(1); }' \
+  || fail "node runtime below the declared engine"
+
+ALG_TESTS="tests/alg/test_ALG_edge_cases.mjs tests/alg/test_ALG_escalation_clauses.mjs tests/alg/test_ALG_no_starvation_property.mjs tests/alg/test_ALG_db_order_matches_heap_order.mjs tests/alg/test_ALG_replay_is_reproducible.mjs"
 # shellcheck disable=SC2086
 node --experimental-strip-types --test $ALG_TESTS || fail "the algorithm tests did not pass"
+
+# The simulation harness and the report generator are not production paths. They hold a heap that
+# only exists to measure things, and they reach for node:crypto to seed it — neither belongs inside
+# a request. The rule is cheap to state and impossible to remember, so it is checked: nothing the
+# application renders or serves may import either of them.
+if grep -REl "from ['\"].*alg/(simulation|sensitivity)(\.ts)?['\"]|@/alg/(simulation|sensitivity)" src/app src/components src/server 2>/dev/null | grep -q .; then
+  grep -REn "alg/(simulation|sensitivity)" src/app src/components src/server 2>/dev/null || true
+  fail "test_ARCH_harness_is_not_a_production_path: the application imports the simulation harness"
+fi
 
 for f in tests/alg/test_*.mjs; do
   case " $ALG_TESTS " in
@@ -41,6 +57,7 @@ done
 node --experimental-strip-types src/alg/sensitivity.ts --check --out reports/weight_sensitivity.md \
   || fail "reports/weight_sensitivity.md is stale or was edited by hand (regenerate with: node --experimental-strip-types src/alg/sensitivity.ts)"
 
+echo "test_ARCH_harness_is_not_a_production_path OK"
 echo "algorithm OK (14 published edge cases, the escalation clauses, and reports/weight_sensitivity.md regenerated and diffed)"
 
 # --- branch_name: every branch except main must match card/<ID>-<slug>, ID from BOARD.md.

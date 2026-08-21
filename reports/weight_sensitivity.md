@@ -18,8 +18,8 @@ compares the result byte for byte, so a hand-edit fails the build rather than su
 | Premium share | 25.00 % |
 | Severity shares (1→4) | 0.45, 0.30, 0.18, 0.07 |
 | Busy hours (UTC) | 8:00–20:00 at full intensity, 20.00 % outside |
-| Peak queue length | 120 tickets |
-| Queue snapshots | every 6 h: 122 taken, 88 with at least 10 waiting, 36 with at least 50 |
+| Peak queue length | 107 tickets |
+| Queue snapshots | every 6 h: 123 taken, 88 with at least 10 waiting, 35 with at least 50 |
 
 Every configuration is replayed against **the same** stream of arrivals, so a difference in
 the columns below is a difference the weights made and nothing else. The breach rate counts
@@ -33,13 +33,41 @@ same time are never compared, because nothing chose the order between them.
 
 | Config | w = (s, n, u, v) | Rationale | τ vs baseline | Worst snapshot τ | Head of queue kept | Breach rate | Δ vs baseline |
 |---|---|---|---|---|---|---|---|
-| C-base | (0.35, 0.25, 0.30, 0.10) | policy default | 1.0000 | 1.0000 | 100.00 % | 19.97 % | +0.00 pp |
-| C-sla | (0.25, 0.20, 0.45, 0.10) | SLA-dominant | 0.7279 | 0.3778 | 93.89 % | 14.63 % | -5.34 pp |
-| C-sev | (0.50, 0.20, 0.20, 0.10) | severity-dominant | 0.8254 | 0.6285 | 96.28 % | 23.09 % | +3.12 pp |
+| C-base | (0.35, 0.25, 0.30, 0.10) | policy default | 1.0000 | 1.0000 | 100.00 % | 18.68 % | +0.00 pp |
+| C-sla | (0.25, 0.20, 0.45, 0.10) | SLA-dominant | 0.7359 | 0.3778 | 93.20 % | 13.33 % | -5.35 pp |
+| C-sev | (0.50, 0.20, 0.20, 0.10) | severity-dominant | 0.8207 | 0.6000 | 96.06 % | 21.81 % | +3.13 pp |
+| C-edf | (0.00, 0.00, 1.00, 0.00) | reference point: the clock alone | 0.3267 | -0.1304 | 84.74 % | 8.92 % | -9.76 pp |
 
 *Head of queue kept* is the share of the first 50 tickets of the baseline's queue that this
 configuration also places in its own first 50, averaged over the snapshots that held at
 least 50 tickets.
+
+## Does it survive a different load?
+
+The world above was **chosen**, and an honest reading of one tuned world is that it proves
+very little: parameters picked until a table shows a difference will show a difference. The
+same arrivals are therefore replayed against a faster and a slower desk, each configuration
+compared with its own regime's baseline. A conclusion that changes sign between these rows is
+a conclusion about the staffing level, not about the weights.
+
+| Load | Handling time | Peak queue | Config | τ vs baseline | Breach rate | Δ vs baseline |
+|---|---|---|---|---|---|---|
+| light | 12 min | 62 | C-base | 1.0000 | 0.26 % | +0.00 pp |
+| light | 12 min | 62 | C-sla | 0.6945 | 0.00 % | -0.26 pp |
+| light | 12 min | 62 | C-sev | 0.8118 | 0.82 % | +0.56 pp |
+| light | 12 min | 62 | C-edf | 0.1245 | 0.00 % | -0.26 pp |
+| nominal | 15 min | 107 | C-base | 1.0000 | 18.68 % | +0.00 pp |
+| nominal | 15 min | 107 | C-sla | 0.7359 | 13.33 % | -5.35 pp |
+| nominal | 15 min | 107 | C-sev | 0.8207 | 21.81 % | +3.13 pp |
+| nominal | 15 min | 107 | C-edf | 0.3267 | 8.92 % | -9.76 pp |
+| heavy | 17 min | 144 | C-base | 1.0000 | 51.98 % | +0.00 pp |
+| heavy | 17 min | 144 | C-sla | 0.8090 | 48.10 % | -3.88 pp |
+| heavy | 17 min | 144 | C-sev | 0.8583 | 54.25 % | +2.27 pp |
+| heavy | 17 min | 144 | C-edf | 0.4409 | 44.98 % | -7.00 pp |
+
+- **light** — the desk keeps up through the day.
+- **nominal** — the published world: a backlog builds daily and drains overnight.
+- **heavy** — the desk falls behind by day and catches up at night.
 
 ## One weight at a time
 
@@ -48,22 +76,22 @@ so every row is still a distribution and the only thing that changed is the one 
 
 | Perturbation | w = (s, n, u, v) | τ vs baseline | Worst snapshot τ | Head of queue kept | Breach rate | Δ vs baseline | p95 wait | Max wait |
 |---|---|---|---|---|---|---|---|---|
-| w_severity −0.10 | (0.25, 0.29, 0.34, 0.12) | 0.9124 | 0.7246 | 97.56 % | 20.21 % | +0.24 pp | 485.2 min | 1087.8 min |
-| w_severity −0.05 | (0.30, 0.27, 0.32, 0.11) | 0.9552 | 0.8696 | 98.78 % | 19.83 % | -0.14 pp | 485.2 min | 1087.8 min |
-| w_severity +0.05 | (0.40, 0.23, 0.28, 0.09) | 0.9532 | 0.8891 | 99.22 % | 20.31 % | +0.34 pp | 485.6 min | 1087.8 min |
-| w_severity +0.10 | (0.45, 0.21, 0.26, 0.08) | 0.9082 | 0.8043 | 98.33 % | 20.59 % | +0.62 pp | 486.1 min | 1087.8 min |
-| w_negativity −0.10 | (0.40, 0.15, 0.34, 0.11) | 0.7541 | 0.4222 | 94.67 % | 15.63 % | -4.34 pp | 484.5 min | 1089.3 min |
-| w_negativity −0.05 | (0.37, 0.20, 0.32, 0.11) | 0.8787 | 0.7500 | 97.61 % | 17.50 % | -2.47 pp | 485.0 min | 1089.3 min |
-| w_negativity +0.05 | (0.33, 0.30, 0.28, 0.09) | 0.8902 | 0.7470 | 97.39 % | 23.06 % | +3.09 pp | 486.1 min | 1082.8 min |
-| w_negativity +0.10 | (0.30, 0.35, 0.26, 0.09) | 0.7956 | 0.5178 | 95.44 % | 26.74 % | +6.77 pp | 486.9 min | 1082.8 min |
-| w_urgency −0.10 | (0.40, 0.29, 0.20, 0.11) | 0.7945 | 0.3676 | 95.06 % | 26.56 % | +6.59 pp | 487.5 min | 1087.8 min |
-| w_urgency −0.05 | (0.37, 0.27, 0.25, 0.11) | 0.8961 | 0.6759 | 97.39 % | 23.04 % | +3.07 pp | 486.7 min | 1087.8 min |
-| w_urgency +0.05 | (0.33, 0.23, 0.35, 0.09) | 0.8969 | 0.8129 | 97.83 % | 17.54 % | -2.43 pp | 484.7 min | 1087.8 min |
-| w_urgency +0.10 | (0.30, 0.21, 0.40, 0.09) | 0.7988 | 0.4222 | 95.72 % | 15.67 % | -4.30 pp | 483.9 min | 1087.8 min |
-| w_tier −0.10 | (0.39, 0.28, 0.33, 0.00) | 0.8722 | 0.7538 | 97.61 % | 20.61 % | +0.64 pp | 485.4 min | 1030.8 min |
-| w_tier −0.05 | (0.37, 0.26, 0.32, 0.05) | 0.9303 | 0.8286 | 98.94 % | 19.62 % | -0.35 pp | 485.2 min | 1057.8 min |
-| w_tier +0.05 | (0.33, 0.24, 0.28, 0.15) | 0.9292 | 0.7708 | 98.56 % | 20.44 % | +0.47 pp | 485.8 min | 1089.3 min |
-| w_tier +0.10 | (0.31, 0.22, 0.27, 0.20) | 0.8542 | 0.6206 | 97.17 % | 20.13 % | +0.16 pp | 485.8 min | 1089.3 min |
+| w_severity −0.10 | (0.25, 0.29, 0.34, 0.12) | 0.9087 | 0.7246 | 97.03 % | 18.90 % | +0.22 pp | 484.3 min | 925.2 min |
+| w_severity −0.05 | (0.30, 0.27, 0.32, 0.11) | 0.9535 | 0.8696 | 98.63 % | 18.56 % | -0.12 pp | 484.5 min | 925.2 min |
+| w_severity +0.05 | (0.40, 0.23, 0.28, 0.09) | 0.9511 | 0.8205 | 98.86 % | 18.91 % | +0.23 pp | 485.2 min | 925.2 min |
+| w_severity +0.10 | (0.45, 0.21, 0.26, 0.08) | 0.9065 | 0.7048 | 98.23 % | 19.18 % | +0.50 pp | 485.4 min | 927.2 min |
+| w_negativity −0.10 | (0.40, 0.15, 0.34, 0.11) | 0.7572 | 0.4222 | 94.06 % | 14.48 % | -4.20 pp | 483.9 min | 935.0 min |
+| w_negativity −0.05 | (0.37, 0.20, 0.32, 0.11) | 0.8773 | 0.7500 | 96.86 % | 16.32 % | -2.36 pp | 484.2 min | 935.0 min |
+| w_negativity +0.05 | (0.33, 0.30, 0.28, 0.09) | 0.8833 | 0.7470 | 97.54 % | 21.54 % | +2.86 pp | 485.4 min | 927.2 min |
+| w_negativity +0.10 | (0.30, 0.35, 0.26, 0.09) | 0.7858 | 0.5178 | 95.20 % | 25.43 % | +6.75 pp | 485.9 min | 927.2 min |
+| w_urgency −0.10 | (0.40, 0.29, 0.20, 0.11) | 0.7859 | 0.3676 | 94.69 % | 24.98 % | +6.30 pp | 486.4 min | 927.2 min |
+| w_urgency −0.05 | (0.37, 0.27, 0.25, 0.11) | 0.8891 | 0.6759 | 97.26 % | 21.58 % | +2.90 pp | 485.8 min | 925.2 min |
+| w_urgency +0.05 | (0.33, 0.23, 0.35, 0.09) | 0.8971 | 0.8095 | 97.60 % | 16.41 % | -2.27 pp | 484.0 min | 925.2 min |
+| w_urgency +0.10 | (0.30, 0.21, 0.40, 0.09) | 0.8044 | 0.4222 | 95.26 % | 14.64 % | -4.04 pp | 483.5 min | 925.2 min |
+| w_tier −0.10 | (0.39, 0.28, 0.33, 0.00) | 0.8680 | 0.6923 | 96.97 % | 19.33 % | +0.65 pp | 484.7 min | 933.2 min |
+| w_tier −0.05 | (0.37, 0.26, 0.32, 0.05) | 0.9280 | 0.7949 | 98.40 % | 18.56 % | -0.12 pp | 484.7 min | 927.2 min |
+| w_tier +0.05 | (0.33, 0.24, 0.28, 0.15) | 0.9258 | 0.7866 | 98.29 % | 18.97 % | +0.29 pp | 485.1 min | 935.0 min |
+| w_tier +0.10 | (0.31, 0.22, 0.27, 0.20) | 0.8509 | 0.6206 | 96.57 % | 18.81 % | +0.13 pp | 485.0 min | 926.4 min |
 
 ## How to read it
 
@@ -79,4 +107,9 @@ so every row is still a distribution and the only thing that changed is the one 
   and the breach rate not at all has rearranged the queue without helping anybody.
 - **Max wait** is bounded in every row, which is the anti-starvation bound holding under
   perturbation rather than only at the published weights.
+- **C-edf** is not a candidate. It puts every weight on the clock, so severity, sentiment and
+  the account decide nothing, and it is here to mark the boundary: it is the least breaching
+  queue this family of weights can produce, and it is also the queue least like the one the
+  policy asks for. The distance between it and C-base is the price the policy is paying for
+  taking anything other than the deadline into account — a number, where there was an opinion.
 

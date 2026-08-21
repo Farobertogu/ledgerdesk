@@ -3,9 +3,11 @@
  *
  * Three properties are deliberate and every one of them is a testable claim rather than a comment:
  *
- *   1. **No clock inside.** `now` is a field of the feature vector. The function never reads the
- *      system time, so the same vector yields the same score on any machine, in any timezone, on
- *      any day. This is what makes the queue byte-reproducible in a recorded demonstration.
+ *   1. **No clock inside, and no clock on the ticket either.** The instant of evaluation is an
+ *      argument of the call, not a field of the feature vector. The vector describes the ticket;
+ *      `now` describes the moment someone is asking. Keeping them apart is not tidiness — it makes
+ *      it impossible to rank two tickets against two different clocks, which is a queue that no
+ *      single moment justifies and which looks entirely correct on the screen.
  *   2. **Weights are arguments.** The published default is one configuration among several; the
  *      sensitivity generator sweeps others against it. A weight vector that is not a probability
  *      distribution is rejected rather than silently renormalised.
@@ -74,8 +76,6 @@ export type QueueFeatures = {
   createdAt: number;
   /** Epoch milliseconds. The instant the SLA expires, not a duration. */
   slaDueAt: number;
-  /** Epoch milliseconds. The clock is an input; nothing in this module reads it from the host. */
-  now: number;
 };
 
 export type PriorityWeights = {
@@ -106,7 +106,15 @@ export const WEIGHT_SUM_TOLERANCE = 1e-9;
  */
 export const PRIORITY_DECIMALS = 6;
 
-const PRIORITY_SCALE = 10 ** PRIORITY_DECIMALS;
+/**
+ * Written out rather than computed as a power.
+ *
+ * `**` is specified as *implementation-approximated* for the general case. Every engine in practice
+ * returns exactly one million for `10 ** 6`, and relying on that is still relying on something the
+ * standard does not promise — in a module whose whole claim is that two machines produce the same
+ * bytes, a literal costs nothing and promises everything.
+ */
+const PRIORITY_SCALE = 1_000_000;
 
 /** The anomalies the priority computation can observe in a feature vector, as a closed set. */
 export const PRIORITY_ANOMALIES = [
@@ -152,6 +160,24 @@ export type PriorityBreakdown = {
 
 export function clamp(value: number, low: number, high: number): number {
   return value < low ? low : value > high ? high : value;
+}
+
+/**
+ * Rejects anything that is not a real instant, at every entry point that takes one.
+ *
+ * This exists because the mistake was made. `now` sits between the feature vector and the optional
+ * weights, and a caller passing weights or thresholds into that slot gets no complaint from the
+ * runtime — every argument is just a value — and the result is a plausible-looking order computed
+ * against a clock of `NaN`. Types catch it inside this module; nothing catches it from an untyped
+ * caller or across a boundary where the object arrived as JSON. So the check is here, once, and it
+ * costs a comparison.
+ */
+export function assertInstant(now: number): void {
+  if (typeof now !== 'number' || !Number.isFinite(now)) {
+    throw new TypeError(
+      `the evaluation instant must be a finite epoch-millisecond number, got ${typeof now === 'object' ? JSON.stringify(now) : String(now)}`,
+    );
+  }
 }
 
 /** Fixes a score at the stored precision. Half-up, so it is the same rounding a database applies. */
@@ -251,8 +277,8 @@ export type UrgencyResult = { value: number; anomalies: readonly PriorityAnomaly
  *   - a window that is zero or negative describes a ticket already due when it was created. It is
  *     maximally urgent, and the anomaly says the SLA policy behind it is malformed.
  */
-export function normalisedUrgency(features: QueueFeatures): UrgencyResult {
-  const elapsed = features.now - features.createdAt;
+export function normalisedUrgency(features: QueueFeatures, now: number): UrgencyResult {
+  const elapsed = now - features.createdAt;
   if (elapsed < 0) {
     return { value: 0, anomalies: ['FUTURE_CREATED_AT'] };
   }
@@ -268,15 +294,17 @@ export function normalisedTier(tier: AccountTier, valueBand: ValueBand): number 
 }
 
 /** True once the SLA instant has passed. Strict: a ticket is not breached at its due instant. */
-export function isBreached(features: QueueFeatures): boolean {
-  return features.now > features.slaDueAt;
+export function isBreached(features: QueueFeatures, now: number): boolean {
+  return now > features.slaDueAt;
 }
 
 /** The priority with its per-component account. Pure: same vector, same record, always. */
 export function computePriority(
   features: QueueFeatures,
+  now: number,
   weights: PriorityWeights = DEFAULT_PRIORITY_WEIGHTS,
 ): PriorityBreakdown {
+  assertInstant(now);
   assertValidWeights(weights);
 
   const anomalies: PriorityAnomaly[] = [];
@@ -287,7 +315,7 @@ export function computePriority(
     anomalies.push('SENTIMENT_OUT_OF_RANGE');
   }
 
-  const urgency = normalisedUrgency(features);
+  const urgency = normalisedUrgency(features, now);
   anomalies.push(...urgency.anomalies);
 
   const normalised = {
@@ -313,7 +341,7 @@ export function computePriority(
   return {
     score,
     storedScore: quantisePriority(score),
-    breached: isBreached(features),
+    breached: isBreached(features, now),
     components,
     anomalies,
   };
@@ -337,9 +365,10 @@ export type QueueKey = {
 
 export function queueKey(
   features: QueueFeatures,
+  now: number,
   weights: PriorityWeights = DEFAULT_PRIORITY_WEIGHTS,
 ): QueueKey {
-  const breakdown = computePriority(features, weights);
+  const breakdown = computePriority(features, now, weights);
   return {
     breached: breakdown.breached,
     priority: breakdown.storedScore,
@@ -362,33 +391,74 @@ export function compareQueueKeys(a: QueueKey, b: QueueKey): number {
   return a.id < b.id ? -1 : 1;
 }
 
-/** The queue as an operator sees it: every ticket in the order it will be served. */
+/**
+ * The queue as an operator sees it: every ticket in the order it will be served, at one instant.
+ *
+ * `now` is an argument of the **batch**, not of each ticket, and that is the point. Two tickets
+ * ranked at two different instants are not ranked at all: the urgency term and the breach class are
+ * both functions of the clock, so a caller that evaluated each row as it came off a cursor would
+ * produce an order that no single moment justifies — and it would look perfectly correct. Taking
+ * the instant once makes that mistake unrepresentable rather than merely documented.
+ */
 export function orderQueue<T extends QueueFeatures>(
   tickets: readonly T[],
+  now: number,
   weights: PriorityWeights = DEFAULT_PRIORITY_WEIGHTS,
 ): T[] {
-  const keyed = tickets.map((ticket) => ({ ticket, key: queueKey(ticket, weights) }));
+  const keyed = tickets.map((ticket) => ({ ticket, key: queueKey(ticket, now, weights) }));
   keyed.sort((a, b) => compareQueueKeys(a.key, b.key));
   return keyed.map((entry) => entry.ticket);
 }
 
 /**
- * The same order expressed the way a sorted column yields it:
- * `order by breached desc, priority desc, created_at asc, id asc`.
+ * The widest `created_at` this encoding can pad, and the widest priority it can hold.
  *
- * Written out separately, and on purpose. The comparator above is the in-process reading of the
- * key; this is the reading a storage engine performs over stored columns. Keeping them as two
- * expressions of one rule is what allows a test to hold them against each other instead of
- * asserting that a single expression agrees with itself.
+ * Both are asserted at encoding time rather than assumed. An identifier that overflowed its field
+ * would collate wrongly and quietly, which is the one failure mode a fixed-width encoding has.
+ */
+const COLLATION_TIME_WIDTH = 15; // milliseconds until the year 33658
+const COLLATION_PRIORITY_CEILING = 9_999_999; // priority ≤ 1 at six decimals, with a decade spare
+
+/**
+ * The order key encoded as one string that sorts, ascending and lexicographically, into the queue
+ * order — the way a collating index arranges its entries.
+ *
+ * This is deliberately **a different mechanism**, not a second copy of the comparator above. A
+ * comparator re-typed as a comparator agrees with itself for the same reason a sentence agrees with
+ * its own paraphrase, and a test built on that pair proves nothing. Here the descending columns are
+ * inverted into ascending ones by complement, every numeric field is zero-padded to a fixed width
+ * so that textual and numeric order coincide, and the result is compared with `<`. If the key,
+ * its widths, or the direction of any column is wrong, this encoding and the comparator disagree —
+ * which is exactly what the test is for.
+ */
+export function storedCollationKey(key: QueueKey): string {
+  const priority = Math.round(key.priority * PRIORITY_SCALE);
+  if (priority < 0 || priority > COLLATION_PRIORITY_CEILING) {
+    throw new RangeError(`priority ${key.priority} does not fit the collation encoding`);
+  }
+  if (key.createdAt < 0 || String(key.createdAt).length > COLLATION_TIME_WIDTH) {
+    throw new RangeError(`created_at ${key.createdAt} does not fit the collation encoding`);
+  }
+  // Breached first and higher priority first are descending columns; ascending text gives them by
+  // complement. `created_at` and `id` are already ascending and need none.
+  const breached = key.breached ? '0' : '1';
+  const descendingPriority = String(COLLATION_PRIORITY_CEILING - priority).padStart(7, '0');
+  const createdAt = String(key.createdAt).padStart(COLLATION_TIME_WIDTH, '0');
+  return `${breached}|${descendingPriority}|${createdAt}|${key.id}`;
+}
+
+/**
+ * The same order as `compareQueueKeys`, obtained by collating the encoding above.
+ *
+ * This is the reading a storage engine performs over stored columns; the comparator is the reading
+ * the process performs over a key it just computed. Holding the two against each other is what
+ * makes the agreement checkable instead of quotable.
  */
 export function compareStoredRows(a: QueueKey, b: QueueKey): number {
-  const aBreached = a.breached ? 1 : 0;
-  const bBreached = b.breached ? 1 : 0;
-  if (aBreached !== bBreached) return bBreached - aBreached;
-  if (a.priority !== b.priority) return b.priority - a.priority;
-  if (a.createdAt !== b.createdAt) return a.createdAt - b.createdAt;
-  if (a.id === b.id) return 0;
-  return a.id < b.id ? -1 : 1;
+  const left = storedCollationKey(a);
+  const right = storedCollationKey(b);
+  if (left === right) return 0;
+  return left < right ? -1 : 1;
 }
 
 /**
@@ -411,7 +481,6 @@ export function applyReopen<T extends QueueFeatures>(
     ...features,
     createdAt: reopenedAt,
     slaDueAt: reopenedAt + slaWindowMs,
-    now: Math.max(features.now, reopenedAt),
   };
 }
 
@@ -419,14 +488,27 @@ export function applyReopen<T extends QueueFeatures>(
 export const DEFAULT_DEDUPE_WINDOW_MS = 5 * 60 * 1000;
 
 /**
- * The collapse key: an organisation and a body digest.
+ * The collapse key: an organisation, a body digest, and the instant the collapse group opened.
+ *
+ * **The anchor is what reconciles a five-minute window with a permanent uniqueness constraint.**
+ * A key of organisation and body alone is stable forever, so the same complaint raised honestly the
+ * next morning would collide with the row from last night and the insert would fail — a legitimate
+ * ticket refused by a rule meant to absorb double-clicks. Naming the group by the arrival that
+ * opened it gives every genuine re-submission a key of its own while every duplicate inside the
+ * window resolves to the same string. Nothing about the constraint has to change.
+ *
+ * The discarded alternative is recorded because it is the tempting one: bucketing the timestamp
+ * (`floor(t / window)`) also produces a rotating key, and it collapses two submissions ten seconds
+ * apart into different groups whenever they straddle a bucket edge. Whether a duplicate is absorbed
+ * would then depend on where the wall clock happened to fall, which is the class of non-determinism
+ * this module exists to refuse.
  *
  * The digest is supplied, not computed here. Hashing is not the algorithm's business, and taking
  * the body as an argument would put a raw customer body inside a module that has no reason to
  * ever hold one.
  */
-export function dedupeKey(orgId: string, bodySha256: string): string {
-  return `${orgId}:${bodySha256}`;
+export function dedupeKey(orgId: string, bodySha256: string, anchorCreatedAt: number): string {
+  return `${orgId}:${bodySha256}:${anchorCreatedAt}`;
 }
 
 export type Submission = {
@@ -436,35 +518,66 @@ export type Submission = {
   createdAt: number;
 };
 
+/**
+ * The row a new submission is measured against: the most recent entry that shares its organisation
+ * and body digest.
+ *
+ * `open` is the caller's answer to *is that entry still live?*. A duplicate must not be folded into
+ * a ticket that has already been resolved and closed — the customer writing the same words again
+ * after a closure is raising the matter again, not clicking twice.
+ */
+export type DedupeIncumbent = {
+  id: string;
+  /** The instant that named the incumbent's group, which its key already carries. */
+  anchorCreatedAt: number;
+  open: boolean;
+};
+
 export type DedupeDecision = {
+  /** The key the new row would carry, or the incumbent's key when the submission collapses. */
   key: string;
   collapse: boolean;
   /** The identifier of the entry this submission folds into, when it collapses. */
   collapsedInto: string | null;
+  /** The instant naming the group this submission belongs to. */
+  anchorCreatedAt: number;
 };
 
 /**
- * Whether a submission is a duplicate of the entry that already holds its key.
+ * Whether a submission is a duplicate of the entry that already holds its content.
  *
- * The window is measured from the entry's own arrival, so a customer clicking send four times in
- * ninety seconds produces one queue entry, while the same complaint raised again the next morning
- * produces a second — which is a different fact and deserves its own row.
+ * The window is measured from the group's anchor, not from the last duplicate seen, so a customer
+ * clicking send every four minutes cannot walk the window forward indefinitely and keep one ticket
+ * open for an hour. Three conditions, all of them necessary: an incumbent exists, it is still open,
+ * and the new submission falls inside the window that the incumbent's anchor opened.
  */
 export function dedupeDecision(
   submission: Submission,
-  previous: Submission | null,
+  incumbent: DedupeIncumbent | null,
   windowMs: number = DEFAULT_DEDUPE_WINDOW_MS,
 ): DedupeDecision {
-  const key = dedupeKey(submission.orgId, submission.bodySha256);
-  if (previous === null) return { key, collapse: false, collapsedInto: null };
-  const gap = submission.createdAt - previous.createdAt;
-  const collapse = gap >= 0 && gap < windowMs;
-  return { key, collapse, collapsedInto: collapse ? previous.id : null };
+  const fresh = {
+    key: dedupeKey(submission.orgId, submission.bodySha256, submission.createdAt),
+    collapse: false,
+    collapsedInto: null,
+    anchorCreatedAt: submission.createdAt,
+  };
+  if (incumbent === null || !incumbent.open) return fresh;
+
+  const gap = submission.createdAt - incumbent.anchorCreatedAt;
+  if (gap < 0 || gap >= windowMs) return fresh;
+
+  return {
+    key: dedupeKey(submission.orgId, submission.bodySha256, incumbent.anchorCreatedAt),
+    collapse: true,
+    collapsedInto: incumbent.id,
+    anchorCreatedAt: incumbent.anchorCreatedAt,
+  };
 }
 
 export type CollapseResult<T extends Submission> = {
-  /** One entry per distinct submission — the queue as it is actually built. */
-  admitted: T[];
+  /** One entry per distinct submission, each with the key its row would carry. */
+  admitted: { submission: T; key: string }[];
   /** Every collapsed submission, paired with the entry that absorbed it. */
   collapsed: { submission: T; into: string }[];
 };
@@ -472,27 +585,31 @@ export type CollapseResult<T extends Submission> = {
 /**
  * Folds a stream of submissions into the queue entries it should produce.
  *
- * Arrival order is the caller's; this walks it once and holds, per key, the entry currently open
- * for collapsing. That entry is replaced — not extended — when a later submission falls outside
- * the window, so the window never creeps forward one duplicate at a time.
+ * Arrival order is the caller's; this walks it once and holds, per organisation and body, the group
+ * currently open for collapsing. That group is replaced — not extended — when a later submission
+ * falls outside its window, and the replacement takes a new anchor and therefore a new key.
  */
 export function collapseDuplicates<T extends Submission>(
   submissions: readonly T[],
   windowMs: number = DEFAULT_DEDUPE_WINDOW_MS,
 ): CollapseResult<T> {
-  const openByKey = new Map<string, T>();
-  const admitted: T[] = [];
+  const openGroups = new Map<string, DedupeIncumbent>();
+  const admitted: { submission: T; key: string }[] = [];
   const collapsed: { submission: T; into: string }[] = [];
 
   for (const submission of submissions) {
-    const previous = openByKey.get(dedupeKey(submission.orgId, submission.bodySha256)) ?? null;
-    const decision = dedupeDecision(submission, previous, windowMs);
+    const content = `${submission.orgId}:${submission.bodySha256}`;
+    const decision = dedupeDecision(submission, openGroups.get(content) ?? null, windowMs);
     if (decision.collapse && decision.collapsedInto !== null) {
       collapsed.push({ submission, into: decision.collapsedInto });
       continue;
     }
-    openByKey.set(decision.key, submission);
-    admitted.push(submission);
+    openGroups.set(content, {
+      id: submission.id,
+      anchorCreatedAt: decision.anchorCreatedAt,
+      open: true,
+    });
+    admitted.push({ submission, key: decision.key });
   }
 
   return { admitted, collapsed };

@@ -18,8 +18,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { compareStoredRows, compareQueueKeys } from '../../src/alg/priority.ts';
-import { generateArrivals, heapOrder, keyAt, storedOrder } from '../../src/alg/simulation.ts';
+import { compareStoredRows, compareQueueKeys, queueKey } from '../../src/alg/priority.ts';
+import { generateArrivals, heapOrder, storedOrder } from '../../src/alg/simulation.ts';
 
 const ARRIVALS = 10_000;
 
@@ -63,7 +63,7 @@ test('test_ALG_db_order_matches_heap_order', (t) => {
   // and unbreached tickets, which is the only situation in which the first key column decides
   // anything at all.
   const now = instants[2];
-  const keys = arrivals.map((ticket) => keyAt(ticket, now, CONFIGURATIONS[0].weights));
+  const keys = arrivals.map((ticket) => queueKey(ticket, now, CONFIGURATIONS[0].weights));
   const breached = keys.filter((key) => key.breached).length;
   assert.ok(breached > 0 && breached < ARRIVALS, 'the sampled instant must mix breached and unbreached tickets');
 
@@ -78,8 +78,8 @@ test('test_ALG_db_order_matches_heap_order', (t) => {
   // The two comparators agree pair by pair, not merely on the sorted result. A sort can hide a
   // disagreement between two comparators whenever the pair never gets compared.
   for (let index = 0; index + 1 < 2_000; index++) {
-    const a = keyAt(arrivals[index], now, CONFIGURATIONS[0].weights);
-    const b = keyAt(arrivals[ARRIVALS - 1 - index], now, CONFIGURATIONS[0].weights);
+    const a = queueKey(arrivals[index], now, CONFIGURATIONS[0].weights);
+    const b = queueKey(arrivals[ARRIVALS - 1 - index], now, CONFIGURATIONS[0].weights);
     assert.equal(
       Math.sign(compareQueueKeys(a, b)),
       Math.sign(compareStoredRows(a, b)),

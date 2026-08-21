@@ -24,7 +24,7 @@
  */
 
 import type { AccountTier, QueueFeatures, Severity } from './priority.ts';
-import { isBreached, normalisedSeverity } from './priority.ts';
+import { assertInstant, isBreached, normalisedSeverity } from './priority.ts';
 
 /**
  * The closed alphabet. Eight indices, no ninth, and nothing outside it may be stored as a reason.
@@ -170,28 +170,49 @@ export type EscalationClause = {
   reason: EscalationReason;
   /** The clause in one sentence, for the screen that has to explain the decision to a person. */
   statement: string;
-  fires: (features: EscalationFeatures, thresholds: EscalationThresholds) => boolean;
+  /**
+   * `now` is the instant the rule is being asked, passed to every clause whether it reads the clock
+   * or not. Only the SLA clause does today; giving them all the same shape means a clause that
+   * starts caring about time later does not change this type and every call site with it.
+   */
+  fires: (features: EscalationFeatures, now: number, thresholds: EscalationThresholds) => boolean;
 };
 
 /**
- * The eight clauses, in the order they are evaluated.
+ * The eight clauses, in the order they are evaluated — and the order is a design decision with two
+ * criteria, written here because a precedence nobody justified is a precedence nobody can review.
  *
- * The order is not a ranking of severity — it is the order in which the pipeline can decide them.
- * A clause that a ticket's own record settles comes before one that needs triage, and triage comes
- * before one that needs a retrieved draft. So a ticket that is out of scope by language is
- * recorded as `LANG` rather than as a low confidence produced by attempting an answer nobody
- * should have attempted, and a breached ticket is recorded as `SLA` rather than as whatever the
- * model later made of it. Because the rule is a disjunction, the order changes which reason is
- * stored and never whether the ticket escalates.
+ * **First criterion: the earliest point at which the system could have escalated without asking a
+ * model.** The clauses a ticket's own record settles come first, then those needing triage, then
+ * the one needing a retrieved draft. The reason stored is therefore a statement about *when the
+ * system knew*, never about *what the model said* — a ticket that was escalatable at intake does
+ * not end up attributed to a model's opinion formed afterwards.
+ *
+ * **Second criterion, inside a stage: the code that is rarer and costlier to lose goes first.** The
+ * channel stores one reason, so precedence decides which fact survives and which is destroyed. Two
+ * things make a fact cheap to lose — that it is recoverable from a column anyone can read, and that
+ * it is common enough that losing an occasional instance barely moves its tally. `POLICY` is
+ * neither: no published column carries the flags, and the population is small, so a legal or safety
+ * flag hidden behind a commoner code is simply gone. `SLA` is both: `breached` is the first column
+ * of the order key and the queue shows it, and it fires on a fifth of the replayed month — so it
+ * yields to everything else in its stage and still reports itself whenever it is the only thing
+ * true.
+ *
+ * The concrete case that fixes the intra-stage order: **a legal threat written in Spanish.** Under
+ * language-first it records `LANG` and reaches a translation queue; under policy-first it records
+ * `POLICY` and reaches a person who handles legal exposure. The ticket escalates either way — the
+ * disjunction guarantees that — but only one of the two routes it to the right desk.
+ *
+ * Rejected: taking the order in which the rule's disjuncts happen to be written. A disjunction's
+ * written order carries no meaning, and adopting it would put confidence first, so an injected
+ * prompt that a model also felt unsure about would be filed as low confidence — the single worst
+ * outcome available, and reached by deferring to an accident of punctuation.
+ *
+ * Because the rule is a disjunction, this order decides **which reason is stored** and never
+ * whether the ticket escalates. That is asserted exhaustively over all 256 combinations.
  */
 export const ESCALATION_CLAUSES: readonly EscalationClause[] = [
-  {
-    name: 'language_out_of_scope',
-    reason: 'LANG',
-    statement: 'the ticket is not in a supported language, so no answer is attempted',
-    fires: (features, thresholds) =>
-      !isSupportedLanguage(features.language, thresholds.supportedLanguages),
-  },
+  // ---- decidable from the ticket record alone, before any model is called --------------------
   {
     name: 'policy_flag_raised',
     reason: 'POLICY',
@@ -199,22 +220,30 @@ export const ESCALATION_CLAUSES: readonly EscalationClause[] = [
     fires: (features) => features.policyFlags.length > 0,
   },
   {
-    name: 'sla_breached',
-    reason: 'SLA',
-    statement: 'the SLA instant has passed',
-    fires: (features) => isBreached(features),
-  },
-  {
     name: 'retry_budget_exhausted',
     reason: 'RETRY',
     statement: 'the provider retry budget is spent',
-    fires: (features, thresholds) => features.retries > thresholds.maxRetries,
+    fires: (features, _now, thresholds) => features.retries > thresholds.maxRetries,
   },
+  {
+    name: 'language_out_of_scope',
+    reason: 'LANG',
+    statement: 'the ticket is not in a supported language, so no answer is attempted',
+    fires: (features, _now, thresholds) =>
+      !isSupportedLanguage(features.language, thresholds.supportedLanguages),
+  },
+  {
+    name: 'sla_breached',
+    reason: 'SLA',
+    statement: 'the SLA instant has passed',
+    fires: (features, now) => isBreached(features, now),
+  },
+  // ---- decidable once triage has run ----------------------------------------------------------
   {
     name: 'confidence_below_threshold',
     reason: 'CONF',
     statement: 'triage confidence is below the escalation threshold',
-    fires: (features, thresholds) => {
+    fires: (features, _now, thresholds) => {
       const confidence = effectiveConfidence(features, thresholds);
       return confidence !== null && confidence < thresholds.confidence;
     },
@@ -223,16 +252,17 @@ export const ESCALATION_CLAUSES: readonly EscalationClause[] = [
     name: 'sentiment_at_or_below_threshold',
     reason: 'SENT',
     statement: 'the customer sentiment is at or below the escalation threshold',
-    fires: (features, thresholds) =>
+    fires: (features, _now, thresholds) =>
       features.sentiment !== null && features.sentiment <= thresholds.sentiment,
   },
   {
     name: 'premium_high_severity',
     reason: 'TIER',
     statement: 'a premium account raised a high-severity ticket',
-    fires: (features, thresholds) =>
+    fires: (features, _now, thresholds) =>
       isPremiumHighSeverity(features.tier, features.severity, thresholds.premiumSeverity),
   },
+  // ---- decidable only once a draft has been retrieved and validated ---------------------------
   {
     name: 'draft_not_grounded',
     reason: 'GROUND',
@@ -240,6 +270,21 @@ export const ESCALATION_CLAUSES: readonly EscalationClause[] = [
     fires: (features) => effectiveGrounded(features) === false,
   },
 ];
+
+/**
+ * The stage at which each clause becomes decidable, published so that the precedence above can be
+ * checked against its own stated criterion rather than taken on trust.
+ */
+export const CLAUSE_STAGE: Readonly<Record<string, 'record' | 'triage' | 'draft'>> = {
+  policy_flag_raised: 'record',
+  retry_budget_exhausted: 'record',
+  language_out_of_scope: 'record',
+  sla_breached: 'record',
+  confidence_below_threshold: 'triage',
+  sentiment_at_or_below_threshold: 'triage',
+  premium_high_severity: 'triage',
+  draft_not_grounded: 'draft',
+};
 
 export type EscalationVerdict = {
   escalate: boolean;
@@ -250,10 +295,12 @@ export type EscalationVerdict = {
 /** The verdict: whether to escalate, under which reason, and by which named clause. */
 export function evaluateEscalation(
   features: EscalationFeatures,
+  now: number,
   thresholds: EscalationThresholds = DEFAULT_ESCALATION_THRESHOLDS,
 ): EscalationVerdict {
+  assertInstant(now);
   for (const clause of ESCALATION_CLAUSES) {
-    if (clause.fires(features, thresholds)) {
+    if (clause.fires(features, now, thresholds)) {
       return { escalate: true, reason: clause.reason, clause: clause.name };
     }
   }
@@ -275,12 +322,14 @@ export type ClauseOutcome = {
  */
 export function evaluateEscalationClauses(
   features: EscalationFeatures,
+  now: number,
   thresholds: EscalationThresholds = DEFAULT_ESCALATION_THRESHOLDS,
 ): readonly ClauseOutcome[] {
+  assertInstant(now);
   return ESCALATION_CLAUSES.map((clause) => ({
     clause: clause.name,
     reason: clause.reason,
-    fired: clause.fires(features, thresholds),
+    fired: clause.fires(features, now, thresholds),
   }));
 }
 

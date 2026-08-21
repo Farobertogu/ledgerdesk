@@ -63,6 +63,43 @@ const NAMED_CONFIGS: readonly { id: string; rationale: string; weights: Priority
 /** The perturbations swept over every weight, in the order they appear in the report. */
 const DELTAS = [-0.1, -0.05, 0.05, 0.1] as const;
 
+/**
+ * A fourth configuration, published as a **reference point and not as a candidate**.
+ *
+ * All weight on the clock is deadline-first scheduling: serve whoever has spent the largest share
+ * of their window, and let severity, sentiment and the account decide nothing. It is not proposed —
+ * it is the boundary of what the weight family can do about breaches, and reporting it turns "the
+ * baseline could be better" into a number instead of an opinion.
+ */
+const REFERENCE_CONFIG = {
+  id: 'C-edf',
+  rationale: 'reference point: the clock alone',
+  weights: { severity: 0, negativity: 0, urgency: 1, tier: 0 },
+} as const;
+
+/**
+ * The load regimes the three configurations are replayed under.
+ *
+ * **This exists because of how the first version of this report was produced, and saying so is the
+ * point.** The parameters of the replayed world were chosen *after* seeing that a first, gentler
+ * world put two or three tickets in the queue and scored every configuration at τ ≈ 1 — a table of
+ * ones. Tuning a world until it shows a difference, and then reporting the difference, is choosing
+ * the experiment after seeing the result; it is the same defect a pre-registration exists to stop,
+ * and nobody reading a single tuned row could detect it.
+ *
+ * The remedy is not to hide the tuning but to remove its leverage: the headline configurations are
+ * replayed under a light, a nominal and a heavy load, and the conclusion has to survive all three
+ * or be reported as regime-dependent. What varies is how long an agent holds a ticket; the arrival
+ * stream is byte-identical in every regime, so the comparison stays like-for-like. All three keep
+ * the service rate above the arrival rate, which the anti-starvation bound is stated under — a
+ * regime that did not would be measuring a collapsing queue rather than a slower one.
+ */
+const LOAD_REGIMES = [
+  { id: 'light', handleMinutes: 12, note: 'the desk keeps up through the day' },
+  { id: 'nominal', handleMinutes: 15, note: 'the published world: a backlog builds daily and drains overnight' },
+  { id: 'heavy', handleMinutes: 17, note: 'the desk falls behind by day and catches up at night' },
+] as const;
+
 /** Weights are carried as hundredths so that every published vector is exactly what it prints. */
 const CENTS = 100;
 
@@ -152,8 +189,9 @@ function measure(
   weights: PriorityWeights,
   arrivals: readonly SimTicket[],
   reference: Baseline,
+  handleMs: number = DEFAULT_REPLAY.handleMs,
 ): Measurement {
-  const result = replay({ arrivals, weights, ...DEFAULT_REPLAY });
+  const result = replay({ arrivals, weights, ...DEFAULT_REPLAY, handleMs });
   if (result.unserved.length > 0) {
     throw new UnstableWorldError(
       `configuration ${id} left ${result.unserved.length} tickets unserved: the replayed world is not stable`,
@@ -215,26 +253,49 @@ export function buildReport(input: ReportInput): string {
   // The baseline replay is run once and every other row is compared against it, C-base included:
   // its τ of exactly 1 and its zero delta are not decoration, they are the run saying that two
   // replays of one configuration produced the same month.
-  const base = replay({ arrivals, weights: DEFAULT_PRIORITY_WEIGHTS, ...DEFAULT_REPLAY });
-  if (base.unserved.length > 0) {
-    throw new UnstableWorldError(
-      `the baseline left ${base.unserved.length} tickets unserved: the replayed world is not stable`,
-    );
-  }
-  const reference: Baseline = {
-    breachRate: base.breachRate,
-    snapshots: base.snapshots.map((snapshot) => ({
-      at: snapshot.at,
-      waiting: snapshot.waiting,
-      order: rankSnapshot(snapshot, DEFAULT_PRIORITY_WEIGHTS),
-    })),
+  const baselineOf = (handleMs: number) => {
+    const run = replay({ arrivals, weights: DEFAULT_PRIORITY_WEIGHTS, ...DEFAULT_REPLAY, handleMs });
+    if (run.unserved.length > 0) {
+      throw new UnstableWorldError(
+        `the baseline left ${run.unserved.length} tickets unserved at ${handleMs / 60000} min per ticket: the replayed world is not stable`,
+      );
+    }
+    return {
+      run,
+      reference: {
+        breachRate: run.breachRate,
+        snapshots: run.snapshots.map((snapshot) => ({
+          at: snapshot.at,
+          waiting: snapshot.waiting,
+          order: rankSnapshot(snapshot, DEFAULT_PRIORITY_WEIGHTS),
+        })),
+      } satisfies Baseline,
+    };
   };
+
+  const base = baselineOf(DEFAULT_REPLAY.handleMs).run;
+  const reference = baselineOf(DEFAULT_REPLAY.handleMs).reference;
   const scored = reference.snapshots.filter((snapshot) => snapshot.waiting.length >= MIN_SNAPSHOT);
   const paged = scored.filter((snapshot) => snapshot.waiting.length >= PAGE);
 
-  const named = NAMED_CONFIGS.map((config) =>
+  const headline = [...NAMED_CONFIGS, REFERENCE_CONFIG];
+  const named = headline.map((config) =>
     measure(config.id, config.rationale, config.weights, arrivals, reference),
   );
+
+  // The same headline configurations under a lighter and a heavier desk, each against its own
+  // regime's baseline, so that a conclusion which only holds at one staffing level says so.
+  const regimes = LOAD_REGIMES.map((regime) => {
+    const handleMs = regime.handleMinutes * 60_000;
+    const local = baselineOf(handleMs);
+    return {
+      regime,
+      peakQueueLength: local.run.peakQueueLength,
+      rows: headline.map((config) =>
+        measure(config.id, config.rationale, config.weights, arrivals, local.reference, handleMs),
+      ),
+    };
+  });
 
   const sweep: Measurement[] = [];
   for (const name of WEIGHT_NAMES) {
@@ -305,6 +366,30 @@ export function buildReport(input: ReportInput): string {
     `least ${PAGE} tickets.`,
   );
   lines.push('');
+  lines.push('## Does it survive a different load?');
+  lines.push('');
+  lines.push(
+    'The world above was **chosen**, and an honest reading of one tuned world is that it proves',
+    'very little: parameters picked until a table shows a difference will show a difference. The',
+    'same arrivals are therefore replayed against a faster and a slower desk, each configuration',
+    "compared with its own regime's baseline. A conclusion that changes sign between these rows is",
+    'a conclusion about the staffing level, not about the weights.',
+  );
+  lines.push('');
+  lines.push('| Load | Handling time | Peak queue | Config | τ vs baseline | Breach rate | Δ vs baseline |');
+  lines.push('|---|---|---|---|---|---|---|');
+  for (const entry of regimes) {
+    for (const row of entry.rows) {
+      lines.push(
+        `| ${entry.regime.id} | ${entry.regime.handleMinutes} min | ${entry.peakQueueLength} | ${row.id} | ${fixed(row.tau, 4)} | ${percent(row.breachRate)} | ${signed(row.breachDelta, 2)} |`,
+      );
+    }
+  }
+  lines.push('');
+  for (const entry of regimes) {
+    lines.push(`- **${entry.regime.id}** — ${entry.regime.note}.`);
+  }
+  lines.push('');
   lines.push('## One weight at a time');
   lines.push('');
   lines.push(
@@ -335,6 +420,11 @@ export function buildReport(input: ReportInput): string {
     '  and the breach rate not at all has rearranged the queue without helping anybody.',
     '- **Max wait** is bounded in every row, which is the anti-starvation bound holding under',
     '  perturbation rather than only at the published weights.',
+    '- **C-edf** is not a candidate. It puts every weight on the clock, so severity, sentiment and',
+    '  the account decide nothing, and it is here to mark the boundary: it is the least breaching',
+    '  queue this family of weights can produce, and it is also the queue least like the one the',
+    '  policy asks for. The distance between it and C-base is the price the policy is paying for',
+    '  taking anything other than the deadline into account — a number, where there was an opinion.',
   );
   lines.push('');
 

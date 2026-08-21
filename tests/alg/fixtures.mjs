@@ -16,6 +16,15 @@ export const MINUTE = 60 * 1000;
 export const HOUR = 60 * MINUTE;
 export const DAY = 24 * HOUR;
 
+/**
+ * The instant the fixtures are evaluated at: one hour into a four-hour window.
+ *
+ * It is a separate constant and not a field of the ticket, because the instant is not a property of
+ * a ticket. Every call below passes it explicitly, which is what makes a test that means "later"
+ * say so at the call rather than by editing the ticket underneath it.
+ */
+export const NOW = T0 + HOUR;
+
 /** Thresholds chosen to differ from every published default, on purpose. */
 export const THRESHOLDS = {
   confidence: 0.7,
@@ -26,7 +35,7 @@ export const THRESHOLDS = {
   nullSentimentConfidencePenalty: 0.25,
 };
 
-/** A ticket in the queue, one hour into a four-hour window, with nothing remarkable about it. */
+/** A ticket in the queue with a four-hour window and nothing remarkable about it. */
 export function queueTicket(overrides = {}) {
   return {
     id: 'T-000001',
@@ -36,7 +45,6 @@ export function queueTicket(overrides = {}) {
     valueBand: 3,
     createdAt: T0,
     slaDueAt: T0 + 4 * HOUR,
-    now: T0 + HOUR,
     ...overrides,
   };
 }
