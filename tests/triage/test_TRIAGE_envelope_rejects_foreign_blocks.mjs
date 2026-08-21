@@ -39,7 +39,7 @@ describe('test_TRIAGE_envelope_rejects_foreign_blocks', () => {
         agent: 'triage',
         confidence: 0.9,
         triage: TRIAGE,
-        draft: { answer: 'We will look into it.', citations: [] },
+        draft: { text: 'We will look into it.', kb_ids: ['billing/duplicate-charge:c0de0001'] },
       },
       'a triage envelope carrying a draft is two agents in one answer',
     );
@@ -108,10 +108,13 @@ describe('test_TRIAGE_envelope_rejects_foreign_blocks', () => {
     assert.equal(error.detail.key, 'reasoning');
   });
 
-  it('refuses the two blocks the schema reserves but nothing writes yet', () => {
-    // The reserved blocks exist in the published document so that the agents that will write them
-    // do not each invent a shape. Their presence in a TRIAGE envelope is still a refusal today.
-    assert.ok(AGENT_IO_SCHEMA.$defs.draft_block, 'the schema no longer reserves a draft block');
-    assert.ok(AGENT_IO_SCHEMA.$defs.validate_block, 'the schema no longer reserves a validate block');
+  it('refuses the two blocks the other agents now write', () => {
+    // These were reserved when this test was written and have writers now. Their presence in a
+    // TRIAGE envelope is still a refusal, and it matters more than it did: a model answering two
+    // questions in one envelope would have half of its work consumed and half discarded, and the
+    // discarded half is the one that goes to a customer.
+    assert.ok(AGENT_IO_SCHEMA.$defs.draft_block, 'the schema no longer publishes a draft block');
+    assert.ok(AGENT_IO_SCHEMA.$defs.validate_block, 'the schema no longer publishes a validate block');
+    assert.deepEqual(AGENT_IO_SCHEMA.$defs.draft_block.required.sort(), ['kb_ids', 'text']);
   });
 });

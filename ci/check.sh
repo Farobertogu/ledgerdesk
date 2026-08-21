@@ -31,7 +31,7 @@ node ci/seam_check.mjs || fail "test_ARCH_seam_holds"
 node -e 'const [a,b]=process.versions.node.split(".").map(Number); if (a<22 || (a===22 && b<6)) { console.error("node >= 22.6 required (package.json engines)"); process.exit(1); }' \
   || fail "node runtime below the declared engine"
 
-ALG_TESTS="tests/alg/test_ALG_edge_cases.mjs tests/alg/test_ALG_escalation_clauses.mjs tests/alg/test_ALG_no_starvation_property.mjs tests/alg/test_ALG_db_order_matches_heap_order.mjs tests/alg/test_ALG_replay_is_reproducible.mjs tests/alg/test_ALG_policy_matcher_is_deterministic.mjs tests/alg/test_ALG_features_quantised_to_storage.mjs tests/alg/test_ALG_features_sentinels.mjs"
+ALG_TESTS="tests/alg/test_ALG_edge_cases.mjs tests/alg/test_ALG_escalation_clauses.mjs tests/alg/test_ALG_no_starvation_property.mjs tests/alg/test_ALG_db_order_matches_heap_order.mjs tests/alg/test_ALG_replay_is_reproducible.mjs tests/alg/test_ALG_policy_matcher_is_deterministic.mjs tests/alg/test_ALG_features_quantised_to_storage.mjs tests/alg/test_ALG_features_sentinels.mjs tests/alg/test_ALG_features_null_when_the_step_has_not_run.mjs"
 # shellcheck disable=SC2086
 node --experimental-strip-types --test $ALG_TESTS || fail "the algorithm tests did not pass"
 
@@ -65,7 +65,7 @@ echo "algorithm OK (14 published edge cases, the escalation clauses, and reports
 #     These need no database, no model and no server: the validator is a pure function of text, and
 #     the dataset is a file. They run here so that a change to either fails in the fastest job
 #     rather than in the one that builds a database first.
-TRIAGE_TESTS="tests/triage/test_TRIAGE_envelope_rejects_missing_block.mjs tests/triage/test_TRIAGE_envelope_rejects_foreign_blocks.mjs tests/triage/test_TRIAGE_envelope_never_lenient.mjs tests/triage/test_TRIAGE_run_registry_claims_without_awaiting.mjs tests/triage/test_TRIAGE_demo_dataset_is_authored_for_its_beats.mjs"
+TRIAGE_TESTS="tests/triage/test_TRIAGE_envelope_rejects_missing_block.mjs tests/triage/test_TRIAGE_envelope_rejects_foreign_blocks.mjs tests/triage/test_TRIAGE_envelope_never_lenient.mjs tests/triage/test_TRIAGE_run_registry_claims_without_awaiting.mjs tests/triage/test_TRIAGE_demo_dataset_is_authored_for_its_beats.mjs tests/triage/test_SEC_prompt_injection_escalates.mjs"
 # shellcheck disable=SC2086
 node --experimental-strip-types --test $TRIAGE_TESTS || fail "the agent contract tests did not pass"
 
@@ -73,6 +73,20 @@ for f in tests/triage/test_*.mjs; do
   case " $TRIAGE_TESTS " in
     *" $f "*) ;;
     *) fail "$f exists and is not in the TRIAGE_TESTS list" ;;
+  esac
+done
+
+# --- the drafting cycle's contracts: two more strict envelopes, and the conjunction that decides
+#     whether an answer may be shown to anybody. All pure functions of text, so they belong in the
+#     fastest job: no database, no model, no server.
+AGENT_TESTS="tests/agents/test_AGENT_envelopes_share_a_root_contract.mjs tests/agents/test_SEC_identifiers_survive_the_redactor.mjs tests/agents/test_DRAFT_envelope_refuses_ungrounded_citations.mjs tests/agents/test_VALIDATE_envelope_rejects_a_policy_judgement.mjs tests/agents/test_ALG_grounding_is_a_conjunction.mjs"
+# shellcheck disable=SC2086
+node --experimental-strip-types --test $AGENT_TESTS || fail "the drafting contract tests did not pass"
+
+for f in tests/agents/test_*.mjs; do
+  case " $AGENT_TESTS " in
+    *" $f "*) ;;
+    *) fail "$f exists and is not in the AGENT_TESTS list" ;;
   esac
 done
 
@@ -98,7 +112,7 @@ node --experimental-strip-types -e '
   }).catch((error) => { console.error(error); process.exit(1); });
 ' || fail "test_TRIAGE_published_schema_is_current"
 
-echo "agent contract OK (strict envelope validator, published schema diffed, demonstration dataset checked against the rule)"
+echo "agent contract OK (three strict envelope validators agreeing on one root contract, the grounding conjunction, the injection corpus, the published schema diffed, and the demonstration dataset checked against the complete rule of eight clauses)"
 
 # --- branch_name: every branch except main must match card/<ID>-<slug>, ID from BOARD.md.
 #     Single named exemption: i1-documentary-baseline (merged before this rule existed).

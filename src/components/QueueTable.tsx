@@ -1,3 +1,6 @@
+import Link from 'next/link';
+
+import { DraftButton } from '@/components/DraftButton';
 import { formatInstant } from '@/components/format';
 import { StatusPill } from '@/components/StatusPill';
 import { TransitionControls } from '@/components/TransitionControls';
@@ -69,7 +72,12 @@ export function QueueTable({
             return (
               <tr key={ticket.id} className="border-b border-line align-top last:border-0">
                 <td className="py-3 pr-4">
-                  <p className="font-medium">{ticket.subject}</p>
+                  <Link
+                    href={`/tickets/${ticket.id}`}
+                    className="font-medium underline-offset-4 hover:underline"
+                  >
+                    {ticket.subject}
+                  </Link>
                   <p className="mt-0.5 font-mono text-[11px] text-muted">{ticket.id}</p>
                 </td>
 
@@ -120,6 +128,7 @@ export function QueueTable({
                 {actionable ? (
                   <td className="py-3 space-y-2">
                     <TriageButton ticketId={ticket.id} enabled={TRIAGEABLE.has(ticket.status)} />
+                    <DraftButton ticketId={ticket.id} enabled={ticket.status === 'TRIAGED'} />
                     <TransitionControls
                       ticketId={ticket.id}
                       // Availability is decided here, with the session's role, and travels to the

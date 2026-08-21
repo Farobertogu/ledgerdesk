@@ -134,17 +134,57 @@ describe('test_APP_composition_root_serves_two_orgs', () => {
     assert.equal(rowsB[0].restarts, 0);
   });
 
-  it('registers the triage prompt exactly once, however many organisations started', async () => {
-    // Two cold starts both try to register generation 0. `unique (agent, generation)` admits one;
-    // the loser has to read back what the winner wrote rather than assume the race went its way.
+  it('registers each prompt generation exactly once, however many organisations started', async () => {
+    // Two cold starts both try to register the same generations. `unique (agent, generation)` admits
+    // one of each; the loser has to read back what the winner wrote rather than assume the race went
+    // its way. What is counted is the number of ROWS, so a second registration would show up here as
+    // a duplicate rather than as a silent overwrite — which `prompt_version` would refuse anyway,
+    // being immutable by trigger.
     const registered = await asOwner(async (client) => {
       const result = await client.query(
-        "select id, generation from prompt_version where agent = 'triage' order by generation",
+        `select agent::text as agent, generation, id::text as id, parent_id::text as parent_id,
+                schema_hash
+           from prompt_version order by agent, generation`,
       );
       return result.rows;
     });
 
-    assert.equal(registered.length, 1, `${registered.length} triage prompts are registered`);
-    assert.equal(registered[0].generation, 0);
+    const byAgent = new Map();
+    for (const row of registered) {
+      byAgent.set(row.agent, [...(byAgent.get(row.agent) ?? []), row]);
+    }
+
+    // Three agents write prompts now. The drafting agent and the validator have one generation
+    // each; triage has two, and the second one is why.
+    assert.deepEqual([...byAgent.keys()].sort(), ['draft', 'triage', 'validate']);
+    assert.equal(byAgent.get('draft').length, 1);
+    assert.equal(byAgent.get('validate').length, 1);
+
+    const triage = byAgent.get('triage');
+    assert.equal(triage.length, 2, `${triage.length} triage prompts are registered`);
+    assert.deepEqual(
+      triage.map((row) => row.generation),
+      [0, 1],
+      'the triage lineage has a gap or a repeat',
+    );
+
+    // The lineage is a chain: the root has no parent and generation 1 names generation 0. Nothing
+    // in the schema enforces that — `parent_id` accepts any row of the table — so it is checked.
+    assert.equal(triage[0].parent_id, null, 'the root generation names a parent');
+    assert.equal(triage[1].parent_id, triage[0].id, 'generation 1 does not descend from generation 0');
+
+    // And the reason there are two: the contract moved. Generation 0 keeps the digest it was
+    // registered under and generation 1 carries this build's, which is what makes the correction a
+    // new row instead of an edit to an immutable one.
+    assert.notEqual(
+      triage[0].schema_hash,
+      triage[1].schema_hash,
+      'the two generations demand the same contract, so the second one had no reason to exist',
+    );
+    assert.equal(
+      triage[1].schema_hash,
+      byAgent.get('draft')[0].schema_hash,
+      'the generation in force does not demand the contract this build publishes',
+    );
   });
 });

@@ -10,3 +10,11 @@ __pycache__/
 .DS_Store
 *.tmp
 *.tsbuildinfo
+
+# Written into the working tree by `next dev` and `next build`, not by anybody here. They are
+# instructions to whatever tooling is driving the editor, they describe the installed framework
+# rather than this system, and they are re-created on every run — so committing them would put a
+# file in the repository that nothing in the repository is the source of. Ignored so that a
+# wholesale `git add` cannot sweep them into a card's diff.
+AGENTS.md
+CLAUDE.md

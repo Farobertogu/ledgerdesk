@@ -54,10 +54,12 @@
             "additionalProperties": false,
             "properties": {
               "kb_id": {
-                "type": "string"
+                "type": "string",
+                "pattern": "^[A-Za-z0-9:_/-]{1,128}$"
               },
               "excerpt": {
-                "type": "string"
+                "type": "string",
+                "maxLength": 2048
               }
             }
           }
@@ -133,27 +135,30 @@
     },
     "draft_block": {
       "type": "object",
-      "description": "Reserved for the drafting agent. No writer exists yet.",
+      "description": "The drafted reply and the sources it stands on. kb_ids has minItems 1 because that is the only place \"never a draft without a source\" is expressible as a contract rather than as a check somebody remembers to write.",
       "required": [
-        "answer",
-        "citations"
+        "text",
+        "kb_ids"
       ],
       "additionalProperties": false,
       "properties": {
-        "answer": {
-          "type": "string"
+        "text": {
+          "type": "string",
+          "maxLength": 4096
         },
-        "citations": {
+        "kb_ids": {
           "type": "array",
+          "minItems": 1,
           "items": {
-            "type": "string"
+            "type": "string",
+            "pattern": "^[A-Za-z0-9:_/-]{1,128}$"
           }
         }
       }
     },
     "validate_block": {
       "type": "object",
-      "description": "Reserved for the grounding validator. No writer exists yet.",
+      "description": "The validator's verdict. grounded is a veto and never a signature: four arithmetic conditions are computed locally over the same sources the gateway digested, and this field can only withhold the fifth. policy_flags is deliberately absent — a policy judgement is the deterministic matcher's and never a model's.",
       "required": [
         "grounded",
         "unsupported_claims"

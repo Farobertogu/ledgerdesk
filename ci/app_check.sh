@@ -49,7 +49,7 @@ MIGRATIONS="$(ls migrations/[0-9][0-9][0-9][0-9]_*.sql | sort)"
 # preference: the triage runtimes are cached for the life of the server process, so "two
 # organisations starting at the same instant" is a state that exists exactly once, before anything
 # else has triaged anything.
-TESTS="tests/app/test_APP_composition_root_serves_two_orgs.mjs tests/app/test_US01_ticket_created_and_acknowledged.mjs tests/app/test_APP_state_machine_enforced_server_side.mjs tests/app/test_APP_intake_dedupe_collapses_to_incumbent.mjs tests/app/test_APP_recordstage_escalates_without_model.mjs tests/app/test_APP_escalation_atomic_with_triage.mjs tests/app/test_APP_retry_seed_from_persisted_counter.mjs tests/app/test_INT_triage_ticket_to_chain.mjs"
+TESTS="tests/app/test_APP_composition_root_serves_two_orgs.mjs tests/app/test_US01_ticket_created_and_acknowledged.mjs tests/app/test_APP_state_machine_enforced_server_side.mjs tests/app/test_APP_intake_dedupe_collapses_to_incumbent.mjs tests/app/test_APP_recordstage_escalates_without_model.mjs tests/app/test_APP_escalation_atomic_with_triage.mjs tests/app/test_APP_retry_seed_from_persisted_counter.mjs tests/app/test_INT_triage_ticket_to_chain.mjs tests/app/test_KB_seeded_articles_survive_redaction.mjs tests/app/test_KB_retrieval_order_is_total.mjs tests/app/test_SEC_retrieval_is_tenant_isolated.mjs tests/app/test_US03_draft_generated_with_grounded_context.mjs tests/app/test_APP_draft_atomic_with_validation.mjs tests/app/test_SEC_draft_never_reaches_customer_without_approval.mjs"
 
 maint() { psql -X -v ON_ERROR_STOP=1 -q -d "$MAINT_DB" -c "$1" >/dev/null; }
 run_sql() { psql -X -v ON_ERROR_STOP=1 -q -d "$1" -f "$2"; }
@@ -121,13 +121,36 @@ stop_server() {
 }
 
 echo "== application tests"
-# One file at a time. They share one server and one database, and two of them are about facts of
-# that whole database at a moment — how many rows the chain holds for a ticket, and what happens
-# when a write to `ticket` is refused by an injected trigger that is necessarily global to the
-# table. A suite whose verdict depends on the scheduler is a suite that is green on one machine and
-# red on another.
+# One file at a time. They share one server and one database, and several of them are about facts of
+# that whole database at a moment — how many rows the chain holds for a ticket, whether any ticket
+# anywhere is resting in a state with no exit, and what happens when a write to `ticket` is refused
+# by an injected trigger that is necessarily global to the table. A suite whose verdict depends on
+# the scheduler is a suite that is green on one machine and red on another.
+#
+# Type stripping is on for the same reason the chokepoint's suite has it: these tests recompute
+# values — a state digest, a ruleset digest, an identifier, a redaction — using the very modules the
+# server used, rather than transcribing what those modules produce. A transcription would pass on
+# the day the module changed and the server started writing something else.
+#
+# The output is captured and searched for `not ok` as well as being checked for an exit code, and
+# that belt-and-braces is not paranoia — it is a fault this script actually had. Node's runner
+# reports a suite whose `after` hook threw as `not ok`, counts none of its subtests as failures, and
+# **exits 0**. This script printed "app checks OK" over a red suite, which is the worst outcome a
+# check can have: a green build containing a failure nobody will look for again.
+TEST_LOG="$(mktemp)"
+
 # shellcheck disable=SC2086
-node --test --test-concurrency=1 $TESTS || fail "the application tests did not pass"
+if node --experimental-strip-types --test --test-concurrency=1 $TESTS 2>&1 | tee "$TEST_LOG"; then :; else
+  rm -f "$TEST_LOG"
+  fail "the application tests did not pass"
+fi
+
+if grep -Eq '^(not ok|# fail [1-9])' "$TEST_LOG"; then
+  grep -E '^not ok' "$TEST_LOG" >&2 || true
+  rm -f "$TEST_LOG"
+  fail "the application tests reported a failure the exit code did not (a suite or a hook failed)"
+fi
+rm -f "$TEST_LOG"
 
 for f in tests/app/test_*.mjs; do
   case " $TESTS " in

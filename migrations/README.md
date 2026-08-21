@@ -12,6 +12,7 @@ Forward-only. One numbered file per change; no destructive edits to an applied m
 | `0006_ledger_writer_sequence.sql` | the ledger writer's sequence grant |
 | `0007_audit_writer.sql` | the audit writer's grants |
 | `0008_triage_columns.sql` | the priority, escalation reason and clause with their one-directional invariant, the body digest and its index, and the triage writer's prompt grant |
+| `0009_kb_retrieval.sql` | the snapshot pointer, an immutable knowledge base, the answer's evidence columns and its citations as composite references, the application role's knowledge-base grants and the staff-only write policies, the gap's closure and its unreachable state, `kb_snapshot_advance`, the two ticket-state triggers, and the cross-tenant approver made unrepresentable |
 
 ## Applying them
 
@@ -23,3 +24,18 @@ Forward-only. One numbered file per change; no destructive edits to an applied m
 The roles the set creates are cluster-wide rather than per-database, so a second clean application needs them dropped first — `ci/db_check.sh` does that between its two runs, which is how `test_MIGRATIONS_forward_only_is_deterministic` gets two independent applications to compare.
 
 The applied schema is then diffed, in both directions and with no exception list, against `ci/expected/schema.sql`. That file is the committed record of what this set produces; see `ci/expected/README.md` for how to generate it.
+
+## Carrying a database forward across the envelope contract change
+
+`0009` lands together with a correction to the published agent output contract, and that correction moves `AGENT_IO_SCHEMA_SHA256`. `prompt_version.schema_hash` holds that digest and the row is immutable by trigger, so a database that already carries the triage prompt would otherwise refuse to start: the standing registration describes a contract this build no longer publishes, and the process raises `E_PROMPT_NO_REGISTRADO`.
+
+**Nothing has to be done by hand, and two things must not be done at all.**
+
+The composition root registers the whole lineage of each agent's prompt — not only the generation it is about to run under — when it first builds an organisation's runtime. That is lazy and per organisation rather than something that happens at start-up, and it is idempotent, so the second organisation to start finds what the first wrote. Generation 0 of the triage prompt is checked against the digest it was originally registered with — pinned as a literal in `agents/triage/prompt.ts` — and left exactly as it is; generation 1 is inserted beside it with the same words, the new digest, and generation 0 as its parent. On a clean database both rows are inserted; on a database carried forward, only the second is. There is no branch anywhere asking which kind of database it is.
+
+Prohibited, and both are quicker than reading this paragraph:
+
+- **Editing or deleting a row of `prompt_version`.** The table is immutable by trigger for a reason: the ledger rows naming generation 0 were produced under generation 0's contract, and a row that changed its digest afterwards would make every one of them describe a contract it never ran under.
+- **Dropping the database to make the error go away.** That destroys the evidence of every run so far in order to avoid registering one row.
+
+The declared consequence is a cache, not a loss: the chokepoint's cache key includes `prompt_version_id`, so answers recorded under generation 0 stop being reachable as hits. The rows remain and remain readable, and `state_hash` moves in the same release for two further reasons anyway — the knowledge-base snapshot is now read from the database instead of a sentinel, and the ruleset digest gained the retrieval's parameters.

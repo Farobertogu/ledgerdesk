@@ -10,13 +10,21 @@ Source of truth for build order: the specification's build plan, as amended — 
 
 | Card | Increment | Branch | Closing evidence |
 |---|---|---|---|
-| I6 | Triage agent: the composition module — envelope validator, feature adapter, policy matcher, component transitions, the triage runner and its integration test | `card/I6-triage-agent` | US-02 + first ledger rows + `test_INT_triage_ticket_to_chain` green on one database |
+| I7 | KB + retrieval + draft agent + validator: the versioned snapshot pointer, deterministic retrieval, the two agents and their envelopes, the grounding conjunction, the draft cycle and the read-only evidence panel | `card/I7-kb-draft-agent` | US-03 with `grounded=true` |
+
+**Rehearsal procedure for the closing act, on the card rather than in a note.** A replay can only
+reproduce what a real run put there. So: load the dataset (`node seed/demo_load.mjs`), take **one
+run with the network** through *both* halves — the question the corpus cannot answer, the admission,
+the same question answered — and only then rehearse with `LEDGERDESK_REPLAY=1`. The evidence is one
+chain with two `state_hash` values and the admission row between them by `seq`; a second run would
+be two chains, and nothing orders two chains relative to each other. **Rehearsing against a chain
+that holds only the pre-admission run fails by design**, with `E_REPLAY_CACHE_MISS`, at the point in
+the evening where there is no time left to work out why. The commands are in `README.md`.
 
 ## Backlog (plan order)
 
 | Card | Increment | Depends on | Closing evidence |
 |---|---|---|---|
-| I7 | KB + retrieval + draft agent + validator | I6 | US-03 with `grounded=true` |
 | I7-bis | The complete gap cycle: typed gap record on GROUND escalation → versioned admission with provenance and human approver → re-run → closure by verification | I7, I2b | the three `test_KB_*` plus the two new FR-A15 tests green, and the two chained runs in the ledger with the `kb_admission` row between them |
 | I8 | Agent console: edit/approve/send + `human_edit` capture | I7 | US-05 + `approved_by` as a DB constraint |
 | I9 | Decision Audit Log surface | I2b, I6 | US-07 + `test_LEDGER_hash_chain_*` |
@@ -49,3 +57,4 @@ Source of truth for build order: the specification's build plan, as amended — 
 | I4 | LLM gateway + PII redaction + canary | PR #5 merged `--no-ff` after the adversarial round (five per-rule canaries, in-flight budget reservation, tenant-isolated ledger-as-cache, security events to the audit chain); 30 gateway tests green on [run 32497995412](https://github.com/Farobertogu/ledgerdesk/actions/runs/32497995412) |
 | I5 | Pure algorithm + published edge cases + starvation + sensitivity table | PR #6 merged after the adversarial round (recoverability-ordered precedence, anchor-instant dedupe keys, provable starvation inequality, pinned arrival stream); 28 algorithm tests green on [run 32498907223](https://github.com/Farobertogu/ledgerdesk/actions/runs/32498907223) |
 | I3 | App skeleton: auth, 3 roles, ticket CRUD, state machine — with signed decisions D1 (`ESCALATED → RESOLVED`, supervisor-only) and D2 (reopening: the customer supplies the event, staff or the system executes the transition) | PR #4 merged `--no-ff` after a two-front adversarial review; `test_US01_ticket_created_and_acknowledged` + the exhaustive state-machine suite ({console: 3, guarded: 16, illegal: 81}) — 12 tests green in the `app` CI job on [run 32491151569](https://github.com/Farobertogu/ledgerdesk/actions/runs/32491151569) |
+| I6 | Triage agent: the composition module — envelope validator, feature adapter, policy matcher, component transitions, the triage runner and its integration test | PR #7 merged `--no-ff` after the adversarial round (strict envelope validation, the verdict columns with their one-directional invariant, a synchronous run registry, ledger-first write ordering); US-02 and the first real `agent_call` rows, with `test_INT_triage_ticket_to_chain` green on [run 32509274244](https://github.com/Farobertogu/ledgerdesk/actions/runs/32509274244) |

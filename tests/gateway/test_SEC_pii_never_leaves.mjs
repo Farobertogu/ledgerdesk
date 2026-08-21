@@ -100,10 +100,18 @@ test('the payload that leaves carries no personal value and no canary', async ()
   // The reference number is not personal and survives: over-redaction is bounded, not total.
   assert.ok(outbound.includes('INV-10021'), 'the redactor ate a value that is not personal');
 
-  assert.equal(result.redaction.email, 1);
-  assert.equal(result.redaction.card, 1);
-  assert.equal(result.redaction.phone, 1);
-  assert.equal(result.redaction.literal, 1);
+  // The counts are reported per side. A single total would attribute to the customer whatever an
+  // admitted knowledge-base document happened to contain, on a summary read by the person
+  // answering them.
+  assert.equal(result.redaction.body.email, 1);
+  assert.equal(result.redaction.body.card, 1);
+  assert.equal(result.redaction.body.phone, 1);
+  assert.equal(result.redaction.body.literal, 1);
+  assert.deepEqual(
+    result.redaction.kb,
+    { literal: 0, email: 0, card: 0, account: 0, phone: 0, id: 0 },
+    'this call carried no excerpts, so nothing was removed from any',
+  );
 
   for (const secret of SECRETS) {
     assert.ok(!result.body_redacted.includes(secret), 'the returned body still carries a value');
@@ -153,12 +161,8 @@ test('the row persists the digest of the redacted input, not of the raw one', as
   }
   assert.equal(row.output.canary, 'cleared');
   assert.deepEqual(row.output.redaction, {
-    literal: 1,
-    email: 1,
-    card: 1,
-    account: 0,
-    phone: 1,
-    id: 0,
+    body: { literal: 1, email: 1, card: 1, account: 0, phone: 1, id: 0 },
+    kb: { literal: 0, email: 0, card: 0, account: 0, phone: 0, id: 0 },
   });
 });
 
@@ -240,12 +244,8 @@ test('a body with nothing personal in it still attests every rule', async () => 
   // Every count is zero: the canaries were subtracted, so the summary describes the ticket and not
   // the instrumentation planted in it.
   assert.deepEqual(result.redaction, {
-    literal: 0,
-    email: 0,
-    card: 0,
-    account: 0,
-    phone: 0,
-    id: 0,
+    body: { literal: 0, email: 0, card: 0, account: 0, phone: 0, id: 0 },
+    kb: { literal: 0, email: 0, card: 0, account: 0, phone: 0, id: 0 },
   });
   assert.equal(result.body_redacted, 'The dashboard shows an outdated total.');
 });

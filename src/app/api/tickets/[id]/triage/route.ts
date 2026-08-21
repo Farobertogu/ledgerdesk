@@ -37,21 +37,26 @@ export async function POST(
     if (!claims) {
       throw new AppError('E_NO_SESSION', 401, 'no session is selected');
     }
-    if (claims.role !== 'agent' && claims.role !== 'supervisor') {
-      throw new AppError('E_ROLE_NOT_PERMITTED', 403, 'triage is run by an agent or a supervisor', {
-        role: claims.role,
-      });
-    }
 
     const { id } = await context.params;
     if (!isUuid(id)) {
       throw new AppError('E_FIELD_INVALID', 400, 'the ticket id is not a uuid', { field: 'id' });
     }
 
+    // Visibility, and THEN the role. The comment below has always said this is the order; the code
+    // used to check the role first, which reverses the disclosure: a customer asking about another
+    // organisation's ticket was told "your role may not do this", which confirms that the ticket
+    // exists, instead of "no such ticket is visible to you", which does not.
     const before = await getTicket(claims, id);
     if (!before) {
       throw new AppError('E_TICKET_NOT_VISIBLE', 404, 'no ticket with that id is visible to this session', {
         ticket_id: id,
+      });
+    }
+
+    if (claims.role !== 'agent' && claims.role !== 'supervisor') {
+      throw new AppError('E_ROLE_NOT_PERMITTED', 403, 'triage is run by an agent or a supervisor', {
+        role: claims.role,
       });
     }
 

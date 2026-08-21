@@ -82,6 +82,29 @@ export type ComponentTransition = {
 };
 
 /**
+ * Guards that no component may ever claim, whatever the machine's table says about them.
+ *
+ * The owner check below compares the claimed owner against the edge's published guard, which is
+ * the right check and has one hole: an owner that MATCHES a guard no component should hold passes
+ * it. `AWAITING_AGENT → SENT` is guarded by `approval-constraint`, and that name does not describe
+ * a component — it describes a person having approved a reply and a database refusing the state
+ * without the evidence. A component passing `owner: 'approval-constraint'` would satisfy the
+ * comparison exactly and send a customer a message no human had read.
+ *
+ * `reopen-window` is here for the same reason: a customer's reply inside the retention window is an
+ * event the system observes, not a guard a component evaluates on its own authority.
+ *
+ * These are refused with a programmer error rather than a typed application code, because they
+ * cannot be reached by anything a user does. Reaching one means somebody wired a component to an
+ * edge that belongs to nobody, and that is found by the process failing.
+ */
+const NEVER_A_COMPONENT: ReadonlySet<GuardOwner> = new Set<GuardOwner>([
+  'console',
+  'approval-constraint',
+  'reopen-window',
+]);
+
+/**
  * One component transition, on a client the caller already holds.
  *
  * This is the form the runner uses, and the reason it takes a client rather than opening its own
@@ -94,6 +117,15 @@ export async function applyComponentTransitionOn(
   client: PoolClient,
   transition: ComponentTransition,
 ): Promise<void> {
+  // Checked before the edge is even looked up: the claim is refused for what it is, not for
+  // whether it happens to match some edge's published guard.
+  if (NEVER_A_COMPONENT.has(transition.owner)) {
+    throw new Error(
+      `'${transition.owner}' is not a component, so no component may take an edge as one; ` +
+        `${transition.from} → ${transition.to} was refused`,
+    );
+  }
+
   const edge = findTransition(transition.from, transition.to);
   if (!edge) {
     throw new AppError(
