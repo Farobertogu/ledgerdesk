@@ -10,7 +10,8 @@
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
     "erasableSyntaxOnly": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "allowImportingTsExtensions": true
   },
-  "include": ["quality/**/*.ts"]
+  "include": ["quality/**/*.ts", "agents/**/*.ts"]
 }

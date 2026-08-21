@@ -102,3 +102,15 @@ jobs:
           PGPASSWORD: postgres
           PGDATABASE: postgres
         run: bash ci/app_check.sh
+      # A step of this job rather than a job of its own: the chokepoint's tests need the installed
+      # dependencies, which the db job does not have, and a database, which the check job does not
+      # have. They run after app_check.sh and not beside it because both scripts drop the same
+      # cluster-wide roles, so sharing one cluster only works in sequence.
+      - name: Model chokepoint checks
+        env:
+          PGHOST: localhost
+          PGPORT: 5432
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: postgres
+        run: bash ci/gateway_check.sh
