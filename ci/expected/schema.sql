@@ -612,6 +612,8 @@ GRANT USAGE ON SCHEMA quality_report TO quality_ro;
 GRANT USAGE ON SCHEMA quality_report TO quality_eval;
 GRANT SELECT ON TABLE public.account TO app_rw;
 GRANT SELECT ON TABLE public.app_user TO app_rw;
+GRANT SELECT,INSERT ON TABLE public.audit_event TO app_rw;
+GRANT USAGE ON SEQUENCE public.audit_event_id_seq TO app_rw;
 GRANT SELECT,INSERT ON TABLE public.eval_item TO quality_gen;
 GRANT SELECT ON TABLE public.eval_item TO quality_ro;
 GRANT SELECT,INSERT ON TABLE public.eval_result TO quality_eval;

@@ -20,9 +20,11 @@
 import assert from 'node:assert/strict';
 import { after, before, test } from 'node:test';
 
+import { plant } from '../../agents/canary.ts';
 import { digestOf } from '../../agents/canonical.ts';
 import { createGateway } from '../../agents/gateway.ts';
 import { stubProvider } from '../../agents/providers/stub.ts';
+import { redact } from '../../agents/redaction.ts';
 import {
   ORG_B,
   TICKET_A,
@@ -199,6 +201,53 @@ test('a body that is nothing but personal values is refused rather than sent emp
 
   assert.equal(spy.calls.length, 0);
   assert.equal((await readChain(run_id)).length, 0);
+});
+
+test('each planted canary is removed by the rule of its own kind', () => {
+  const planted = plant(CANARY);
+  const pass = redact(planted.block, []);
+
+  // The tail is the verdict the gateway uses. Asserting it here as well means a broken rule names
+  // itself in this file rather than showing up as a mysterious refusal three tests away.
+  assert.equal(pass.text, planted.expectedTail);
+
+  for (const value of planted.values) {
+    assert.ok(!pass.text.includes(value), `a canary survived the redactor: ${value.slice(0, 8)}…`);
+  }
+
+  // One marker per shaped rule in the dictionary. `literal` has no synthetic form and is excluded
+  // by design; if that ever changes, this count is where it will be noticed.
+  for (const kind of ['email', 'account', 'card', 'phone', 'id']) {
+    assert.ok(pass.text.includes(`[REDACTED:${kind}]`), `no ${kind} canary was planted or removed`);
+  }
+});
+
+test('a body with nothing personal in it still attests every rule', async () => {
+  const run_id = newRunId();
+  const spy = spyOn(stubProvider());
+  const gateway = createGateway(
+    baseConfig({ store, provider: spy.provider, run_id, canary_token: () => CANARY }),
+  );
+
+  // Nothing here matches any pattern. The call can only succeed if all five canaries were planted
+  // and all five were removed — so a rule that had stopped firing would fail THIS test, on a body
+  // that contains none of the values the rule is about.
+  const result = await gateway.call(
+    baseCall({ prompt_version_id: PROMPT_ID, body: 'The dashboard shows an outdated total.' }),
+  );
+
+  assert.equal(spy.calls.length, 1);
+  // Every count is zero: the canaries were subtracted, so the summary describes the ticket and not
+  // the instrumentation planted in it.
+  assert.deepEqual(result.redaction, {
+    literal: 0,
+    email: 0,
+    card: 0,
+    account: 0,
+    phone: 0,
+    id: 0,
+  });
+  assert.equal(result.body_redacted, 'The dashboard shows an outdated total.');
 });
 
 test('the tenant that did not make the call cannot read its row', async () => {

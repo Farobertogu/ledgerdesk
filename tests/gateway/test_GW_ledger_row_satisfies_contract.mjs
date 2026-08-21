@@ -23,17 +23,20 @@ import { verifyRowHash } from '../../agents/ledger/row.ts';
 import { createGateway } from '../../agents/gateway.ts';
 import { stubProvider } from '../../agents/providers/stub.ts';
 import {
+  MODEL,
   ORG_A,
+  ORG_B,
   TICKET_A,
+  TICKET_B,
   asOwner,
   baseCall,
   baseConfig,
   makeStore,
   newRunId,
   readChain,
+  refusedWith,
   registerPrompt,
   spyOn,
-  MODEL,
 } from './harness.mjs';
 
 const PROMPT_ID = '9f000000-0000-4000-8000-000000000904';
@@ -174,6 +177,38 @@ test('a row that does not attach to the head is refused by the database', async 
     /E_LEDGER_CHAIN_BROKEN/,
     'a row claiming a head it does not follow was accepted',
   );
+});
+
+test('a run whose rows belong to two organisations cannot be extended, and says so', async () => {
+  // This pins a LIMITATION, not a feature, and it is here so that the limitation is a measured fact
+  // with a typed error rather than a paragraph somebody has to find.
+  //
+  // The writer reads the head of the run under the tenant's own policy, so it sees one
+  // organisation's rows. `ledger_link()` is `security definer` and reads the true head across all
+  // of them — deliberately, because the alternative is two organisations forking one chain. The
+  // consequence is that a second organisation writing into a run that already has rows proposes a
+  // `prev_hash` the trigger knows is not the head, and no retry can reconcile the two views.
+  //
+  // Single-tenant runs are unaffected, and every run this increment can produce is single-tenant.
+  // The general case wants `ledger_run_head(run_id)` as a `security definer` accessor, which is a
+  // migration. When that exists, this test is the one that should go red.
+  const spy = spyOn(stubProvider());
+  const gateway = createGateway(baseConfig({ store, provider: spy.provider, run_id }));
+
+  const error = await refusedWith('E_LEDGER_WRITE_FAILED', () =>
+    gateway.call(
+      baseCall({
+        prompt_version_id: PROMPT_ID,
+        body: 'An enquiry raised by the other organisation.',
+        org_id: ORG_B,
+        ticket_id: TICKET_B,
+      }),
+    ),
+  );
+
+  assert.equal(error.detail.run_id, run_id);
+  assert.match(error.detail.reason, /E_LEDGER_CHAIN_BROKEN/);
+  assert.equal((await readChain(run_id)).length, 3, 'the refused write left a row behind');
 });
 
 test('a row already written cannot be changed', async () => {

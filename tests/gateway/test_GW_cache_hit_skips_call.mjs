@@ -113,6 +113,65 @@ test('a call that differs only in a sampling parameter is not served from the ca
   assert.ok(Number(other.cost_aud) > 0);
 });
 
+test('a call under a different state is not served from the cache', async () => {
+  const run_id = newRunId();
+  const spy = spyOn(stubProvider());
+  const body = 'The reconciliation report disagrees with the invoice total.';
+
+  const before = createGateway(baseConfig({ store, provider: spy.provider, run_id }));
+  await before.call(baseCall({ prompt_version_id: PROMPT_ID, body }));
+  assert.equal(spy.calls.length, 1);
+
+  // Same input, same prompt, same sampling — a different knowledge base. `state_hash` exists to say
+  // these two are not comparable, and a cache that ignored it would hand the answer produced under
+  // the old snapshot to a call made under the new one, then record it as though the new one had
+  // produced it: the column defeated by the lookup that runs before it is written.
+  const after = createGateway(
+    baseConfig({
+      store,
+      provider: spy.provider,
+      run_id,
+      state: {
+        schema_version: '1.0',
+        ruleset_hash: 'r'.repeat(64),
+        kb_snapshot: 'kb-2026-09-01',
+      },
+    }),
+  );
+  const result = await after.call(baseCall({ prompt_version_id: PROMPT_ID, body }));
+
+  assert.equal(spy.calls.length, 2, 'a new knowledge-base snapshot was served the old answer');
+  assert.equal(result.cached, false);
+
+  const chain = await readChain(run_id);
+  assert.equal(chain[0].input_hash, chain[1].input_hash, 'the inputs differed, so nothing was measured');
+  assert.notEqual(chain[0].state_hash, chain[1].state_hash);
+});
+
+test('a call under a different prompt text is not served from the cache', async () => {
+  const run_id = newRunId();
+  const spy = spyOn(stubProvider());
+  const body = 'The portal will not accept our new billing contact.';
+
+  await createGateway(baseConfig({ store, provider: spy.provider, run_id })).call(
+    baseCall({ prompt_version_id: PROMPT_ID, body }),
+  );
+  assert.equal(spy.calls.length, 1);
+
+  // The same registered prompt version, different words actually sent. Keying on the identifier
+  // alone would serve a response those words never produced.
+  const result = await createGateway(baseConfig({ store, provider: spy.provider, run_id })).call(
+    baseCall({
+      prompt_version_id: PROMPT_ID,
+      body,
+      prompt_text: 'Classify the request. Answer as JSON, and be brief.',
+    }),
+  );
+
+  assert.equal(spy.calls.length, 2, 'different prompt text was served a response it did not produce');
+  assert.equal(result.cached, false);
+});
+
 test('the cache is answered from the call that happened, never from a copy of it', async () => {
   const run_id = newRunId();
   const spy = spyOn(stubProvider());

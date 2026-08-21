@@ -33,8 +33,11 @@
 import { Pool } from 'pg';
 import type { Pool as PgPool, PoolClient } from 'pg';
 
+import { linkAuditRow } from '../audit.ts';
+import type { AuditEventContent, AuditSink, ChainedAuditEvent } from '../audit.ts';
 import { canonicalJson } from '../canonical.ts';
 import type { Json } from '../canonical.ts';
+import { GatewayError } from '../errors.ts';
 import { linkRow } from './row.ts';
 import type { ChainedRow, LedgerRowContent } from './row.ts';
 import type {
@@ -75,6 +78,16 @@ const HEAD = `
    order by seq desc
    limit 1`;
 
+/** The head of an organisation's audit chain. Ordered by `id`: `audit_event` has no `seq`. */
+const AUDIT_HEAD = `
+  select row_hash from audit_event where org_id = $1::uuid order by id desc limit 1`;
+
+const AUDIT_INSERT = `
+  insert into audit_event (org_id, actor_id, action, object_type, object_id, detail, ts,
+                           prev_hash, row_hash)
+  values ($1::uuid, $2::uuid, $3, $4, $5, $6::jsonb, $7::timestamptz, $8, $9)
+  returning id, row_hash`;
+
 const SPENT = `
   select coalesce(sum(cost_aud), 0)::text as total
     from ledger_entry
@@ -85,6 +98,18 @@ const SPENT = `
  * — `seq` counts within a run and would order two runs by nothing at all. A row that was itself
  * served from the cache is excluded, so the answer always comes from the call that really happened
  * and the provenance never becomes a chain of copies.
+ *
+ * **Tenant isolation is the policy's, not this query's, and that is on purpose.** There is no
+ * `org_id = ...` here. The statement runs under `ledger_tenant_select`, so the rows it can see are
+ * already this organisation's, and a hit on another tenant's row would mean the policy had failed
+ * — which is worth failing loudly rather than papering over with a predicate that would make the
+ * policy untestable. `test_SEC_cache_is_tenant_isolated` is the measurement of that claim.
+ *
+ * **Declared residual: the cache has no expiry.** The oldest matching call answers forever, bounded
+ * only by the key. A provider that swaps a model snapshot behind an unchanged alias is detected on
+ * a fresh call, because `model_returned` records what answered, and is NOT detected on a cached
+ * one. What bounds it in practice is `state_hash`: a new ruleset or knowledge-base snapshot is a
+ * new key, and the run that would notice the swap is the run that changed one of them.
  */
 const CACHED = `
   select seq, model_returned, response_hash, tokens_in, tokens_out, confidence,
@@ -94,9 +119,10 @@ const CACHED = `
      and input_hash = $1
      and prompt_version_id = $2::uuid
      and prompt_hash = $3
-     and model_requested = $4
-     and sampling = $5::jsonb
-     and seed is not distinct from $6::bigint
+     and state_hash = $4
+     and model_requested = $5
+     and sampling = $6::jsonb
+     and seed is not distinct from $7::bigint
      and output ? 'response'
      and coalesce((output -> 'cache' ->> 'hit')::boolean, false) = false
    order by id asc
@@ -180,7 +206,16 @@ export type PgLedgerStoreOptions = {
   max?: number;
 };
 
-export class PgLedgerStore implements LedgerStore {
+/**
+ * One class serves both chains, and the reason is the connection rather than the concept. The two
+ * tables are separate contracts with separate triggers and separate scopes — the ledger chains per
+ * run, the audit chain per organisation — but both are written by the same role, under the same
+ * tenant claims, through the same pool and the same transaction helper. Splitting them would give
+ * one process two pools of connections to the same database in order to express a distinction that
+ * lives in the interfaces, which is where a caller sees it: a consumer that only files events
+ * depends on `AuditSink` and can reach nothing else.
+ */
+export class PgLedgerStore implements LedgerStore, AuditSink {
   readonly #pool: PgPool;
 
   constructor(options: PgLedgerStoreOptions) {
@@ -294,7 +329,21 @@ export class PgLedgerStore implements LedgerStore {
       }
     }
 
-    throw lastError ?? new Error('append: the chain could not be extended');
+    // Every attempt lost the head. Two causes reach here and the detail names both, because the
+    // second one is not a race and will not pass on the next try: either writers are contending for
+    // this run faster than they can be serialised, or the run's rows belong to more than one
+    // organisation — in which case this writer reads a head clipped by the policy while the trigger
+    // reads the true one, and no number of retries will reconcile the two.
+    throw new GatewayError(
+      'E_LEDGER_WRITE_FAILED',
+      'the chain could not be extended, so the call is reported as failed',
+      {
+        run_id: runId,
+        attempts: APPEND_ATTEMPTS,
+        reason: lastError instanceof Error ? lastError.message : String(lastError),
+        note: 'contention on the run, or a run whose rows belong to more than one organisation',
+      },
+    );
   }
 
   async spentMicroAud(orgId: string, scope: BudgetScope): Promise<number> {
@@ -318,6 +367,7 @@ export class PgLedgerStore implements LedgerStore {
         probe.input_hash,
         probe.prompt_version_id,
         probe.prompt_hash,
+        probe.state_hash,
         probe.model_requested,
         canonicalJson(probe.sampling),
         probe.seed,
@@ -338,7 +388,76 @@ export class PgLedgerStore implements LedgerStore {
     });
   }
 
+  /**
+   * Appends a security event to the calling organisation's audit chain.
+   *
+   * The retry is the ledger's retry for the ledger's reason: the head is read before the trigger
+   * takes its lock, so two writers can propose the same parent and `audit_one_child_per_head` lets
+   * one of them in. The chain is scoped to the organisation rather than to a run, so the contention
+   * here is between everything that organisation does at once, not between the calls of one
+   * session — which is a reason to expect it more often, not less.
+   */
+  async record(event: AuditEventContent): Promise<{ id: string; row_hash: string }> {
+    let lastError: unknown = null;
+
+    for (let attempt = 0; attempt < APPEND_ATTEMPTS; attempt += 1) {
+      try {
+        return await this.#withTenant(event.org_id, async (client) => {
+          const headResult = await client.query<{ row_hash: string }>(AUDIT_HEAD, [event.org_id]);
+          const head = headResult.rows[0] ?? null;
+          const row = linkAuditRow(event, head);
+
+          const inserted = await client.query<{ id: string; row_hash: string }>(AUDIT_INSERT, [
+            row.org_id,
+            row.actor_id,
+            row.action,
+            row.object_type,
+            row.object_id,
+            canonicalJson(row.detail),
+            row.ts,
+            row.prev_hash,
+            row.row_hash,
+          ]);
+          return inserted.rows[0];
+        });
+      } catch (error) {
+        if (!isChainConflict(error)) throw error;
+        lastError = error;
+      }
+    }
+
+    throw new GatewayError(
+      'E_LEDGER_WRITE_FAILED',
+      'the audit chain could not be extended',
+      {
+        org_id: event.org_id,
+        action: event.action,
+        attempts: APPEND_ATTEMPTS,
+        reason: lastError instanceof Error ? lastError.message : String(lastError),
+      },
+    );
+  }
+
   async close(): Promise<void> {
     await this.#pool.end();
   }
+}
+
+/**
+ * A row of `audit_event` as the driver hands it back, in the form the writer hashed. The same two
+ * conversions the ledger needs, for the same two reasons: `jsonb` arrives as an object and `ts` as
+ * a `Date`, and neither is what the digest was taken over.
+ */
+export function auditRowFromDatabase(record: Record<string, unknown>): ChainedAuditEvent {
+  return {
+    org_id: record.org_id as string,
+    actor_id: (record.actor_id ?? null) as string | null,
+    action: record.action as string,
+    object_type: record.object_type as string,
+    object_id: record.object_id as string,
+    detail: record.detail as Json,
+    ts: new Date(record.ts as string | Date).toISOString(),
+    prev_hash: record.prev_hash as string,
+    row_hash: record.row_hash as string,
+  };
 }

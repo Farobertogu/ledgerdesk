@@ -17,24 +17,24 @@
  *  1. **Redact.** The call arrives with the raw body. It is redacted here and nowhere else, so
  *     that "the redacted body is the only body that travels" is true by construction rather than
  *     by convention. The knowledge-base excerpts go through the same pass.
- *  2. **Plant and clear the canary.** A synthetic address is planted in the tenant-side material of
- *     *this* call, and the redactor must remove it. If the marker is not where the canary was, the
- *     redactor did not fire on a value that was known to be personal, and the call is refused
- *     before anything leaves. This is an attestation per invocation, not a unit test that passed
- *     once: it measures the redactor on the same pass that is about to produce a payload.
- *  3. **Cache.** The digest of the redacted input, with the prompt version and the sampling
- *     parameters, is looked up in the chain. A hit answers from the response already recorded, with
- *     no provider call and no cost — which is also why the lookup precedes the ceiling: a call that
- *     spends nothing is not a call the ceiling has any business refusing.
+ *  2. **Plant and clear the canaries.** One synthetic value per shaped rule in the dictionary is
+ *     planted in the tenant-side material of *this* call, and the redactor must remove all of them.
+ *     If the tail is not exactly the markers those values should have become, some rule did not
+ *     fire on a value of its own kind, and the call is refused before anything leaves. A single
+ *     canary would have attested to a single rule; this attests to the dictionary, per invocation.
+ *  3. **Cache.** The digest of the redacted input, with the prompt version, the prompt text, the
+ *     state and the sampling parameters, is looked up in the chain. A hit answers from the response
+ *     already recorded, with no provider call and no cost — which is also why the lookup precedes
+ *     the ceiling: a call that spends nothing is not a call the ceiling has any business refusing.
  *  4. **Ceiling.** Consumption is recomputed from the chain, never from a counter this process
- *     holds, and the projected cost of the call is added to it. Over the cut, the call is refused
- *     with a typed error and no row is written, because no call was made.
- *  5. **Scan the egress.** The payload that is about to leave is serialised and searched for the
- *     canary token and for every literal the redactor removed. Anything found aborts the call
- *     before the provider is touched. Step 2 already makes the direct route impossible; this step
- *     is the net under the field somebody adds next year and forgets to route through the redactor.
+ *     holds, plus what this process has committed to and not yet recorded. Over the cut, the call
+ *     is refused with a typed error and no row is written, because no call was made.
+ *  5. **Scan the egress.** The object that is about to be handed across is serialised whole and
+ *     searched for every canary and for every literal the redactor removed. Anything found aborts
+ *     the call before the provider is touched. Step 2 already makes the direct route impossible;
+ *     this step is the net under the field somebody adds next year and forgets to redact.
  *  6. **Call, under a deadline.**
- *  7. **Scan the response.** The same two searches, on the way back. A response carrying the canary
+ *  7. **Scan the response.** The same two searches, on the way back. A response carrying a canary
  *     or a removed literal is never persisted.
  *  8. **Write the row.** One `agent_call` row, with the reproducibility block filled from what
  *     actually happened, linked into the chain.
@@ -47,6 +47,15 @@
  * describes a refusal, and inventing one to hold this would be inventing a schema. The refusal is
  * typed, it is raised to the caller, and the caller — which owns the ticket and its audit trail —
  * is where it becomes visible.
+ *
+ * **The case that rule does not cover, named rather than left to be discovered.** A call whose
+ * deadline passes may have been completed and billed on the far side, and there is no row to say
+ * so: the chain would under-count real consumption, and a ceiling recomputed from the chain would
+ * cut late by that much, cumulatively. What this file does about it is hold the projection against
+ * the ceiling for the life of the process instead of releasing it — the error is then always the
+ * conservative one. What it cannot do is survive a restart, because the only honest home for
+ * "a call was attempted and its outcome is unknown" is a row, and no value of `ledger_class` says
+ * that. Opening the alphabet a tenth time is a dated decision, not a builder's choice.
  */
 
 import { randomBytes } from 'node:crypto';
@@ -60,8 +69,11 @@ import {
   sha256Hex,
 } from './canonical.ts';
 import type { Json } from './canonical.ts';
+import type { AuditSink } from './audit.ts';
+import { CANARY_CONTRIBUTION, plant, survivingKinds } from './canary.ts';
 import { GatewayError } from './errors.ts';
-import { findLeak, marker, redact, withoutMarkers } from './redaction.ts';
+import type { GatewayErrorCode } from './errors.ts';
+import { MIN_LITERAL_LENGTH, findLeak, redact, withoutMarkers } from './redaction.ts';
 import type { RedactionKind, Removal } from './redaction.ts';
 import { stateHash } from './ledger/row.ts';
 import type { LedgerRowContent } from './ledger/row.ts';
@@ -144,6 +156,11 @@ export type GatewayConfig = {
   /** The three values whose digest is `state_hash`: two rows with different ones are incomparable. */
   state: { schema_version: string; ruleset_hash: string; kb_snapshot: string };
   toolchain: { app: string; ruleset: string };
+  /**
+   * Where the security events go. Not optional: a sink a caller may leave out is a sink the next
+   * caller leaves out, and what vanishes then is exactly the record nobody would notice missing.
+   */
+  audit: AuditSink;
   pricing: Record<string, ModelPrice>;
   budget: BudgetCeiling;
   timeout_ms?: number;
@@ -205,21 +222,6 @@ export type Gateway = {
 // The canary
 // ---------------------------------------------------------------------------
 
-/**
- * The canary is planted in the shape of the thing it is testing.
- *
- * A token with a redaction rule of its own would prove only that the canary rule works. Planted as
- * an address, it is removed by the same rule that removes a customer's address, so its survival is
- * evidence about that rule and not about a rule written to make the test pass. The domain is the
- * reserved `.invalid`, which resolves nowhere by definition, so a canary that somehow escaped could
- * not become traffic.
- */
-const CANARY_MARK = '\n<<ledgerdesk-canary>> ';
-
-function canaryAddress(token: string): string {
-  return `ld-canary-${token}@canary.invalid`;
-}
-
 function defaultCanaryToken(): string {
   return randomBytes(24).toString('hex');
 }
@@ -275,6 +277,28 @@ function declaredConfidence(text: string): string | null {
 // The gateway
 // ---------------------------------------------------------------------------
 
+/**
+ * The codes that are security events rather than operational ones.
+ *
+ * The first five are the controls of this component firing: the redactor stopped working, or
+ * something was caught on its way out, or on its way back. The sixth is the ceiling cutting, which
+ * is not a failure of a control but is the kind of fact an operator has to be able to find later
+ * without reading a process log that has since rotated.
+ *
+ * What is deliberately absent: `E_PROVIDER_FAILED` and `E_PROVIDER_TIMEOUT` (the far side had a bad
+ * day, which is operational), `E_LEDGER_WRITE_FAILED` (likewise, and filing it through the same
+ * database that just refused a write is a poor plan), and the three configuration codes, which are
+ * defects in a caller and are found by the caller failing.
+ */
+const SECURITY_EVENTS: ReadonlySet<GatewayErrorCode> = new Set<GatewayErrorCode>([
+  'E_CANARY_NOT_REDACTED',
+  'E_CANARY_EGRESS',
+  'E_PII_EGRESS',
+  'E_CANARY_IN_RESPONSE',
+  'E_PII_IN_RESPONSE',
+  'E_BUDGET_EXHAUSTED',
+]);
+
 export function createGateway(config: GatewayConfig): Gateway {
   if (!config.run_id) {
     throw new GatewayError('E_CONFIG_INVALID', 'the gateway has no run to write into');
@@ -295,11 +319,44 @@ export function createGateway(config: GatewayConfig): Gateway {
     throw new GatewayError('E_CONFIG_INVALID', 'the deadline must be a positive number of ms');
   }
 
+  // The three components of `state_hash` are required and required to be non-empty. The column
+  // exists so that two rows carrying the same `input_hash` under different conditions are known to
+  // be incomparable, and a component left as the empty string makes every run agree about a
+  // condition none of them declared. Where there is no knowledge base yet, the honest value is the
+  // sentinel `kb:none` — a value that says so, not an absence that says nothing.
+  for (const key of ['schema_version', 'ruleset_hash', 'kb_snapshot'] as const) {
+    if (!config.state[key] || !config.state[key].trim()) {
+      throw new GatewayError(
+        'E_CONFIG_INVALID',
+        `state.${key} is empty, so state_hash would describe a condition nobody declared`,
+        { component: key },
+      );
+    }
+  }
+
   const cacheEnabled = config.cache ?? true;
   const restarts = config.restarts ?? 0;
   const now = config.now ?? (() => new Date());
   const mintCanary = config.canary_token ?? defaultCanaryToken;
   const cutMicro = audToMicro(config.budget.cut_aud);
+
+  /**
+   * What this process has committed to spending but has not yet recorded.
+   *
+   * The chain is the authority on what was spent, and it can only become the authority once a row
+   * is written — which is after the provider has answered. Between the ceiling check and that row
+   * there is a window, and two calls crossing it together would each read a consumption figure that
+   * did not include the other. Each would be under the cut; together they could be over it, and the
+   * money is gone before either row exists.
+   *
+   * So a call reserves its projection here before it leaves and releases it when its row is in the
+   * chain. Within one process the ceiling is then exact under any concurrency. Across processes it
+   * is not, and the bound is stated rather than implied: the overshoot cannot exceed the number of
+   * processes writing to the run, less one, times the largest projection among them. That bound is
+   * what the requirement's two figures are for — the cut is where spending stops, the cap is the
+   * headroom that absorbs what was already in flight when it did.
+   */
+  let inFlightMicro = 0;
 
   // Computed once: neither the state nor the toolchain changes between calls of one process, and a
   // digest recomputed per call would invite the two to drift within a single run.
@@ -311,7 +368,20 @@ export function createGateway(config: GatewayConfig): Gateway {
     ruleset: config.toolchain.ruleset,
   };
 
-  async function call(request: GatewayCall): Promise<GatewayResult> {
+  async function run(request: GatewayCall): Promise<GatewayResult> {
+    // Literals are refused, not silently dropped. Before this, a caller passing a value below the
+    // threshold got a redactor that quietly ignored it — a fail-open where the caller believed a
+    // value was covered and it was not, which is the worst shape a privacy control can take.
+    for (const literal of request.literals ?? []) {
+      if (literal.trim().length < MIN_LITERAL_LENGTH) {
+        throw new GatewayError(
+          'E_CONFIG_INVALID',
+          `a literal shorter than ${MIN_LITERAL_LENGTH} characters is refused rather than ignored`,
+          { literal_length: literal.trim().length, minimum: MIN_LITERAL_LENGTH },
+        );
+      }
+    }
+
     if (!request.input_path || !request.input_path.trim()) {
       throw new GatewayError(
         'E_INPUT_PATH_MISSING',
@@ -329,20 +399,28 @@ export function createGateway(config: GatewayConfig): Gateway {
       );
     }
 
-    // --- 1 and 2 · redact, with the canary planted in this very pass -------------------------
+    // --- 1 and 2 · redact, with a canary per rule planted in this very pass -------------------
     const canaryToken = mintCanary();
-    const planted = `${request.body}${CANARY_MARK}${canaryAddress(canaryToken)}`;
-    const redacted = redact(planted, request.literals ?? []);
+    const canaries = plant(canaryToken);
+    const redacted = redact(`${request.body}${canaries.block}`, request.literals ?? []);
 
-    const expectedTail = `${CANARY_MARK}${marker('email')}`;
-    if (!redacted.text.endsWith(expectedTail)) {
+    if (!redacted.text.endsWith(canaries.expectedTail)) {
+      // The tail comparison is the verdict; this call is only to name the rule, so the error can
+      // say which pattern stopped firing instead of leaving an operator to bisect the dictionary.
       throw new GatewayError(
         'E_CANARY_NOT_REDACTED',
-        'the canary planted in this call survived the redactor, so nothing was sent',
-        { agent: request.agent, ticket_id: request.ticket_id },
+        'a canary planted in this call survived the redactor, so nothing was sent',
+        {
+          agent: request.agent,
+          ticket_id: request.ticket_id,
+          kinds: survivingKinds(redacted.text, canaryToken),
+        },
       );
     }
-    const body_redacted = redacted.text.slice(0, redacted.text.length - expectedTail.length);
+    const body_redacted = redacted.text.slice(
+      0,
+      redacted.text.length - canaries.expectedTail.length,
+    );
 
     // A body that redacted to markers and whitespace has not been redacted, it has been emptied,
     // and there is no enquiry left to answer. It is refused here so the caller can escalate it to
@@ -358,10 +436,13 @@ export function createGateway(config: GatewayConfig): Gateway {
     // The excerpts take the same pass. They come from the knowledge base rather than from the
     // customer, which is a reason to expect them clean and not a reason to exempt them.
     const removals: Removal[] = [...redacted.removed];
-    // The canary is not the tenant's data and is not counted as though it were. The pass above
-    // removed exactly one address this call planted itself, and the published summary — which ends
-    // up in the row and on a privacy panel — describes the ticket, not the instrumentation.
-    const counts = { ...redacted.counts, email: redacted.counts.email - 1 };
+    // The canaries are not the tenant's data and are not counted as though they were. The pass
+    // above removed exactly the values this call planted itself, and the published summary — which
+    // ends up in the row and on a privacy panel — describes the ticket, not the instrumentation.
+    const counts = { ...redacted.counts };
+    for (const kind of Object.keys(counts) as RedactionKind[]) {
+      counts[kind] -= CANARY_CONTRIBUTION[kind] ?? 0;
+    }
     const kb_context = (request.kb_context ?? []).map((entry) => {
       const pass = redact(entry.excerpt, request.literals ?? []);
       removals.push(...pass.removed);
@@ -395,6 +476,7 @@ export function createGateway(config: GatewayConfig): Gateway {
         input_hash,
         prompt_version_id: request.prompt_version_id,
         prompt_hash,
+        state_hash,
         model_requested: request.model_requested,
         sampling,
         seed: request.seed,
@@ -403,7 +485,7 @@ export function createGateway(config: GatewayConfig): Gateway {
         // The same two searches a fresh response gets. The text was cleared once already, when it
         // was first written; it is cleared again here because the call it is answering is a
         // different call, with its own canary and its own list of removed values.
-        assertResponseIsClean(hit.response_text, canaryToken, removals, request);
+        assertResponseIsClean(hit.response_text, [canaryToken, ...canaries.values], removals, request);
 
         const latency_ms = Math.max(0, Math.round(performance.now() - startedAt));
         const appended = await config.store.append(config.run_id, request.org_id, (head) =>
@@ -450,17 +532,19 @@ export function createGateway(config: GatewayConfig): Gateway {
 
     // The projection uses `max_tokens` for the response, which is the most the call can cost. A
     // breaker that projected an average would trip after the cut rather than at it.
-    const projectedMicro =
-      spentMicro +
+    const callMicro =
       priceMicro(estimateTokens(system) + estimateTokens(user), price.input_aud_per_1k) +
       priceMicro(request.sampling.max_tokens, price.output_aud_per_1k);
+    const committedMicro = spentMicro + inFlightMicro;
+    const projectedMicro = committedMicro + callMicro;
 
-    if (spentMicro >= cutMicro || projectedMicro > cutMicro) {
+    if (committedMicro >= cutMicro || projectedMicro > cutMicro) {
       throw new GatewayError(
         'E_BUDGET_EXHAUSTED',
         'the call would take consumption past the cut, so it was not made',
         {
           spent_aud: formatAud(spentMicro),
+          in_flight_aud: formatAud(inFlightMicro),
           projected_aud: formatAud(projectedMicro),
           cut_aud: formatAud(cutMicro),
           scope: config.budget.scope,
@@ -476,20 +560,23 @@ export function createGateway(config: GatewayConfig): Gateway {
       sampling: request.sampling,
       seed: request.seed,
     };
-    const outbound = canonicalJson({
-      model: providerRequest.model,
-      system: providerRequest.system,
-      user: providerRequest.user,
-      sampling,
-      seed: providerRequest.seed,
-    });
+    // Serialised from the object that is about to be handed across, and not rebuilt field by field
+    // from the values that went into it. The difference is the whole value of the step: a field
+    // added to `ProviderRequest` next year — a subject line, a tool list, a metadata bag — is
+    // covered by this scan the moment it exists, whereas a hand-listed projection would have gone
+    // on passing while the new field carried whatever it carried. `JSON.stringify` reaches every
+    // string at every depth, which is the property required here; the canonical form is not, since
+    // nothing downstream compares this text to anything.
+    const outbound = JSON.stringify(providerRequest);
 
-    if (outbound.includes(canaryToken)) {
-      throw new GatewayError(
-        'E_CANARY_EGRESS',
-        'the canary was found in the payload, so the payload was not sent',
-        { agent: request.agent, ticket_id: request.ticket_id },
-      );
+    for (const value of [canaryToken, ...canaries.values]) {
+      if (outbound.includes(value)) {
+        throw new GatewayError(
+          'E_CANARY_EGRESS',
+          'a canary was found in the payload, so the payload was not sent',
+          { agent: request.agent, ticket_id: request.ticket_id },
+        );
+      }
     }
     const leaking = findLeak(outbound, removals);
     if (leaking) {
@@ -501,12 +588,33 @@ export function createGateway(config: GatewayConfig): Gateway {
     }
 
     // --- 6 · the call, under a deadline ---------------------------------------------------------
+    //
+    // The reservation is taken before the request leaves and is given back only when the outcome is
+    // known. A deadline that passes is not an outcome: the provider may have completed the work and
+    // billed for it, and this side cannot tell. Money that may have been spent and cannot be
+    // recorded is held against the ceiling for the life of the process rather than forgotten, so
+    // the error the ceiling makes is always the conservative one. A provider that refused the
+    // request outright did not run it, and that reservation is released.
+    inFlightMicro += callMicro;
+    let response: ProviderResponse;
     const startedAt = performance.now();
-    const response = await callProvider(config.provider, providerRequest, timeoutMs);
+    try {
+      response = await callProvider(config.provider, providerRequest, timeoutMs);
+    } catch (error) {
+      if (!(error instanceof GatewayError) || error.code !== 'E_PROVIDER_TIMEOUT') {
+        // The provider function threw without producing a response, so nothing was generated and
+        // nothing was billed. Holding this against the ceiling would leak budget on every
+        // connection that was refused.
+        inFlightMicro -= callMicro;
+        throw error;
+      }
+      error.detail.unrecorded_aud = formatAud(callMicro);
+      throw error;
+    }
     const latency_ms = Math.max(0, Math.round(performance.now() - startedAt));
 
     // --- 7 · the response, searched before it is persisted --------------------------------------
-    assertResponseIsClean(response.text, canaryToken, removals, request);
+    assertResponseIsClean(response.text, [canaryToken, ...canaries.values], removals, request);
 
     // --- 8 · the row ----------------------------------------------------------------------------
     const cost_micro =
@@ -532,6 +640,12 @@ export function createGateway(config: GatewayConfig): Gateway {
         cache: { hit: false, source_seq: null },
       }),
     );
+
+    // The reservation is given back here and only here: from this line on the chain carries the
+    // real figure, so holding the projection as well would count the call twice. Every path that
+    // leaves before this point keeps it, because every one of them is a path where the provider
+    // answered — or may have — and no row says so.
+    inFlightMicro -= callMicro;
 
     // The row is written first and the pin raises after it, in that order and not the other. A
     // model that answered under another name still answered, still cost money and still produced
@@ -623,6 +737,73 @@ export function createGateway(config: GatewayConfig): Gateway {
     };
   }
 
+  /**
+   * The ceiling cutting is worth recording once per run, not once per refusal.
+   *
+   * After the breaker trips, every subsequent call is refused by the same fact. Filing each one
+   * would turn the audit chain — which is append-only, so nothing can be tidied away afterwards —
+   * into a list of the same event repeated until somebody noticed. The first cut is the event; the
+   * rest are its consequence.
+   */
+  let budgetCutRecorded = false;
+
+  async function recordSecurityEvent(error: GatewayError, request: GatewayCall): Promise<void> {
+    if (error.code === 'E_BUDGET_EXHAUSTED') {
+      if (budgetCutRecorded) return;
+      budgetCutRecorded = true;
+    }
+
+    // Assembled field by field from values that are known not to be literals, rather than by
+    // spreading whatever the error carried. A row of the audit table quoting the address it caught
+    // would put that address in an append-only table by way of the control that stopped it.
+    const detail: Json = {
+      run_id: config.run_id,
+      agent: request.agent,
+      model_requested: request.model_requested,
+      kind: (error.detail.kind as string | undefined) ?? null,
+      kinds: (error.detail.kinds as string[] | undefined) ?? null,
+      spent_aud: (error.detail.spent_aud as string | undefined) ?? null,
+      in_flight_aud: (error.detail.in_flight_aud as string | undefined) ?? null,
+      cut_aud: (error.detail.cut_aud as string | undefined) ?? null,
+      scope: (error.detail.scope as string | undefined) ?? null,
+    };
+
+    try {
+      await config.audit.record({
+        org_id: request.org_id,
+        // Null on purpose: the writer is the system's own path to the model, not a person. The
+        // column is nullable precisely so that a machine actor is not given somebody's identity.
+        actor_id: null,
+        action: error.code,
+        object_type: request.ticket_id ? 'ticket' : 'run',
+        object_id: request.ticket_id ?? config.run_id,
+        detail,
+        ts: now().toISOString(),
+      });
+    } catch (auditError) {
+      // Best effort, and the semantics are the point: the caller must see the failure that actually
+      // happened. A redaction failure that could not be filed is still a redaction failure, and
+      // replacing it with a database error would trade a security signal for an infrastructure one.
+      console.error(
+        `[gateway] the security event ${error.code} could not be filed:`,
+        auditError instanceof Error ? auditError.message : String(auditError),
+      );
+    }
+  }
+
+  async function call(request: GatewayCall): Promise<GatewayResult> {
+    try {
+      return await run(request);
+    } catch (error) {
+      // One place, not six. A code added to SECURITY_EVENTS is filed from the day it is added,
+      // rather than from the day somebody remembers to wire it at its own throw site.
+      if (error instanceof GatewayError && SECURITY_EVENTS.has(error.code)) {
+        await recordSecurityEvent(error, request);
+      }
+      throw error;
+    }
+  }
+
   return { call };
 }
 
@@ -680,16 +861,18 @@ async function callProvider(
  */
 function assertResponseIsClean(
   text: string,
-  canaryToken: string,
+  canaryValues: readonly string[],
   removals: readonly Removal[],
   request: GatewayCall,
 ): void {
-  if (text.includes(canaryToken)) {
-    throw new GatewayError(
-      'E_CANARY_IN_RESPONSE',
-      'the response carried the canary, so it was not persisted',
-      { agent: request.agent, ticket_id: request.ticket_id },
-    );
+  for (const value of canaryValues) {
+    if (text.includes(value)) {
+      throw new GatewayError(
+        'E_CANARY_IN_RESPONSE',
+        'the response carried a canary, so it was not persisted',
+        { agent: request.agent, ticket_id: request.ticket_id },
+      );
+    }
   }
   const returning = findLeak(text, removals);
   if (returning) {

@@ -67,15 +67,25 @@ type Rule = { kind: RedactionKind; pattern: RegExp };
 const RULES: readonly Rule[] = [
   { kind: 'email', pattern: /[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+/g },
 
+  // An IBAN carries its own country prefix and check digits, so it is recognisable on its own —
+  // and it MUST be matched before the card rules. The body of an IBAN is groups of four digits, so
+  // a card rule reaching it first takes the middle out of it and leaves `DE89 [REDACTED:card] 00`:
+  // the account number is then neither removed nor intact, which is the worst of the three states.
+  //
+  // The trailing group is optional and short, and that is not a nicety. An IBAN is 15 to 34
+  // characters, which is only a multiple of four by coincidence: a German one is 22 and ends in a
+  // group of two, a French one is 27 and ends in a group of three. A pattern demanding whole groups
+  // matches all of such a number except its last two characters — removing the account and leaving
+  // the fragment, which is the same worst-of-three state described above, arrived at from the other
+  // direction.
+  { kind: 'account', pattern: /\b[A-Z]{2}\d{2}(?:[ ]?[A-Za-z0-9]{4}){2,7}(?:[ ]?[A-Za-z0-9]{1,3})?\b/g },
+  // An Australian BSB followed by its account number.
+  { kind: 'account', pattern: /\b\d{3}-\d{3}[ ]+\d{6,10}\b/g },
+
   // Card numbers in the two forms they are actually written in, plus the American Express 4-6-5.
   { kind: 'card', pattern: /\b\d{4}[ -]\d{4}[ -]\d{4}(?:[ -]\d{1,4})?\b/g },
   { kind: 'card', pattern: /\b\d{4}[ -]\d{6}[ -]\d{5}\b/g },
   { kind: 'card', pattern: /\b\d{13,19}\b/g },
-
-  // An IBAN carries its own country prefix and check digits, so it is recognisable on its own.
-  { kind: 'account', pattern: /\b[A-Z]{2}\d{2}(?:[ ]?[A-Za-z0-9]{4}){2,7}\b/g },
-  // An Australian BSB followed by its account number.
-  { kind: 'account', pattern: /\b\d{3}-\d{3}[ ]+\d{6,10}\b/g },
 
   { kind: 'phone', pattern: /\+\d{1,3}[ -]?\d(?:[ -]?\d){6,13}\b/g },
   { kind: 'phone', pattern: /\(\d{2}\)[ ]?\d{4}[ -]?\d{4}\b/g },
@@ -95,12 +105,28 @@ const RULES: readonly Rule[] = [
 ];
 
 /**
- * The shortest literal that may be removed by exact match, and the shortest that is worth looking
- * for on the way back. Below this a "literal" is a fragment that occurs by accident — removing
- * every "Li" from a body would destroy it, and finding "Li" in a response would prove nothing.
+ * The shortest caller-supplied literal the redactor will accept.
+ *
+ * The number is a trade between two failures and it is worth setting out, because the obvious
+ * reading — "longer is safer" — is only half true. A literal is removed from the body AND searched
+ * for in everything that leaves; the search is what makes the threshold matter, because a hit
+ * aborts the call. A short literal collides with ordinary English: "Chan" is a real surname and
+ * lives inside "Channel", "Ann" inside "Announce". Every such collision is a support ticket that
+ * cannot be answered at all, arriving as a privacy error nobody can reproduce.
+ *
+ * Eight, and not the ten a reviewer proposed. Ten excludes values that are unambiguously personal
+ * and unambiguously present — "Nguyen T" is nine — and a threshold that refuses real names pushes
+ * a caller towards not declaring them, which costs more than the collisions it saves. Eight admits
+ * a full name and an address line, which is what the tenant's records actually hold and what
+ * actually appears in a ticket body, and excludes the three-to-five character fragments that
+ * collide. A caller with only a bare short surname is told plainly that this mechanism does not
+ * cover it, which is a better answer than half-covering it.
+ *
+ * Below the threshold the value is REFUSED by the gateway, never silently dropped. That is the
+ * change that matters more than the number: the previous behaviour let a caller believe a value
+ * was covered while the filter had removed it from consideration.
  */
-const MIN_LITERAL_LENGTH = 4;
-const MIN_RETURN_SCAN_LENGTH = 6;
+export const MIN_LITERAL_LENGTH = 8;
 
 function escapeForRegExp(literal: string): string {
   return literal.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -121,12 +147,16 @@ export function redact(text: string, literals: readonly string[] = []): Redactio
   const counts = emptyCounts();
   let current = text;
 
+  // Longest first, so a full address is taken out as one value rather than being cut in half by
+  // the removal of the suburb inside it. Nothing is filtered here: a literal below the threshold is
+  // refused by the caller's boundary, not dropped by this function without telling anybody.
   const ordered = [...new Set(literals)]
-    .filter((literal) => literal.trim().length >= MIN_LITERAL_LENGTH)
+    .map((literal) => literal.trim())
+    .filter((literal) => literal.length > 0)
     .sort((a, b) => b.length - a.length);
 
   for (const literal of ordered) {
-    const pattern = new RegExp(escapeForRegExp(literal.trim()), 'gi');
+    const pattern = new RegExp(escapeForRegExp(literal), 'gi');
     current = current.replace(pattern, (match) => {
       removed.push({ kind: 'literal', literal: match });
       counts.literal += 1;
@@ -153,14 +183,25 @@ export function redact(text: string, literals: readonly string[] = []): Redactio
  * Whether `haystack` still contains any of the values that were removed from it.
  *
  * Used on both sides of the provider call: on the payload before it leaves, and on the response
- * before it is persisted. Short values are skipped — see `MIN_RETURN_SCAN_LENGTH`; the canary is
- * checked separately and is long by construction, so nothing that matters relies on this cut-off.
+ * before it is persisted.
+ *
+ * **Every pattern-derived value is searched for, at any length.** An address, a card, an IBAN, a
+ * phone number and a labelled identifier are structured: they were recognised BY their structure,
+ * and that same structure is what makes them safe to search for. A six-character card fragment does
+ * not occur inside an English sentence by accident. There is no length floor here and there should
+ * not be one — a floor would mean a short account number could be removed from the body and then
+ * travel out through some other field unnoticed, which is the exact hole the scan exists to close.
+ *
+ * **Caller literals are the only ones with a floor**, and they carry it because they are the only
+ * unstructured values in the set. The floor is enforced at the boundary, by refusing the literal
+ * when it is supplied, so by the time a literal reaches this function it has already qualified.
  */
 export function findLeak(haystack: string, removed: readonly Removal[]): Removal | null {
   const folded = haystack.toLowerCase();
   for (const removal of removed) {
     const literal = removal.literal.trim();
-    if (literal.length < MIN_RETURN_SCAN_LENGTH) continue;
+    if (!literal) continue;
+    if (removal.kind === 'literal' && literal.length < MIN_LITERAL_LENGTH) continue;
     if (folded.includes(literal.toLowerCase())) return removal;
   }
   return null;

@@ -55,11 +55,25 @@ export type AppendedRow = {
  * passed. Without the digest, a caller that named one prompt version and sent another's words would
  * be served a response the words it sent never produced, and the row recording it would name the
  * prompt that did not write it. The key is over what was sent.
+ *
+ * And it adds `state_hash`, which closes the larger one. That column exists to say that two rows
+ * with the same `input_hash` under different conditions are NOT comparable — different ruleset,
+ * different knowledge-base snapshot. A cache that ignored it would hand a response produced under
+ * last month's knowledge base to a call made under this month's, and record it as though this
+ * month's had produced it: the one column whose whole purpose is to keep those apart, defeated by
+ * the lookup that runs before it is written.
+ *
+ * What is deliberately NOT in the key is `toolchain`. It pins what produced a row, for audit, and
+ * it moves for reasons that have nothing to do with the answer — a Node patch release would empty
+ * the cache without any response having become wrong. The declared residual is named beside the
+ * lookup in the store: a provider that swaps a snapshot behind an unchanged model alias is caught
+ * on a fresh call, by `model_returned`, and is not caught on a cached one.
  */
 export type CacheProbe = {
   input_hash: string;
   prompt_version_id: string;
   prompt_hash: string;
+  state_hash: string;
   model_requested: string;
   sampling: Json;
   seed: number | null;

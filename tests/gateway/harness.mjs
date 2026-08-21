@@ -13,7 +13,7 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import pg from 'pg';
 
-import { PgLedgerStore, rowFromDatabase } from '../../agents/ledger/pg.ts';
+import { PgLedgerStore, auditRowFromDatabase, rowFromDatabase } from '../../agents/ledger/pg.ts';
 
 export const DATABASE_URL = process.env.DATABASE_URL;
 if (!DATABASE_URL) {
@@ -24,6 +24,7 @@ if (!DATABASE_URL) {
 export const ORG_A = '11111111-1111-4111-8111-111111111111';
 export const ORG_B = '22222222-2222-4222-8222-222222222222';
 export const TICKET_A = 'aaaa0001-0000-4000-8000-000000000001';
+export const TICKET_B = 'bbbb0001-0000-4000-8000-000000000001';
 
 export function newRunId() {
   return randomUUID();
@@ -77,6 +78,19 @@ export function spyOn(inner) {
   return { provider, calls };
 }
 
+/**
+ * A provider that always answers the same distinctive text.
+ *
+ * Where the deterministic fixture answers identically for identical requests — which is what makes
+ * it useful nearly everywhere — it is useless for asking "whose answer is this?". Two organisations
+ * sending byte-identical requests get byte-identical fixture responses, so equality of text proves
+ * nothing about which call produced it. Giving each side its own constant makes the question
+ * answerable.
+ */
+export function constantProvider(text, model = MODEL) {
+  return async () => ({ model, text, tokens_in: 10, tokens_out: 10 });
+}
+
 /** The model the tests price and request. A name, not a claim about any real model. */
 export const MODEL = 'fixture-small';
 
@@ -99,6 +113,8 @@ export function baseConfig({ store, provider, run_id, ...overrides }) {
       kb_snapshot: 'kb-2026-08-22',
     },
     toolchain: { app: '0.1.0', ruleset: 'ruleset-1' },
+    // The same object serves both chains: it implements `LedgerStore` and `AuditSink`.
+    audit: store,
     pricing: { [MODEL]: { input_aud_per_1k: 0.001, output_aud_per_1k: 0.004 } },
     budget: { cap_aud: 120, cut_aud: 100, scope: 'term' },
     timeout_ms: 5_000,
@@ -142,6 +158,39 @@ export async function spentOnChain(runId) {
       [runId],
     );
     return Number(result.rows[0].total);
+  });
+}
+
+/**
+ * Runs `work` the way the application runs: as `app_rw`, under one organisation's claims, inside a
+ * transaction that is rolled back. This is how a test asks what a TENANT can see, as opposed to
+ * `asOwner`, which asks what is stored. The two questions have different answers wherever a policy
+ * is doing its job, and a test that only ever asks the second one never measures the first.
+ */
+export async function asTenant(orgId, work) {
+  return asOwner(async (client) => {
+    await client.query('begin');
+    await client.query('set local role app_rw');
+    await client.query('select set_config($1, $2, true)', [
+      'request.jwt.claims',
+      JSON.stringify({ org_id: orgId }),
+    ]);
+    try {
+      return await work(client);
+    } finally {
+      await client.query('rollback');
+    }
+  });
+}
+
+/**
+ * An organisation's audit chain, read THROUGH the tenant policy and converted back into the form
+ * the writer hashed. Ordered by `id`, which is the order `audit_event_link` chains them in.
+ */
+export async function readAuditChain(orgId) {
+  return asTenant(orgId, async (client) => {
+    const result = await client.query('select * from audit_event order by id');
+    return result.rows.map((row) => ({ id: row.id, ...auditRowFromDatabase(row) }));
   });
 }
 
