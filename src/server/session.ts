@@ -16,9 +16,22 @@ import { withAppSession, type Claims, type UserRole } from '@/server/db';
  * claims a request runs under always come from the database's own record of that user — the
  * application never invents an organisation or a role — so the policies are exercised against real
  * claim sets from the first day.
+ *
+ * The selector therefore does not exist unless a build asks for it: `LEDGERDESK_DEV_IDENTITY=1`.
+ * Without the flag `currentIdentity()` returns null, every request runs without claims, and the
+ * API answers 401 — the build fails closed. The control is the flag and not a signature on the
+ * cookie: the entire set of valid cookie values is printed on the selector screen by design, so
+ * signing it would protect nothing while making a development convenience look like a session
+ * mechanism. The risk worth removing is the selector reaching an environment where it matters,
+ * and that is what the flag removes.
  */
 
 const SESSION_COOKIE = 'ld_dev_user';
+
+/** Whether this build carries the development identity selector at all. */
+export function devIdentityEnabled(): boolean {
+  return process.env.LEDGERDESK_DEV_IDENTITY === '1';
+}
 
 export type Identity = {
   user_id: string;
@@ -43,6 +56,7 @@ const IDENTITY_SELECT = `
 
 /** Every seeded identity, ordered so the two organisations always list the same way. */
 export async function listIdentities(): Promise<Identity[]> {
+  if (!devIdentityEnabled()) return [];
   return withAppSession(null, async (client) => {
     const result = await client.query<IdentityRow>(
       `${IDENTITY_SELECT} order by o.name, u.role, u.id`,
@@ -52,6 +66,7 @@ export async function listIdentities(): Promise<Identity[]> {
 }
 
 export async function findIdentity(userId: string): Promise<Identity | null> {
+  if (!devIdentityEnabled()) return null;
   if (!isUuid(userId)) return null;
   return withAppSession(null, async (client) => {
     const result = await client.query<IdentityRow>(`${IDENTITY_SELECT} where u.id = $1`, [userId]);
@@ -59,8 +74,14 @@ export async function findIdentity(userId: string): Promise<Identity | null> {
   });
 }
 
-/** The identity of the current request, or null when no session is selected. */
+/**
+ * The identity of the current request, or null when no session is selected.
+ *
+ * Also null when the selector is not enabled — a cookie left over from a build that had it does
+ * not resolve to anything in a build that does not.
+ */
 export async function currentIdentity(): Promise<Identity | null> {
+  if (!devIdentityEnabled()) return null;
   const jar = await cookies();
   const userId = jar.get(SESSION_COOKIE)?.value;
   if (!userId) return null;

@@ -155,4 +155,32 @@ describe('test_US01_ticket_created_and_acknowledged', () => {
     });
     assert.equal(stored, 1, 'a refused intake still wrote a row');
   });
+
+  // Nothing in the schema links a customer to an account, so intake resolves one from the
+  // organisation. With a second account that resolution has no answer, and the refusal has to be
+  // loud: filing against the lowest id would be a wrong ticket nobody would ever notice.
+  it('refuses intake when the organisation holds more than one account', async () => {
+    const extraAccount = '1acc0000-0000-4000-8000-0000000000ff';
+    await asOwner(async (client) => {
+      await client.query(
+        "insert into account (id, org_id, tier, value_band) values ($1, $2, 'premium', 4)",
+        [extraAccount, people.northwindCustomer.org_id],
+      );
+    });
+
+    try {
+      const response = await request(customerA, '/api/tickets', {
+        method: 'POST',
+        body: { subject: `ambiguous account [${RUN_ID}]`, body: 'two accounts and no mapping' },
+      });
+      assert.equal(response.status, 409, 'an ambiguous account was resolved instead of refused');
+      assert.equal(response.body.error.code, 'E_ACCOUNT_AMBIGUOUS');
+      assert.equal(response.body.error.accounts, 2, 'the refusal does not say how many it found');
+    } finally {
+      // No ticket references it — the intake was refused — so the row goes cleanly.
+      await asOwner(async (client) => {
+        await client.query('delete from account where id = $1', [extraAccount]);
+      });
+    }
+  });
 });

@@ -1,4 +1,4 @@
-import { AppError, isAppError } from '@/server/errors';
+import { AppError, isAppError, type AppErrorCode } from '@/server/errors';
 
 /**
  * One shape for every failure the API reports: `{ error: { code, message, ...detail } }`.
@@ -13,9 +13,12 @@ export function errorResponse(error: unknown): Response {
   }
 
   // Anything unrecognised is a defect of ours, and the client is told nothing about its internals.
+  // The code is still one of the register's: a 500 that reports no code is a failure the caller
+  // cannot branch on, and this surface has none of those.
   console.error('[api] unhandled failure:', error);
+  const code: AppErrorCode = 'E_INTERNAL';
   return Response.json(
-    { error: { code: 'E_INTERNAL', message: 'the request could not be completed' } },
+    { error: { code, message: 'the request could not be completed' } },
     { status: 500 },
   );
 }

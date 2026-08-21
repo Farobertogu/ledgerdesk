@@ -101,33 +101,46 @@ export async function createTicket(
   input: { subject: string; body: string },
 ): Promise<TicketAcknowledgement> {
   const row = await withAppSession(claims, async (client) => {
-    try {
-      const result = await client.query<TicketRow>(
-        `insert into ticket (id, org_id, account_id, customer_id, subject, body_raw)
-         values (gen_random_uuid(),
-                 (auth.jwt() ->> 'org_id')::uuid,
-                 (select a.id from account a
-                   where a.org_id = (auth.jwt() ->> 'org_id')::uuid
-                   order by a.id
-                   limit 1),
-                 auth.uid(),
-                 $1, $2)
-         returning ${TICKET_COLUMNS}`,
-        [input.subject, input.body],
+    // Resolved under the claims organisation, which the database reads — this function never
+    // chooses a tenant. The count travels with the id so that "which account" is answered or
+    // REFUSED in one statement: nothing in the schema links a customer to an account, so with
+    // more than one on the organisation, filing against the lowest id would be a silent wrong
+    // answer. min() has no uuid form, hence the ordered aggregate.
+    const account = await client.query<{ n: number; account_id: string | null }>(
+      `select count(*)::int as n, (array_agg(a.id order by a.id))[1] as account_id
+         from account a
+        where a.org_id = (auth.jwt() ->> 'org_id')::uuid`,
+    );
+    const { n, account_id: accountId } = account.rows[0];
+
+    if (n === 0 || !accountId) {
+      throw new AppError(
+        'E_NO_ACCOUNT_FOR_ORG',
+        409,
+        'the organisation of this session has no account row, so a ticket cannot be filed',
+        { org_id: claims.org_id },
       );
-      return result.rows[0];
-    } catch (error) {
-      // account_id is NOT NULL: an organisation with no account row surfaces here and nowhere else.
-      if (isPgError(error) && error.code === '23502' && error.column === 'account_id') {
-        throw new AppError(
-          'E_NO_ACCOUNT_FOR_ORG',
-          409,
-          'the organisation of this session has no account row, so a ticket cannot be filed',
-          { org_id: claims.org_id },
-        );
-      }
-      throw error;
     }
+    if (n > 1) {
+      throw new AppError(
+        'E_ACCOUNT_AMBIGUOUS',
+        409,
+        `the organisation of this session has ${n} accounts and nothing says which one a ticket belongs to`,
+        { org_id: claims.org_id, accounts: n },
+      );
+    }
+
+    const result = await client.query<TicketRow>(
+      `insert into ticket (id, org_id, account_id, customer_id, subject, body_raw)
+       values (gen_random_uuid(),
+               (auth.jwt() ->> 'org_id')::uuid,
+               $1,
+               auth.uid(),
+               $2, $3)
+       returning ${TICKET_COLUMNS}`,
+      [accountId, input.subject, input.body],
+    );
+    return result.rows[0];
   });
 
   const ticket = toTicket(row);
@@ -248,8 +261,4 @@ async function readOne(client: PoolClient, ticketId: string): Promise<TicketRow 
     [ticketId],
   );
   return result.rows[0];
-}
-
-function isPgError(error: unknown): error is { code?: string; column?: string } {
-  return typeof error === 'object' && error !== null && 'code' in error;
 }

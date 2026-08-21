@@ -41,8 +41,14 @@ for f in ci/sql/00_platform_shim.sql migrations/0*.sql seed/orgs.sql; do
 done
 
 npm ci
-DATABASE_URL="postgresql://postgres:postgres@localhost:55432/ledgerdesk_dev" npm run dev
+DATABASE_URL="postgresql://postgres:postgres@localhost:55432/ledgerdesk_dev" \
+  LEDGERDESK_DEV_IDENTITY=1 npm run dev
 ```
+
+`LEDGERDESK_DEV_IDENTITY=1` is what makes the development identity selector exist. Without it no
+request carries claims and the API answers 401 — the build fails closed, which is the behaviour a
+deployment should have. The selector is not authentication and is not offered as any; the flag is
+what keeps it from reaching an environment where that distinction would matter.
 
 `ci/sql/00_platform_shim.sql` recreates what the managed platform provides — the claim readers the
 policies call — so that a bare server behaves the way the deployment target does.

@@ -2,15 +2,21 @@ import { cookies } from 'next/headers';
 
 import { AppError } from '@/server/errors';
 import { errorResponse, readJsonBody } from '@/server/http';
-import { currentIdentity, findIdentity, listIdentities, sessionCookie } from '@/server/session';
+import {
+  currentIdentity,
+  devIdentityEnabled,
+  findIdentity,
+  listIdentities,
+  sessionCookie,
+} from '@/server/session';
 
 export const dynamic = 'force-dynamic';
 
-/** The identity in force, and the directory to choose from. */
+/** The identity in force, and the directory to choose from. Both empty when the selector is off. */
 export async function GET(): Promise<Response> {
   try {
     const [identity, identities] = await Promise.all([currentIdentity(), listIdentities()]);
-    return Response.json({ identity, identities });
+    return Response.json({ enabled: devIdentityEnabled(), identity, identities });
   } catch (error) {
     return errorResponse(error);
   }
@@ -19,6 +25,14 @@ export async function GET(): Promise<Response> {
 /** Selects a development identity. The id must be one the seed actually created. */
 export async function POST(request: Request): Promise<Response> {
   try {
+    if (!devIdentityEnabled()) {
+      throw new AppError(
+        'E_DEV_IDENTITY_DISABLED',
+        403,
+        'this build does not carry the development identity selector',
+      );
+    }
+
     const body = await readJsonBody(request);
     const userId = typeof body.user_id === 'string' ? body.user_id : '';
     const identity = userId ? await findIdentity(userId) : null;

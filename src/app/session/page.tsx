@@ -1,10 +1,28 @@
 import { PageHeading, Notice, Panel } from '@/components/Panel';
-import { currentIdentity, listIdentities } from '@/server/session';
+import { currentIdentity, devIdentityEnabled, listIdentities } from '@/server/session';
 import { IdentityPicker } from './IdentityPicker';
 
 export const dynamic = 'force-dynamic';
 
 export default async function SessionPage() {
+  if (!devIdentityEnabled()) {
+    return (
+      <>
+        <PageHeading
+          title="Session"
+          lead="This build does not carry the development identity selector."
+        />
+        <Notice>
+          The selector exists only when the server runs with{' '}
+          <span className="font-mono">LEDGERDESK_DEV_IDENTITY=1</span>. Without it no request
+          carries claims, so the consoles and the API answer as they do to an unidentified caller —
+          which is the behaviour a deployment should have, and the reason the flag exists rather
+          than a signature on the cookie.
+        </Notice>
+      </>
+    );
+  }
+
   const [identities, identity] = await Promise.all([listIdentities(), currentIdentity()]);
 
   return (

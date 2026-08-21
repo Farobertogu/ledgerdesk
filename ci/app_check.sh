@@ -84,6 +84,11 @@ run_sql "$APP_DB" seed/orgs.sql || fail "seed/orgs.sql did not apply"
 export DATABASE_URL="postgresql://${PGUSER}:${PGPASSWORD}@${PGHOST}:${PGPORT}/${APP_DB}"
 export LEDGERDESK_BASE_URL="http://127.0.0.1:${PORT}"
 
+# The development identity selector exists only where a build asks for it. The tests need it on;
+# the probe at the end of this script needs it off, which is the only way to measure that the
+# build fails closed rather than to assert it in a comment.
+export LEDGERDESK_DEV_IDENTITY=1
+
 echo "== building the consoles"
 node node_modules/next/dist/bin/next build || fail "next build"
 
@@ -93,14 +98,23 @@ SERVER_PID=$!
 
 # The tests wait for readiness themselves; this loop exists so that a server which never comes up
 # fails as "the server did not start" instead of as a test timeout somewhere else.
-READY=""
-for _ in $(seq 1 60); do
-  if [ -n "$(curl -sf "${LEDGERDESK_BASE_URL}/api/health" 2>/dev/null || true)" ]; then READY=yes; break; fi
-  kill -0 "$SERVER_PID" 2>/dev/null || fail "the server exited before it became ready"
-  sleep 1
-done
-[ -n "$READY" ] || fail "the server did not answer /api/health within 60s"
+await_server() {
+  for _ in $(seq 1 60); do
+    if [ -n "$(curl -sf "${LEDGERDESK_BASE_URL}/api/health" 2>/dev/null || true)" ]; then return 0; fi
+    kill -0 "$SERVER_PID" 2>/dev/null || fail "the server exited before it became ready"
+    sleep 1
+  done
+  fail "the server did not answer /api/health within 60s"
+}
+await_server
 echo "   server ready"
+
+stop_server() {
+  [ -n "$SERVER_PID" ] || return 0
+  kill "$SERVER_PID" 2>/dev/null || true
+  wait "$SERVER_PID" 2>/dev/null || true
+  SERVER_PID=""
+}
 
 echo "== application tests"
 # shellcheck disable=SC2086
@@ -112,5 +126,27 @@ for f in tests/app/test_*.mjs; do
     *) fail "$f exists and is not in the TESTS list" ;;
   esac
 done
+
+# test_ARCH_dev_identity_is_opt_in
+#
+# The same build, started without the flag. A control nobody has watched fail is a claim, so the
+# server is restarted with LEDGERDESK_DEV_IDENTITY absent and asked the two questions that matter:
+# an ordinary request must carry no claims, and the selector must refuse to issue a session.
+echo "== the development identity selector, with its flag absent"
+stop_server
+env -u LEDGERDESK_DEV_IDENTITY node node_modules/next/dist/bin/next start --port "$PORT" &
+SERVER_PID=$!
+await_server
+
+CODE="$(curl -s -o /dev/null -w '%{http_code}' "${LEDGERDESK_BASE_URL}/api/tickets")"
+[ "$CODE" = "401" ] \
+  || fail "test_ARCH_dev_identity_is_opt_in: without the flag a request carried claims (/api/tickets answered $CODE, expected 401)"
+
+CODE="$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'content-type: application/json' \
+  -d '{"user_id":"1a000000-0000-4000-8000-000000000001"}' "${LEDGERDESK_BASE_URL}/api/session")"
+[ "$CODE" = "403" ] \
+  || fail "test_ARCH_dev_identity_is_opt_in: without the flag the selector still issued a session (/api/session answered $CODE, expected 403)"
+
+echo "test_ARCH_dev_identity_is_opt_in OK"
 
 echo "app checks OK"
