@@ -1,6 +1,6 @@
 # Migrations
 
-Forward-only. One numbered file per change; no destructive edits to an applied migration — a correction is a new numbered migration. The schema of record is the result of applying all files in order on a clean database.
+Forward-only. One numbered file per change; no destructive edits to an applied migration — a correction is a new numbered migration. The schema of record is the result of applying all files in order on a clean database; the table below lists every file in the set.
 
 | File | Contents |
 |---|---|
@@ -8,6 +8,9 @@ Forward-only. One numbered file per change; no destructive edits to an applied m
 | `0002_ledger.sql` | ledger type and table, chain and append-only triggers, the row-class contract, ledger RLS and grants, checkpoint anchoring, the two knowledge-gap foreign keys |
 | `0003_kb_admission.sql` | knowledge-base admission record |
 | `0004_eval_outcome.sql` | per-item evaluation outcomes (must exist before the first sealed run) |
+| `0005_app_access.sql` | the application role's grants and the staff-only ticket write policy |
+| `0006_ledger_writer_sequence.sql` | the ledger writer's sequence grant |
+| `0007_audit_writer.sql` | the audit writer's grants |
 
 ## Applying them
 

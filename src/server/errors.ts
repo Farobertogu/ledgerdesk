@@ -28,7 +28,7 @@ export const APP_ERROR_CODES = [
   'E_TICKET_NOT_VISIBLE',
   /** The edge is not one the state machine publishes. */
   'E_TRANSITION_ILLEGAL',
-  /** The edge exists, and the component that evaluates its guard has not been built yet. */
+  /** The edge exists; its guard is evaluated by a named component, not by a console. */
   'E_TRANSITION_GUARD_UNAVAILABLE',
   /** The ticket moved between the read and the write; nothing was applied. */
   'E_TRANSITION_STALE',

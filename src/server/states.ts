@@ -3,8 +3,8 @@
  *
  * The enum is the one the database declares (`ticket_state`); the edges and their guards are the
  * ones the specification publishes. Nothing here is inferred: an edge that is not published is not
- * legal, and a guard whose mechanism has not been built yet is named with the component that owns
- * it rather than quietly treated as satisfied.
+ * legal, and every guarded edge names the component that evaluates it: a console never takes a
+ * guarded edge, whether or not that component exists yet.
  *
  *   NEW ──triage ok──► TRIAGED ──draft ok──► DRAFTED ──validator ok──► AWAITING_AGENT
  *    │                    │                     │                          │
@@ -40,8 +40,8 @@ export function isTicketState(value: unknown): value is TicketState {
 /**
  * Who decides that a guard is satisfied.
  *
- * `console` is a decision a person makes on screen and the row records. Every other value names a
- * component that does not exist yet; its edges are legal in the machine and refused by the API,
+ * `console` is a decision a person makes on screen and the row records. Every other value names
+ * the component that evaluates the guard; those edges are refused on the HTTP surface regardless,
  * because a transition whose guard nobody evaluated is not a transition that was guarded.
  */
 export type GuardOwner =

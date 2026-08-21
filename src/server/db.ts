@@ -39,8 +39,8 @@ function pool(): Pool {
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) {
     throw new Error(
-      'DATABASE_URL is not set. The consoles need a PostgreSQL instance with the migration set, ' +
-        'the seed and src/db/app_grants.sql applied.',
+      'DATABASE_URL is not set. The consoles need a PostgreSQL instance with the migration set ' +
+        'applied in order, plus the seed.',
     );
   }
 

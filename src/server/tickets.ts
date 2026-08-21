@@ -227,7 +227,7 @@ export async function transitionTicket(
       throw new AppError(
         'E_TRANSITION_GUARD_UNAVAILABLE',
         409,
-        `the guard of ${current.status} → ${to} is evaluated by ${transition.guardedBy}, which is not built yet`,
+        `the guard of ${current.status} → ${to} is evaluated by ${transition.guardedBy}, not by a console`,
         { from: current.status, to, guard: transition.guard, guarded_by: transition.guardedBy },
       );
     }

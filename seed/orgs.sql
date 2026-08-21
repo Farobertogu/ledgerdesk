@@ -20,6 +20,12 @@ insert into account (id, org_id, tier, value_band) values
   ('2acc0000-0000-4000-8000-000000000001', '22222222-2222-4222-8222-222222222222', 'premium',  5);
 
 insert into sla_policy (id, tier, severity, first_response_minutes, resolution_minutes) values
+  -- The four corner rows complete the declared demo policy family (minutes halve as severity
+  -- rises), so a triage that assigns severity 1 or 4 always finds its policy row.
+  ('5a1a0000-0000-4000-8000-000000000005', 'standard', 1, 480, 5760),
+  ('5a1a0000-0000-4000-8000-000000000006', 'standard', 4,  60,  720),
+  ('5a1a0000-0000-4000-8000-000000000007', 'premium',  1, 120, 1440),
+  ('5a1a0000-0000-4000-8000-000000000008', 'premium',  4,  15,  180),
   ('5a1a0000-0000-4000-8000-000000000001', 'standard', 2, 240, 2880),
   ('5a1a0000-0000-4000-8000-000000000002', 'standard', 3, 120, 1440),
   ('5a1a0000-0000-4000-8000-000000000003', 'premium',  2,  60,  720),
