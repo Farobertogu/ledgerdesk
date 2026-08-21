@@ -46,8 +46,25 @@ export type MachineClaims = {
   role: UserRole;
 };
 
-/** Either identity a statement can run under. Both are read by the policies the same way. */
-export type SessionClaims = Claims | MachineClaims;
+/**
+ * The narrowest claim set there is: an organisation, and nothing else.
+ *
+ * It exists for readers that have no business writing anything. The knowledge-base retrieval is the
+ * first of them: it selects from three tables whose select policies are tenant-only, and asserting
+ * a role as well would hand it the claim that opens `ticket_write_is_staff` — standing it does not
+ * need and cannot use, on a code path whose whole job is to read somebody else's documents into a
+ * prompt. The ledger store's own claim set has been this shape from the start, for the reason
+ * stated there: what it cannot see, it cannot leak.
+ *
+ * A statement running under these claims sees the tenant's rows and cannot satisfy any policy whose
+ * predicate reads `role` or `auth.uid()`, which is the whole of the guarantee.
+ */
+export type TenantClaims = {
+  org_id: string;
+};
+
+/** Any identity a statement can run under. All three are read by the policies the same way. */
+export type SessionClaims = Claims | MachineClaims | TenantClaims;
 
 const APPLICATION_ROLE = 'app_rw';
 

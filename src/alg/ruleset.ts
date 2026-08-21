@@ -21,6 +21,7 @@
 import { DEFAULT_ESCALATION_THRESHOLDS, type EscalationThresholds } from './escalation.ts';
 import { policyPatternSources } from './policy.ts';
 import { DEFAULT_PRIORITY_WEIGHTS, PRIORITY_DECIMALS, type PriorityWeights } from './priority.ts';
+import { retrievalDescription, type RetrievalDescription } from './retrieval.ts';
 
 export type RulesetDescription = {
   thresholds: {
@@ -34,6 +35,16 @@ export type RulesetDescription = {
   weights: PriorityWeights;
   policyPatterns: { flag: string; name: string; source: string }[];
   priorityDecimals: number;
+  /**
+   * The retrieval's parameters.
+   *
+   * They belong in the digest for the same reason the thresholds do: with a retrieval in the path,
+   * the verdict depends on which sources came back, and which sources came back depends on `k`, on
+   * the ranking function and on the floor. Two runs under two settings are two experiments, and
+   * without this block they would share a cache and a comparison while producing different drafts
+   * from different corpora slices.
+   */
+  retrieval: RetrievalDescription;
 };
 
 /**
@@ -65,5 +76,6 @@ export function rulesetDescription(
     },
     policyPatterns: policyPatternSources(),
     priorityDecimals: PRIORITY_DECIMALS,
+    retrieval: retrievalDescription(),
   };
 }

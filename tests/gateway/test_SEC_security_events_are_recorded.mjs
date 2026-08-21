@@ -205,7 +205,7 @@ test('a literal too short to be searched for is refused when it is supplied', as
       literals: ['Mei-Ling Chan'],
     }),
   );
-  assert.equal(ok.redaction.literal, 1);
+  assert.equal(ok.redaction.body.literal, 1);
   assert.ok(!ok.body_redacted.includes('Mei-Ling Chan'));
 });
 

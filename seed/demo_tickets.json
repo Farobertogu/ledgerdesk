@@ -1,14 +1,17 @@
 {
   "$comment": [
-    "The frozen demonstration dataset: three beats, each with two interchangeable tickets, and the",
-    "authored triage answers that make them land where they are meant to land.",
+    "The frozen demonstration dataset: four beats, each with two interchangeable tickets, and the",
+    "authored answers that make them land where they are meant to land.",
     "",
-    "Every ticket declares the clause it is written to fire, and that claim is CHECKED rather than",
-    "asserted: test_TRIAGE_demo_dataset_is_authored_for_its_beats runs each authored envelope",
-    "through the strict validator and each ticket through the published rule, and fails the build if",
-    "the reason that survives the precedence is not the one named here. A demonstration whose",
-    "fixtures have quietly drifted is a demonstration that produces the wrong verdict on the day, in",
-    "front of the people it was written for.",
+    "Every ticket declares the clause it is written to fire and what the retrieval is expected to",
+    "return for it, and both claims are CHECKED rather than asserted:",
+    "test_TRIAGE_demo_dataset_is_authored_for_its_beats runs each authored envelope through the",
+    "strict validator and each ticket through the published rule at ALL THREE stages — the record,",
+    "the triage and the draft — and fails the build if the reason that survives the precedence is",
+    "not the one named here. It evaluates the complete rule of eight clauses; evaluating seven of",
+    "them was enough while nothing could produce the eighth, and it would now be a test that stayed",
+    "green while the demonstration produced a different verdict in front of the people it was",
+    "written for.",
     "",
     "Two tickets per beat because a rehearsal needs a second attempt. They are different tickets and",
     "not one ticket twice: the chokepoint's cache is keyed on an input digest that carries the ticket",
@@ -20,7 +23,8 @@
     "tickets on SLA the moment it is a day old, before any model is asked, and the beat that was",
     "supposed to show triage shows a breach instead.",
     "",
-    "The organisation, account and customer identifiers are the ones seed/orgs.sql fixes."
+    "The organisation, account and customer identifiers are the ones seed/orgs.sql fixes, and the",
+    "knowledge base each beat is retrieved against is the one seed/orgs.sql seeds."
   ],
   "tickets": [
     {
@@ -37,7 +41,8 @@
       "intended": {
         "reason": "SENT",
         "clause": "sentiment_at_or_below_threshold",
-        "why": "A premium account at severity 3 satisfies the TIER clause too. The intra-stage order is CONF, SENT, TIER, so the answer is authored with a confidence well above the floor and a sentiment below the threshold: CONF cannot fire, SENT fires first, and TIER never gets asked. The reason stored is the one about the customer, which is the one a supervisor can act on."
+        "retrieval": null,
+        "why": "A premium account at severity 3 satisfies the TIER clause too. The intra-stage order is CONF, SENT, TIER, so the answer is authored with a confidence well above the floor and a sentiment below the threshold: CONF cannot fire, SENT fires first, and TIER never gets asked. The reason stored is the one about the customer, which is the one a supervisor can act on. The retrieval expectation is null because the ticket escalates at the triage stage and the drafting cycle never runs for it."
       }
     },
     {
@@ -54,6 +59,7 @@
       "intended": {
         "reason": "SENT",
         "clause": "sentiment_at_or_below_threshold",
+        "retrieval": null,
         "why": "The twin of variant A, written differently so that its digest, and therefore its cache key, is its own."
       }
     },
@@ -71,7 +77,8 @@
       "intended": {
         "reason": null,
         "clause": null,
-        "why": "The beat that shows a triage rather than an escalation: a standard account, a calm enquiry, a confident answer. No clause fires, the ticket lands in TRIAGED with all six columns filled and a priority computed, and the ledger holds one row that says what it cost."
+        "retrieval": { "hits": 2 },
+        "why": "The beat that shows the whole cycle working: a standard account, a calm enquiry, a confident triage, two articles retrieved from Northwind's own corpus, a reply that cites both, and a validator that agrees. It lands in AWAITING_AGENT with grounded = true, which is the evidence US-03 closes on. Before this increment seeded an article about exports into THIS organisation, the same ticket would have retrieved nothing and escalated on a knowledge gap — the demonstration would have broken not because of what was added but because of what was switched on."
       }
     },
     {
@@ -88,7 +95,8 @@
       "intended": {
         "reason": null,
         "clause": null,
-        "why": "The twin of variant A."
+        "retrieval": { "hits": 2 },
+        "why": "The twin of variant A. Its authored reply cites one of the two retrieved articles and not both, which is legitimate and is worth having in the dataset: a draft must cite what it stands on, not everything it was shown."
       }
     },
     {
@@ -105,7 +113,8 @@
       "intended": {
         "reason": "POLICY",
         "clause": "policy_flag_raised",
-        "why": "The deterministic matcher raises the legal flag from the ticket's own record, so the rule fires at the record stage and the ticket escalates WITHOUT a model call. No triage_fixture is authored for it, because the provider is never reached: the ledger stays empty for this ticket and its triage columns stay null, which is the honest picture of an escalation nobody had to pay for."
+        "retrieval": null,
+        "why": "The deterministic matcher raises the legal flag from the ticket's own record, so the rule fires at the record stage and the ticket escalates WITHOUT a model call. No fixture is authored for it, because the provider is never reached: the ledger stays empty for this ticket and its triage columns stay null, which is the honest picture of an escalation nobody had to pay for."
       }
     },
     {
@@ -122,7 +131,44 @@
       "intended": {
         "reason": "POLICY",
         "clause": "policy_flag_raised",
+        "retrieval": null,
         "why": "The twin of variant A, raising the complaint flag instead of the legal one. Same beat, same code, a different written rule underneath it."
+      }
+    },
+    {
+      "id": "d0000043-000a-4000-8000-000000000001",
+      "beat": "escalation-on-a-knowledge-gap",
+      "variant": "A",
+      "org_id": "11111111-1111-4111-8111-111111111111",
+      "account_id": "1acc0000-0000-4000-8000-000000000001",
+      "customer_id": "1a000000-0000-4000-8000-000000000001",
+      "dedupe_key": "demo-gap-a",
+      "language": "en",
+      "subject": "Who is able to view the audit trail for a shipment",
+      "body": "A supervisor asked whether the audit trail attached to a shipment is visible to everybody in the workspace or only to whoever raised it. We want to understand the visibility rules first.",
+      "intended": {
+        "reason": "GROUND",
+        "clause": "draft_not_grounded",
+        "retrieval": { "zero_match": true },
+        "why": "The beat this increment exists for, and it is authored in NORTHWIND on purpose. Northwind is a standard-tier account, so premium_high_severity cannot fire whatever severity the triage assigns — on the premium tenant a severity-3 answer would escalate on TIER and the ticket would never reach the drafting cycle at all, and the beat would demonstrate the wrong thing while looking correct. The triage is pinned calm — severity 2, sentiment inside [-0.20, +0.30], confidence well above the floor, English, no policy word anywhere in it — so that EXACTLY ONE clause fires and it is the knowledge gap. The retrieval returns zero lexical matches against Northwind's corpus at kb-2026-08-01, no model is asked to draft anything, and the ticket goes to a person having cost nothing."
+      }
+    },
+    {
+      "id": "d0000043-000b-4000-8000-000000000001",
+      "beat": "escalation-on-a-knowledge-gap",
+      "variant": "B",
+      "org_id": "11111111-1111-4111-8111-111111111111",
+      "account_id": "1acc0000-0000-4000-8000-000000000001",
+      "customer_id": "1a000000-0000-4000-8000-000000000001",
+      "dedupe_key": "demo-gap-b",
+      "language": "en",
+      "subject": "How long is an archived shipment kept before it disappears",
+      "body": "Somebody on my desk archived a shipment last week and today they cannot find it anywhere. We would like to know how long an archived record stays visible and whether a supervisor can bring it back.",
+      "intended": {
+        "reason": "GROUND",
+        "clause": "draft_not_grounded",
+        "retrieval": { "zero_match": true },
+        "why": "The twin of variant A, and the one a rehearsal uses for the second run: a re-run of variant A is a cache hit and costs nothing, which is a useful thing to show and a different thing from a fresh call."
       }
     }
   ],
@@ -149,6 +195,55 @@
       "match": "nightly job currently starts",
       "answer": {
         "verdict": { "category": "access", "severity": 1, "sentiment": 0.2, "confidence": 0.9 }
+      }
+    },
+    {
+      "match": "audit trail attached to a shipment",
+      "answer": {
+        "verdict": { "category": "access", "severity": 2, "sentiment": 0.05, "confidence": 0.9 }
+      }
+    },
+    {
+      "match": "archived a shipment last week",
+      "answer": {
+        "verdict": { "category": "access", "severity": 2, "sentiment": -0.1, "confidence": 0.88 }
+      }
+    }
+  ],
+  "$draft_comment": [
+    "The authored replies for the one beat that reaches the drafting agent.",
+    "",
+    "They are authored rather than derived because the derived answer, while provably grounded, is a",
+    "stitched-together thing that reads like a fixture; a demonstration shows a reply a person could",
+    "plausibly send. What makes them safe to author is that they are checked the same way every other",
+    "draft is: each one must share a run of consecutive words with every source it cites, and must",
+    "not reproduce a long passage from a source it does not cite. An authored reply that stopped",
+    "satisfying those would fail the cycle rather than quietly pass it.",
+    "",
+    "No entry is authored for the knowledge-gap beat, and that is the beat: the retrieval returns",
+    "nothing, so the drafting agent is never asked."
+  ],
+  "draft_fixtures": [
+    {
+      "match": "which plan covers that",
+      "agent": "draft",
+      "answer": {
+        "draft": {
+          "text": "Thanks for getting in touch. A plan covers a fixed number of export destinations, so adding a further destination for a second team is a plan change and it alters the monthly total. We confirm the new figure in writing before it takes effect. If you would also like the run itself to move, the nightly export window can be moved by an account owner from the scheduling screen.",
+          "kb_ids": ["exports/destinations:c0de0003000040008000000000000001", "exports/schedule:c0de0004000040008000000000000001"],
+          "confidence": 0.92
+        }
+      }
+    },
+    {
+      "match": "so it does not overlap with our own batch",
+      "agent": "draft",
+      "answer": {
+        "draft": {
+          "text": "Thanks for getting in touch. The nightly export window can be moved by an account owner from the scheduling screen, so this is a change you can make yourselves. Moving it later avoids an overlap with a batch that starts at midnight, and the new time applies from the following night.",
+          "kb_ids": ["exports/schedule:c0de0004000040008000000000000001"],
+          "confidence": 0.93
+        }
       }
     }
   ]

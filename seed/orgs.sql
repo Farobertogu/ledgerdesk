@@ -66,14 +66,50 @@ insert into response (id, ticket_id, draft) values
   ('4e500002-0000-4000-8000-000000000001', 'bbbb0001-0000-4000-8000-000000000001',
    'Thank you for reporting the sign-in problem. We are looking at your account now.');
 
+-- The knowledge base, and the snapshot each organisation reads it under.
+--
+-- **Every beat that must NOT escalate needs an article of its own, in its OWN organisation.** That
+-- is the sentence this block exists for. The demonstration does not break because of what the
+-- drafting increment adds, it breaks because of what that increment turns on: a retrieval that
+-- returns nothing escalates a ticket on a knowledge gap, correctly, and the beat written to show a
+-- calm question being answered would have shown an escalation instead — against a corpus that held
+-- one article about billing and nothing about the subject the ticket actually raises.
+--
+-- **Nothing here contains a value the redactor would remove.** No address, no card, no run of
+-- digits long enough to look like an account. An article with a redactable literal in it is a mine
+-- under the one agent whose whole job is to quote it: the excerpt would arrive at the model with a
+-- marker where a fact used to be, and the reply would be grounded in `[REDACTED:id]`.
+-- `test_KB_seeded_articles_survive_redaction` reads the articles back out of the database and puts
+-- every one of them through the redactor, which is where that claim is measured rather than
+-- promised.
 insert into kb_article (id, org_id, kb_snapshot, canonical_key, title, body, body_sha256, citable, created_at) values
   ('c0de0001-0000-4000-8000-000000000001', '11111111-1111-4111-8111-111111111111', 'kb-2026-08-01',
    'billing/duplicate-charge', 'Duplicate charges',
    'A duplicate charge is refunded to the original payment method within five business days of confirmation.',
    encode(sha256(convert_to('A duplicate charge is refunded to the original payment method within five business days of confirmation.', 'UTF8')), 'hex'),
    true, timestamptz '2026-08-01 00:00:00+10'),
+  ('c0de0003-0000-4000-8000-000000000001', '11111111-1111-4111-8111-111111111111', 'kb-2026-08-01',
+   'exports/destinations', 'Adding an export destination',
+   'A plan covers a fixed number of export destinations. Adding a further destination for a second team is a plan change and it alters the monthly total, which we confirm in writing before it takes effect.',
+   encode(sha256(convert_to('A plan covers a fixed number of export destinations. Adding a further destination for a second team is a plan change and it alters the monthly total, which we confirm in writing before it takes effect.', 'UTF8')), 'hex'),
+   true, timestamptz '2026-08-01 00:00:00+10'),
+  ('c0de0004-0000-4000-8000-000000000001', '11111111-1111-4111-8111-111111111111', 'kb-2026-08-01',
+   'exports/schedule', 'Moving the nightly export window',
+   'The nightly export window can be moved by an account owner from the scheduling screen. Moving it later avoids an overlap with a batch that starts at midnight, and the new time applies from the following night.',
+   encode(sha256(convert_to('The nightly export window can be moved by an account owner from the scheduling screen. Moving it later avoids an overlap with a batch that starts at midnight, and the new time applies from the following night.', 'UTF8')), 'hex'),
+   true, timestamptz '2026-08-01 00:00:00+10'),
   ('c0de0002-0000-4000-8000-000000000001', '22222222-2222-4222-8222-222222222222', 'kb-2026-08-01',
    'access/password-reset', 'Password reset',
    'A password reset link expires after thirty minutes; requesting a second link invalidates the first.',
    encode(sha256(convert_to('A password reset link expires after thirty minutes; requesting a second link invalidates the first.', 'UTF8')), 'hex'),
    true, timestamptz '2026-08-01 00:00:00+10');
+
+-- The snapshot in force, per organisation, as a pointer rather than a derivation.
+--
+-- Written here and not only in 0009 because the two paths into a database are different: the
+-- migration backfills organisations that already exist, and this covers the clean install, where
+-- the organisations are created a few lines above and the migration ran before any of them did.
+insert into kb_snapshot_head (org_id, kb_snapshot) values
+  ('11111111-1111-4111-8111-111111111111', 'kb-2026-08-01'),
+  ('22222222-2222-4222-8222-222222222222', 'kb-2026-08-01')
+  on conflict (org_id) do nothing;
