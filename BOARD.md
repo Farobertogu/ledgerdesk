@@ -10,14 +10,13 @@ Source of truth for build order: the specification's build plan, as amended — 
 
 | Card | Increment | Branch | Closing evidence |
 |---|---|---|---|
-| I3 | App skeleton: auth, 3 roles, ticket CRUD, state machine | `card/I3-app-skeleton` | US-01 green + 3 navigable screens |
+| I4 | LLM gateway + PII redaction + canary — before any agent | `card/I4-llm-gateway` | `test_SEC_pii_never_leaves`, `test_SEC_no_direct_sdk_import` |
+| I5 | Pure algorithm + 14 edge cases + starvation property + sensitivity table | `card/I5-pure-algorithm` | 14 named tests + `reports/weight_sensitivity.md` |
 
 ## Backlog (plan order)
 
 | Card | Increment | Depends on | Closing evidence |
 |---|---|---|---|
-| I4 | LLM gateway + PII redaction + canary — before any agent | I2 | `test_SEC_pii_never_leaves`, `test_SEC_no_direct_sdk_import` |
-| I5 | Pure algorithm + 14 edge cases + starvation property + sensitivity table | I2 | 14 named tests + `reports/weight_sensitivity.md` |
 | I6 | Triage agent | I4, I5, I2b | US-02 + first ledger rows |
 | I7 | KB + retrieval + draft agent + validator | I6 | US-03 with `grounded=true` |
 | I7-bis | The complete gap cycle: typed gap record on GROUND escalation → versioned admission with provenance and human approver → re-run → closure by verification | I7, I2b | the three `test_KB_*` plus the two new FR-A15 tests green, and the two chained runs in the ledger with the `kb_admission` row between them |
@@ -49,3 +48,4 @@ Source of truth for build order: the specification's build plan, as amended — 
 | I0b | Process gate: `adr_gate` in CI · `FROZEN_PATHS` · PR template · protection of `main` | PR #2 merged; evidence pair on PR #3: **red** [run 32401784489](https://github.com/Farobertogu/ledgerdesk/actions/runs/32401784489) (frozen path without ADR) → **green** [run 32401951976](https://github.com/Farobertogu/ledgerdesk/actions/runs/32401951976) (same path covered by ADR-018) |
 | I2 | Data spine: schema, RLS, migrations, template engine with ground truth — absorbed I2b under ADR-018 | PR #3 merged `--no-ff` after an adversarial review (33 fixes + 32 hardenings, six dated amendments in ADR-018); thirteen database and generator tests green on two platforms: CI [run 32413806720](https://github.com/Farobertogu/ledgerdesk/actions/runs/32413806720) and a local PostgreSQL 16 container |
 | I2b | Ledger with chain + append-only tests — delivered inside I2 | same PR: `test_LEDGER_append_only` and `test_LEDGER_class_payload` green (chain monotonicity, one-child-per-head, truncate locks, per-class payload contract: 8 positive + 42 negative cases) |
+| I3 | App skeleton: auth, 3 roles, ticket CRUD, state machine — with signed decisions D1 (`ESCALATED → RESOLVED`, supervisor-only) and D2 (reopening: the customer supplies the event, staff or the system executes the transition) | PR #4 merged `--no-ff` after a two-front adversarial review; `test_US01_ticket_created_and_acknowledged` + the exhaustive state-machine suite ({console: 3, guarded: 16, illegal: 81}) — 12 tests green in the `app` CI job on [run 32491151569](https://github.com/Farobertogu/ledgerdesk/actions/runs/32491151569) |
