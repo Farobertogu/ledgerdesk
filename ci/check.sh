@@ -16,6 +16,10 @@ echo "structure OK"
 command -v node >/dev/null 2>&1 || fail "node is not on PATH (test_SPLITS_schema_accepts_and_rejects needs it)"
 node ci/schema_check.mjs || fail "test_SPLITS_schema_accepts_and_rejects"
 
+# --- seam: the module boundary of ADR-007 and the LLM chokepoint of ADR-008, checked rather than
+#     trusted. Static: no database, no install, no build, so it runs in this job and not the others.
+node ci/seam_check.mjs || fail "test_ARCH_seam_holds"
+
 # --- branch_name: every branch except main must match card/<ID>-<slug>, ID from BOARD.md.
 #     Single named exemption: i1-documentary-baseline (merged before this rule existed).
 BRANCH="${GITHUB_HEAD_REF:-$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo '')}"

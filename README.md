@@ -18,12 +18,51 @@ Capstone project — COIT20273 Software Design and Development Project, CQUniver
 | `adr/` | architecture decision records (ADRs) |
 | `migrations/` | numbered SQL migrations, forward-only |
 | `seed/` | seed data with fixed identifiers (two organisations) |
+| `src/` | the three consoles: Next.js App Router, TypeScript, Tailwind |
+| `tests/` | integration tests that speak HTTP to the running consoles |
 | `quality/` | the quality layer: schemas, generators, templates and their parameters |
 | `status/` | weekly status updates |
 | `reports/` | generated evidence (test reports, batteries, sensitivity tables) — created as artifacts land |
 | `minutes/` | mentor meeting minutes |
 | `BOARD.md` | build board — verifiable increments I0–I18 (+ I2b) |
 | `ci/` | repository and database checks (run locally and in CI) |
+
+## Running the consoles
+
+A PostgreSQL 16 instance is the only prerequisite. The port below is the one the development
+container publishes; adjust it for another instance.
+
+```sh
+export PGHOST=localhost PGPORT=55432 PGUSER=postgres PGPASSWORD=postgres
+
+psql -d postgres -c 'create database ledgerdesk_dev'
+for f in ci/sql/00_platform_shim.sql migrations/0*.sql seed/orgs.sql; do
+  psql -v ON_ERROR_STOP=1 -d ledgerdesk_dev -f "$f"
+done
+
+npm ci
+DATABASE_URL="postgresql://postgres:postgres@localhost:55432/ledgerdesk_dev" \
+  LEDGERDESK_DEV_IDENTITY=1 npm run dev
+```
+
+`LEDGERDESK_DEV_IDENTITY=1` is what makes the development identity selector exist. Without it no
+request carries claims and the API answers 401 — the build fails closed, which is the behaviour a
+deployment should have. The selector is not authentication and is not offered as any; the flag is
+what keeps it from reaching an environment where that distinction would matter.
+
+`ci/sql/00_platform_shim.sql` recreates what the managed platform provides — the claim readers the
+policies call — so that a bare server behaves the way the deployment target does.
+
+The three checks, each runnable locally and each the same command CI runs:
+
+```sh
+bash ci/check.sh                    # repository structure, schemas, branch name, ADR gate
+PGPORT=55432 bash ci/db_check.sh    # migrations applied clean, schema diff, database tests
+PGPORT=55432 bash ci/app_check.sh   # consoles built and started, application tests
+```
+
+Both database scripts drop the cluster-wide roles the migration set creates, so a development
+database that holds grants on those roles has to be dropped before either will run.
 
 ## Conventions
 
