@@ -116,9 +116,17 @@ export function policyPatternSources(): { flag: string; name: string; source: st
  * other rule here, because each of them is anchored on word boundaries and a zero-width space makes
  * two words out of one. It renders identically. Nobody reading the ticket would see anything.
  *
- * Compatibility normalisation does not remove them and the whitespace collapse does not reach them:
- * the language's own `\s` class covers `U+2000`–`U+200A` and stops one code point short of
- * `U+200B`, which is exactly where the useful ones begin.
+ * Compatibility normalisation does not remove them, and the whitespace collapse reaches only part of
+ * the table. `\s` covers `U+2000`–`U+200A` and stops one code point short of `U+200B`, where the
+ * useful ones begin — but it does NOT stop there for the whole list: **`U+FEFF` is in `\s`**, and it
+ * is the last entry below. Measured, not assumed: `/\s/.test('﻿')` is `true` while
+ * `/\s/.test('​')` is `false`.
+ *
+ * So the sweep and the collapse OVERLAP at one code point, and the order is doing more work than an
+ * earlier version of this comment admitted. The sweep runs first and removes the whole table; if the
+ * collapse ran first it would turn a byte order mark inside a word into a space, which splits the
+ * word and hands the evasion back — the exact failure the table exists to close, arriving through
+ * the one entry the language would have handled.
  *
  * The list is closed and each entry is named, because a rule of the form "strip anything that looks
  * invisible" is a rule nobody can predict. Format characters and the deprecated tag block are here

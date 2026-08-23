@@ -9,9 +9,15 @@
 -- author says otherwise. Nobody had said otherwise for three migrations. A sweep covers the function
 -- somebody adds tomorrow without anybody having to think about this file again.
 --
--- The consequence before it was closed, stated because it was measured rather than supposed: the
--- application role could write articles into another organisation's corpus and move that
--- organisation's snapshot pointer — with no approver, no admission and no row in any chain.
+-- The consequence before it was closed, stated because it was measured rather than supposed, by
+-- execution in a transaction that was rolled back: EVERY ROLE IN THE CLUSTER — the application role,
+-- and `anon` with no session at all — could write articles into another organisation's corpus and
+-- move that organisation's snapshot pointer, with no approver, no admission and no row in any chain.
+-- THE PLANTED DOCUMENT ENTERED CITABLE, because the original advance read an absent flag as `true`,
+-- so what an intruder put in somebody else's corpus was quotable to their customers.
+--
+-- The sentence said "the application role" until it was re-measured, and that understated it in both
+-- directions: no session was needed to do it, and what arrived was not inert.
 --
 -- **Trigger functions are outside the sweep, and the exclusion is declared rather than quiet.** A
 -- trigger function is not callable: invoking one directly raises "trigger functions can only be

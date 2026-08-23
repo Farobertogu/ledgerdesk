@@ -127,8 +127,14 @@ nothing to do with what is being demonstrated.
 
 **No test can catch this and none pretends to.** The dataset test freezes the instant to one minute
 after creation, which is the right thing for it to do and makes it structurally incapable of seeing
-an aged dataset. The defence is the procedure and the margin column, which prints an alarm below
-fifteen minutes.
+an aged dataset. **The defence is the procedure, and `--status` measures the one thing that decides
+whether the procedure was followed: the AGE of the dataset**, alarming past twenty minutes — the same
+twenty this section is about. It reports an age rather than a margin for any beat that has not been
+triaged, because until triage assigns a policy there is no margin to report: an earlier version
+computed one against the tightest policy the tier could land on, which on the premium tier is
+fifteen minutes against an alarm floor of fifteen, so the alarm sat at its own threshold from the
+moment of a correct load and could never warn. Once a beat is triaged the policy is real and the
+column shows the margin against it, with the fifteen-minute floor doing what a floor is for.
 
 ### A rehearsal spends a variant
 

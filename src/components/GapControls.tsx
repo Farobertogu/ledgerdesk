@@ -9,10 +9,13 @@ import { useState } from 'react';
  *
  * **A control and not a script**, and that is the whole reason this exists as a form. The admission
  * ties the approver to the session that performed it — the database refuses the advance unless the
- * subject of the session is the approver the chain row names — so a script run from a terminal
- * cannot do it at all: a component carries an organisation and a role and no subject. Somebody
- * signed in has to press this, which is what makes the approver on the panel afterwards mean
- * something.
+ * subject of the session is the approver the chain row names — so **a COMPONENT cannot do it at
+ * all**: the machine actor carries an organisation and a role and no subject, and there is no
+ * session it can present that satisfies the tie. A script is a different matter and the distinction
+ * is worth keeping straight: a script holding a signed-in supervisor's session admits perfectly
+ * well, and the suite's own harness does exactly that. What the tie buys is not that a terminal is
+ * locked out; it is that whatever admits is acting as a named person, which is what makes the
+ * approver on the panel afterwards mean something.
  *
  * **`citable` starts with neither option chosen.** Whether a document may be quoted back to a
  * customer is a decision, and a pre-selected radio is a decision taken on somebody's behalf and

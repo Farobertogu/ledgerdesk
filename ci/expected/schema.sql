@@ -86,8 +86,25 @@ declare
   res_witness  bigint;
   head         text;
 begin
+  -- 0 · the caller's own organisation, folded into the read of the gap itself.
+  --
+  -- **This is `security definer`, so RLS does not apply inside it — and without this line the
+  -- function undid the policy that hides the row.** A session of another tenant could not SEE this
+  -- gap under RLS and could still close it, because every check below compares the gap against the
+  -- ANSWER and none of them compared either against the session. Measured, in a transaction that was
+  -- rolled back: a Corella Health session read zero rows for a Northwind gap and then closed it.
+  --
+  -- §2 of this file already set the standard — a function that took the organisation on trust would
+  -- let any holder of EXECUTE write a record into any tenant — and this function was the one that
+  -- did not meet it. "Nothing load-bearing is taken from the caller" was true of the FACTS it
+  -- decides on and false of the AUTHORISATION to decide them, which are not the same claim.
+  --
+  -- It is folded into the read rather than added as a check afterwards, so a foreign session is
+  -- refused with "no such gap" — indistinguishable from one that does not exist, which is the
+  -- doctrine the application surface already applies at this boundary.
   select g.org_id, g.state into gap_org, gap_state
-    from kb_gap g where g.id = p_gap;
+    from kb_gap g
+   where g.id = p_gap and g.org_id = (auth.jwt() ->> 'org_id')::uuid;
   if gap_org is null then
     raise exception 'E_KB_CIERRE_SIN_HUECO';
   end if;

@@ -113,18 +113,24 @@ const CORPUS = `
 /**
  * Where each beat stands, and how long it has left.
  *
- * `sla_due_at` is null until triage assigns a policy, so the margin before that is computed the
- * conservative way: the SHORTEST first-response policy the ticket's own account tier can land on. A
- * margin that assumed the most generous policy would report comfort a triage is about to remove.
+ * **Two different measurements, because before triage there is no margin to measure.** `sla_due_at`
+ * is null until triage assigns a policy, and until then the only honest number is the dataset's own
+ * AGE against the twenty-minute loading rule the README publishes. After triage the policy is real
+ * and so is the margin.
+ *
+ * An earlier version computed a margin before triage anyway, against the shortest policy the account
+ * tier can land on. That was conservative and it was useless: on the premium tier the shortest
+ * policy is fifteen minutes and the alarm floor is also fifteen, so a premium beat sat at its own
+ * alarm threshold the moment it was loaded correctly — **an alarm that starts at its threshold
+ * cannot warn, it can only confirm a loss**. The obvious repair is to predict the policy from the
+ * severity the dataset authors, and that repair is worse than the fault: the fixture is selected by
+ * a substring test against the message the MODEL receives, which is the redacted body assembled by
+ * the prompt layer, so this file would be a second producer of a fact the provider already owns,
+ * matching different text. It measures what it can see instead.
  */
 const STATUS = `
   select t.id, t.status, t.category, t.severity, t.sentiment, t.confidence, t.priority,
          t.escalation_reason, t.escalation_clause, t.retries, t.created_at, t.sla_due_at,
-         coalesce(
-           t.sla_due_at,
-           t.created_at + make_interval(mins =>
-             (select min(p.first_response_minutes) from sla_policy p where p.tier = a.tier))
-         ) as effective_due_at,
          (select count(*)::int from ledger_entry l where l.ticket_id = t.id) as ledger_rows,
          (select count(*)::int from response r where r.ticket_id = t.id)    as drafts,
          (select count(*)::int from kb_gap g where g.ticket_id = t.id)      as gaps,
@@ -145,8 +151,23 @@ const SNAPSHOT_EXISTS = `
   select count(*)::int as articles from kb_article
    where org_id = $1::uuid and kb_snapshot = $2`;
 
-/** How much margin is left before a beat escalates on the clock instead of on its own subject. */
+/**
+ * How much margin is left before a TRIAGED beat escalates on the clock instead of on its subject.
+ *
+ * It applies only after triage, where a policy exists and the floor is genuinely below it: the
+ * tightest policy any demonstration beat can land on is thirty minutes, so fifteen is a warning with
+ * room to act. Before triage it applied to a number that started at fifteen, which is why it now
+ * does not apply there at all.
+ */
 const ALARM_MINUTES = 15;
+
+/**
+ * The loading window the rehearsal procedure publishes, and the only rule an untriaged beat has.
+ *
+ * Transcribed from `README.md`, where it is written for a person. The two are kept in step by that
+ * sentence naming this constant's value, not by a check — this file is a loader and not a test.
+ */
+const LOAD_WINDOW_MINUTES = 20;
 
 function sha256Hex(text) {
   return createHash('sha256').update(text, 'utf8').digest('hex');
@@ -293,6 +314,7 @@ async function main() {
       const byId = new Map(result.rows.map((row) => [row.id, row]));
       const now = Date.now();
       let tightest = Infinity;
+      let oldest = -Infinity;
 
       for (const ticket of tickets) {
         const row = byId.get(ticket.id);
@@ -305,13 +327,18 @@ async function main() {
           continue;
         }
         const got = row.escalation_reason ?? '—';
-        const margin = Math.round((new Date(row.effective_due_at).getTime() - now) / 60_000);
-        if (margin < tightest) tightest = margin;
+        // Triaged: the policy is real, so the margin is real. Untriaged: no policy exists yet, so
+        // the number is the age, and the rule it is read against is the loading window.
+        const clock = row.sla_due_at
+          ? { label: 'margin', value: Math.round((new Date(row.sla_due_at).getTime() - now) / 60_000) }
+          : { label: 'age   ', value: Math.round((now - new Date(row.created_at).getTime()) / 60_000) };
+        if (row.sla_due_at && clock.value < tightest) tightest = clock.value;
+        if (!row.sla_due_at && clock.value > oldest) oldest = clock.value;
         console.log(
           `${ticket.beat}/${ticket.variant}  ${row.status.padEnd(14)} reason ${String(got).padEnd(7)} ` +
             `intended ${String(intended).padEnd(13)} retrieval ${wanted.padEnd(12)} ` +
             `ledger ${row.ledger_rows} drafts ${row.drafts} grounded ${String(row.grounded ?? '—').padEnd(5)} ` +
-            `gap ${String(row.gap_state ?? '—').padEnd(16)} margin ${String(margin).padStart(4)} min`,
+            `gap ${String(row.gap_state ?? '—').padEnd(16)} ${clock.label} ${String(clock.value).padStart(4)} min`,
         );
       }
 
@@ -319,8 +346,24 @@ async function main() {
       // The one line that decides whether the rehearsal can start. No test can produce it: the
       // dataset test freezes the clock a minute after creation and is structurally unable to see an
       // aged dataset, so the margin is measured here or it is not measured at all.
+      // Untriaged beats first, because that is the state a rehearsal starts from and the only rule
+      // that applies to them is the loading window.
+      if (oldest > -Infinity) {
+        if (oldest >= LOAD_WINDOW_MINUTES) {
+          console.log(
+            `DATASET AGE: ALARM — the oldest untriaged beat was loaded ${oldest} min ago, past the ` +
+              `${LOAD_WINDOW_MINUTES} min window. Reload before starting: these tickets will escalate ` +
+              'on the clock, not on their subject.',
+          );
+        } else {
+          console.log(
+            `DATASET AGE: ${oldest} min on the oldest untriaged beat (window ${LOAD_WINDOW_MINUTES} min)`,
+          );
+        }
+      }
+
       if (tightest === Infinity) {
-        console.log('SLA margin: no ticket is loaded, so there is nothing to measure');
+        console.log('SLA margin: no beat has been triaged yet, so no policy applies and there is no margin to measure');
       } else if (tightest < 0) {
         console.log(
           `SLA margin: ALARM — the tightest beat is ${-tightest} min PAST its first response. ` +

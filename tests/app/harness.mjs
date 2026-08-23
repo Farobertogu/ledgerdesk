@@ -311,8 +311,8 @@ export async function corpusOf(orgId) {
 }
 
 /**
- * Puts an organisation's snapshot pointer back where a file found it, and leaves the SERVER
- * agreeing with it.
+ * Puts an organisation's snapshot pointer back where a file found it, in the DATABASE — and
+ * deliberately leaves the server disagreeing with it until the next cycle notices.
  *
  * ## Why any of this is necessary
  *

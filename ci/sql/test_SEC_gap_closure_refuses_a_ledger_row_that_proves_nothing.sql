@@ -125,6 +125,39 @@ begin
     (v_r_wrongkey, v_art_other, v_to),
     (v_r_good,     v_art_ok,    v_to);
 
+  -- --- 0 · the CALLER, which this file used not to have at all -------------------------------------
+  --
+  -- Every case below used to run as the owner with no claims, so the whole file measured what the
+  -- function decides and none of it measured **who is allowed to decide**. The closure is
+  -- `security definer`, so RLS does not apply inside it: a session that cannot see a gap could still
+  -- close it, and no case here would have noticed. The claims are set once for the legitimate caller
+  -- and case 0·bis is the one that attacks from outside.
+  perform set_config('request.jwt.claims',
+    json_build_object('org_id', v_org_a, 'role', 'supervisor', 'sub', v_super_a)::text, true);
+
+  -- --- 0·bis · a caller of ANOTHER organisation ----------------------------------------------------
+  --
+  -- The gap, the answer, the admission and the corpus are all in order — everything the function
+  -- decides on would pass. What is wrong is the session, and the refusal has to be the one that says
+  -- NOTHING: "no such gap", indistinguishable from a gap that does not exist. A distinct code here
+  -- would confirm to a foreign tenant that this gap is real, which is the leak the application
+  -- surface already refuses to produce.
+  perform set_config('request.jwt.claims',
+    json_build_object('org_id', v_org_b, 'role', 'supervisor', 'sub', v_super_a)::text, true);
+  begin
+    perform kb_gap_close_by_verification(v_gap, v_r_good);
+    raise exception 'test_SEC_gap_closure_refuses_a_ledger_row_that_proves_nothing: a session of another organisation closed this gap, so the closure undoes the policy that hides it';
+  exception when raise_exception then
+    if sqlerrm not like '%E_KB_CIERRE_SIN_HUECO%' then raise; end if;
+  end;
+
+  if (select state::text from kb_gap where id = v_gap) <> 'OPEN' then
+    raise exception 'test_SEC_gap_closure_refuses_a_ledger_row_that_proves_nothing: the refused foreign closure moved the gap anyway';
+  end if;
+
+  perform set_config('request.jwt.claims',
+    json_build_object('org_id', v_org_a, 'role', 'supervisor', 'sub', v_super_a)::text, true);
+
   -- --- 1 · an answer that is not anchored ---------------------------------------------------------
   begin
     perform kb_gap_close_by_verification(v_gap, v_r_unanchored);
@@ -204,6 +237,9 @@ begin
   exception when raise_exception then
     if sqlerrm not like '%E_KB_CIERRE_HUECO_NO_ABIERTO%' then raise; end if;
   end;
+
+  -- The claims go with the cases that needed them, so nothing after this file inherits a session.
+  perform set_config('request.jwt.claims', '', true);
 
   -- --- the fixtures this test owns ----------------------------------------------------------------
   delete from response_citation where response_id in (v_r_wrongkey, v_r_good);

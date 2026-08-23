@@ -238,8 +238,11 @@ type AdmissionRow = {
 /**
  * A calendar day rendered as one.
  *
- * The driver hands a `date` column back as a `Date` at local midnight, so `toISOString` on it can
- * name the day before in any zone west of UTC. What was committed to is a day, and this is how a day
+ * The driver hands a `date` column back as a `Date` at local midnight, so `toISOString` on it names
+ * the day BEFORE in any zone EAST of UTC — local midnight in Sydney is the previous afternoon in
+ * UTC. That is the direction this project runs in, which is why the reading is written down rather
+ * than left to be re-derived: an earlier version of this sentence had the hemisphere backwards and
+ * described a failure that cannot happen here. What was committed to is a day, and this is how a day
  * is written down.
  */
 function dateOnly(value: Date): string {

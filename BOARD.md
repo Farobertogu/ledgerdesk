@@ -10,7 +10,7 @@ Source of truth for build order: the specification's build plan, as amended — 
 
 | Card | Increment | Branch | Closing evidence |
 |---|---|---|---|
-| I7-bis | The complete gap cycle: typed gap record on GROUND escalation → versioned admission with provenance and human approver → re-run → closure by verification | `card/I7-bis-the-gap-cycle` | the three `test_KB_*` plus the two new FR-A15 tests green, and the two chained runs in the ledger with the `kb_admission` row between them |
+| I7-bis | The complete gap cycle: typed gap record on GROUND escalation → versioned admission with provenance and human approver → re-run → closure by verification | `card/I7-bis-the-gap-cycle` | the ten `test_KB_*` green — seven in `tests/app`, one in `ci/sql`, plus `test_SEC_snapshot_advance_refuses_a_foreign_organisation` and `test_SEC_gap_closure_refuses_a_ledger_row_that_proves_nothing` — and the two halves of one chain in the ledger with the `kb_admission` row between them by `seq` |
 
 ## Backlog (plan order)
 

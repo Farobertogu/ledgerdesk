@@ -193,9 +193,11 @@ export const NO_KB_SNAPSHOT = 'kb:none';
 /**
  * The schema component of `state_hash`.
  *
- * Exported because the chokepoint is no longer the only writer of a row: the admission writes a
- * non-model row of its own and has to pin the same state the model rows pin, from the same value.
- * Two spellings of the state would make two rows of one chain incomparable for no reason at all.
+ * Exported for the tests that pin the state a row is written under. **The admission writer is NOT a
+ * consumer of it**, and the reason is worth keeping: it takes `OrgRuntime.state` — the composed
+ * object the chokepoint pinned — rather than rebuilding the three components beside it, so there is
+ * one producer of that fact and not two. An earlier version of this sentence named the admission as
+ * the reason for the export, and went on naming it after the composition moved.
  */
 export const STATE_SCHEMA_VERSION = '1.0';
 
@@ -447,13 +449,31 @@ async function assertPrivileges(): Promise<void> {
       kb_article: boolean;
       kb_gap: boolean;
       response: boolean;
+      kb_admission: boolean;
+      gap_open: boolean;
+      advance: boolean;
+      close_gap: boolean;
     }>(
+      // The last four are 0010's, and they are asked for the reason the header gives. 0010 grants a
+      // read and three EXECUTEs, and a database built before it applies every later migration
+      // cleanly, starts without complaint, triages, drafts and opens the gap — then fails with
+      // "permission denied" at the instant a supervisor presses admit, which in this system is in
+      // front of an audience. A privilege that is only exercised at the end of a cycle is exactly
+      // the one a preflight has to ask about, because nothing earlier will.
       `select has_sequence_privilege('app_rw','ledger_entry_id_seq','usage') as seq,
               has_table_privilege('app_rw','audit_event','insert')          as audit,
               has_table_privilege('app_rw','prompt_version','insert')       as prompt,
               has_table_privilege('app_rw','kb_article','select')           as kb_article,
               has_table_privilege('app_rw','kb_gap','select')               as kb_gap,
-              has_table_privilege('app_rw','response','insert')             as response`,
+              has_table_privilege('app_rw','response','insert')             as response,
+              has_table_privilege('app_rw','kb_admission','select')         as kb_admission,
+              has_function_privilege('app_rw',
+                'kb_gap_open(uuid,uuid,uuid,text,text,boolean,text,text,uuid,date,text,uuid[],bigint)',
+                'execute')                                                  as gap_open,
+              has_function_privilege('app_rw','kb_snapshot_advance(bigint,jsonb)','execute')
+                                                                            as advance,
+              has_function_privilege('app_rw','kb_gap_close_by_verification(uuid,uuid)','execute')
+                                                                            as close_gap`,
     );
     return result.rows[0];
   });
@@ -465,6 +485,10 @@ async function assertPrivileges(): Promise<void> {
     granted.kb_article ? null : 'select on kb_article (0009)',
     granted.kb_gap ? null : 'select on kb_gap (0009)',
     granted.response ? null : 'insert on response (0009)',
+    granted.kb_admission ? null : 'select on kb_admission (0010)',
+    granted.gap_open ? null : 'execute on kb_gap_open (0010)',
+    granted.advance ? null : 'execute on kb_snapshot_advance(bigint,jsonb) (0010)',
+    granted.close_gap ? null : 'execute on kb_gap_close_by_verification (0010)',
   ].filter((entry): entry is string => entry !== null);
 
   if (missing.length > 0) {

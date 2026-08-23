@@ -18,7 +18,13 @@ export const dynamic = 'force-dynamic';
 /**
  * One ticket, and the evidence of what was done to it.
  *
- * **Read-only, and the missing controls are the point.** There is no edit, no approve, no send.
+ * **Read-only ABOUT THE ANSWER, and the missing controls are the point.** There is no edit, no
+ * approve and no send **of an answer** — the qualifier is load-bearing rather than pedantic, because
+ * this screen does mount two controls: on an open knowledge gap a supervisor admits a document and
+ * anybody on staff re-runs its question. Both act on the CORPUS and neither touches the reply that
+ * goes to a customer, which is the distinction the sentence is making. It read "there is no edit, no
+ * approve, no send" while the admit control sat below it, and the page's own lead said the same to
+ * the reader.
  * Their absence is safe because `0009` made those states unreachable from here — a trigger refuses
  * `SENT` without an approver and a sent instant, and a restrictive policy refuses any update of
  * `response` from a session with no subject — and not because the buttons have not been drawn yet.
@@ -79,7 +85,7 @@ export default async function TicketPage({ params }: { params: Promise<{ id: str
     <>
       <PageHeading
         title={ticket.subject}
-        lead="Everything below is read from the database under this session's own claims. Nothing on this screen edits, approves or sends."
+        lead="Everything below is read from the database under this session's own claims. No answer is edited, approved or sent from here; the two controls on an open knowledge gap admit a document and re-run its question."
       />
 
       <div className="space-y-6">

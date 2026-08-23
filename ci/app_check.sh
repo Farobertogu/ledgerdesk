@@ -65,8 +65,9 @@ MIGRATIONS="$(ls migrations/[0-9][0-9][0-9][0-9]_*.sql | sort)"
 # What that costs, and how it is paid: the files that admit material move the snapshot pointer, and
 # four files that sort after them read the corpus under the label the seed wrote. Ordering cannot fix
 # it because ordering is not ours to set, so **every file that moves the pointer puts it back**, in an
-# `after` hook, through `restoreCorpusHead` — which also flushes the server's cached label, because a
-# pointer moved behind its back is exactly what the staleness guard exists to refuse.
+# `after` hook, through `restoreCorpusHead` — which moves the pointer in the DATABASE only. It cannot
+# flush the server's cached label: that lives in another process. What it does instead is arm the
+# product's own staleness guard, and every cycle-driving helper absorbs the one refusal that follows.
 #
 # Each of those files also holds a beat of its own — an enquiry lexically disjoint from every other
 # beat's document — so that admitting one answer does not make another file's question answerable.
