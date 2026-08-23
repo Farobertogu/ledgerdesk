@@ -120,8 +120,11 @@ holds, and which snapshot each organisation reads under.
 
 - One branch per board card; a card merges to `main` only after its named tests are green and the owner has reviewed the diff (merge `--no-ff`).
 - Tags mark plan gates: `baseline-v1.0`, `demo-w7`, freeze tag. History is never rewritten once a card is merged; corrections land as new dated commits.
-- No licence file yet by owner decision; all rights reserved until decided.
 
 ## Status
 
 Build order: **25 verifiable increments** on `BOARD.md`. I0 and I1 are done; the documentary baseline is sealed with the immutable tag `baseline-v1.0`. The process gate (I0b) is in review; first code card is I2 (data spine).
+
+## License
+
+Released under the MIT License — see [`LICENSE`](LICENSE).

@@ -8,18 +8,7 @@ Source of truth for build order: the specification's build plan, as amended — 
 
 ## In progress
 
-| Card | Increment | Branch | Closing evidence |
-|---|---|---|---|
-| I7 | KB + retrieval + draft agent + validator: the versioned snapshot pointer, deterministic retrieval, the two agents and their envelopes, the grounding conjunction, the draft cycle and the read-only evidence panel | `card/I7-kb-draft-agent` | US-03 with `grounded=true` |
-
-**Rehearsal procedure for the closing act, on the card rather than in a note.** A replay can only
-reproduce what a real run put there. So: load the dataset (`node seed/demo_load.mjs`), take **one
-run with the network** through *both* halves — the question the corpus cannot answer, the admission,
-the same question answered — and only then rehearse with `LEDGERDESK_REPLAY=1`. The evidence is one
-chain with two `state_hash` values and the admission row between them by `seq`; a second run would
-be two chains, and nothing orders two chains relative to each other. **Rehearsing against a chain
-that holds only the pre-admission run fails by design**, with `E_REPLAY_CACHE_MISS`, at the point in
-the evening where there is no time left to work out why. The commands are in `README.md`.
+*(empty)*
 
 ## Backlog (plan order)
 
@@ -45,6 +34,16 @@ the evening where there is no time left to work out why. The commands are in `RE
 **Quality lane (parallel, never conceded):** I9 → I11a → I10 → I10b → I11b → I12 → I13 → I13b, with I14 hanging off I9 and I10.
 **Ordering rules:** I2b before I6 · I4 before any agent · I5 before I6 · **I11a before I10**.
 
+**Rehearsal procedure for the closing act, on the board rather than in a note.** It was written on
+I7 and outlives it: the card it now governs is I7-bis, and after that I18. A replay can only
+reproduce what a real run put there. So: load the dataset (`node seed/demo_load.mjs`), take **one
+run with the network** through *both* halves — the question the corpus cannot answer, the admission,
+the same question answered — and only then rehearse with `LEDGERDESK_REPLAY=1`. The evidence is one
+chain with two `state_hash` values and the admission row between them by `seq`; a second run would
+be two chains, and nothing orders two chains relative to each other. **Rehearsing against a chain
+that holds only the pre-admission run fails by design**, with `E_REPLAY_CACHE_MISS`, at the point in
+the evening where there is no time left to work out why. The commands are in `README.md`.
+
 ## Done
 
 | Card | Increment | Evidence |
@@ -58,3 +57,4 @@ the evening where there is no time left to work out why. The commands are in `RE
 | I5 | Pure algorithm + published edge cases + starvation + sensitivity table | PR #6 merged after the adversarial round (recoverability-ordered precedence, anchor-instant dedupe keys, provable starvation inequality, pinned arrival stream); 28 algorithm tests green on [run 32498907223](https://github.com/Farobertogu/ledgerdesk/actions/runs/32498907223) |
 | I3 | App skeleton: auth, 3 roles, ticket CRUD, state machine — with signed decisions D1 (`ESCALATED → RESOLVED`, supervisor-only) and D2 (reopening: the customer supplies the event, staff or the system executes the transition) | PR #4 merged `--no-ff` after a two-front adversarial review; `test_US01_ticket_created_and_acknowledged` + the exhaustive state-machine suite ({console: 3, guarded: 16, illegal: 81}) — 12 tests green in the `app` CI job on [run 32491151569](https://github.com/Farobertogu/ledgerdesk/actions/runs/32491151569) |
 | I6 | Triage agent: the composition module — envelope validator, feature adapter, policy matcher, component transitions, the triage runner and its integration test | PR #7 merged `--no-ff` after the adversarial round (strict envelope validation, the verdict columns with their one-directional invariant, a synchronous run registry, ledger-first write ordering); US-02 and the first real `agent_call` rows, with `test_INT_triage_ticket_to_chain` green on [run 32509274244](https://github.com/Farobertogu/ledgerdesk/actions/runs/32509274244) |
+| I7 | KB + retrieval + draft agent + validator: the versioned snapshot pointer, deterministic retrieval, the two agents and their envelopes, the grounding conjunction, the draft cycle and the read-only evidence panel | PR #8 merged `--no-ff` after the adversarial round (migration 0009 and the `kb_snapshot_head` pointer under ADR-024, a binary-collated total retrieval order, a grounding conjunction the model can only veto, one transaction across both writes, the provider seam under ADR-025); US-03 with `grounded=true`, and all three jobs green on [run 32528161952](https://github.com/Farobertogu/ledgerdesk/actions/runs/32528161952) |

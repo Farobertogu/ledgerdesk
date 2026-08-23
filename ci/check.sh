@@ -115,9 +115,12 @@ node --experimental-strip-types -e '
 echo "agent contract OK (three strict envelope validators agreeing on one root contract, the grounding conjunction, the injection corpus, the published schema diffed, and the demonstration dataset checked against the complete rule of eight clauses)"
 
 # --- branch_name: every branch except main must match card/<ID>-<slug>, ID from BOARD.md.
-#     Single named exemption: i1-documentary-baseline (merged before this rule existed).
+#     Named exemptions, literal and enumerated:
+#       i1-documentary-baseline — merged before this rule existed.
+#       housekeeping/license    — repository housekeeping, not a board card, so it has no card ID.
 BRANCH="${GITHUB_HEAD_REF:-$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo '')}"
-if [ -n "$BRANCH" ] && [ "$BRANCH" != "main" ] && [ "$BRANCH" != "HEAD" ] && [ "$BRANCH" != "i1-documentary-baseline" ]; then
+if [ -n "$BRANCH" ] && [ "$BRANCH" != "main" ] && [ "$BRANCH" != "HEAD" ] \
+   && [ "$BRANCH" != "i1-documentary-baseline" ] && [ "$BRANCH" != "housekeeping/license" ]; then
   echo "$BRANCH" | grep -Eq '^card/[A-Za-z0-9][A-Za-z0-9-]*$' || fail "branch '$BRANCH' does not match card/<ID>-<slug>"
   REST="${BRANCH#card/}"
   C1="${REST%%-*}"
