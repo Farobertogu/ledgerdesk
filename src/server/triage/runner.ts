@@ -79,10 +79,11 @@ import {
 } from '@/alg/escalation';
 import { matchPolicyFlags, policyInput } from '@/alg/policy';
 import { computePriority } from '@/alg/priority';
-import { TRIAGE_MODEL, TRIAGE_SAMPLING, triageRuntimeFor } from '@/server/agents';
+import { TRIAGE_SAMPLING, runtimeFor } from '@/server/agents';
 import { withAppSession } from '@/server/db';
 import { AppError } from '@/server/errors';
 import { recordDecision, type DecisionAction } from '@/server/decisions';
+import { onRun } from '@/server/run_queue';
 import {
   applyComponentTransitionOn,
   componentClaims,
@@ -164,49 +165,20 @@ export type TriageOptions = {
 };
 
 /**
- * The queue that makes "one writer per run" a property rather than a hope.
- *
- * The ledger's append loop is six immediate attempts with no backoff, and it reads the head before
- * the trigger takes its lock. A dozen cycles racing on one run can exhaust those six with the
- * model's answer already paid for — the money is gone and the row that would account for it is the
- * thing that failed. Serialising the cycles of a run costs latency and buys that away.
- *
- * Held on `globalThis` for the same reason the pools are: a hot reload that dropped the map would
- * quietly allow two writers again, in the one environment where nobody is watching for it.
- */
-const globalForQueue = globalThis as unknown as {
-  ledgerdeskTriageQueue?: Map<string, Promise<unknown>>;
-};
-
-function queues(): Map<string, Promise<unknown>> {
-  globalForQueue.ledgerdeskTriageQueue ??= new Map();
-  return globalForQueue.ledgerdeskTriageQueue;
-}
-
-/**
  * One triage cycle over one ticket, behind the queue of its run.
  *
- * A cycle that throws does not poison the queue: the tail is the settled promise, so the next
- * cycle waits for this one to finish and not for it to succeed.
+ * The queue lives in `src/server/run_queue.ts` and is **shared** with the drafting and validation
+ * cycles. It was a block of code in this file while this was the only cycle; copying that block
+ * into the drafting runner would not have produced a duplicated function, it would have produced a
+ * second queue, and two queues over one run serialise nothing at all.
  */
 export async function runTriageCycle(
   orgId: string,
   ticketId: string,
   options: TriageOptions = {},
 ): Promise<TriageOutcome> {
-  const runtime = await triageRuntimeFor(orgId);
-  const queue = queues();
-  const previous = queue.get(runtime.run_id) ?? Promise.resolve();
-
-  const mine = previous.then(() => triageCycle(orgId, ticketId, options));
-  queue.set(
-    runtime.run_id,
-    mine.then(
-      () => undefined,
-      () => undefined,
-    ),
-  );
-  return mine;
+  const runtime = await runtimeFor(orgId);
+  return onRun(runtime.run_id, () => triageCycle(orgId, ticketId, options));
 }
 
 async function triageCycle(
@@ -215,7 +187,7 @@ async function triageCycle(
   options: TriageOptions = {},
 ): Promise<TriageOutcome> {
   const now = options.now ?? Date.now();
-  const runtime = await triageRuntimeFor(orgId);
+  const runtime = await runtimeFor(orgId);
 
   // --- 1 · read -------------------------------------------------------------------------------
   const ticket = await withAppSession(componentClaims(orgId), async (client) => {
@@ -254,6 +226,12 @@ async function triageCycle(
     account,
     triage: null,
     redactedBodyLength: null,
+    // Written out, and written out in all three of this file's calls, because the reflex on
+    // meeting two new optional fields is to fill them. A triage happens BEFORE any retrieval: a
+    // zero here would mean "the search ran and found nothing", the GROUND clause would fire, and
+    // every ticket in the system would escalate on a search that never happened.
+    retrieval: null,
+    validation: null,
     policyFlags,
   });
   const recordVerdict = evaluateEscalation(atRecord.features, now, runtime.thresholds);
@@ -314,14 +292,14 @@ async function triageCycle(
         agent: 'triage',
         org_id: orgId,
         ticket_id: ticket.id,
-        prompt_version_id: runtime.prompt_version_id,
+        prompt_version_id: runtime.prompts.triage,
         prompt_text: TRIAGE_PROMPT_TEXT,
         // The body as the customer wrote it. The gateway redacts it and no caller is trusted to
         // have done so; the subject is not sent, because the envelope the contract publishes has
         // one field for the enquiry and `body_redacted` is the redaction of `body_raw`.
         body: ticket.body_raw,
         locale: ticket.language,
-        model_requested: TRIAGE_MODEL,
+        model_requested: runtime.models.triage,
         sampling: { ...TRIAGE_SAMPLING },
         // The persisted counter, which is what makes a re-run after a crash a cache hit.
         seed: retries,
@@ -393,6 +371,9 @@ async function triageCycle(
     // Zero is a value with a meaning: nothing survived redaction, so there is nothing to be
     // confident about, and the rule reads the effective confidence as 0.
     redactedBodyLength: emptyAfterRedaction ? 0 : null,
+    // Still null, still for the reason above: a triage that failed is a triage, not a search.
+    retrieval: null,
+    validation: null,
     policyFlags,
   });
   const failureVerdict = evaluateEscalation(atFailure.features, now, runtime.thresholds);
@@ -469,7 +450,7 @@ type ApplyInput = {
   account: { tier: unknown; valueBand: unknown };
   policyFlags: readonly PolicyFlag[];
   now: number;
-  runtime: Awaited<ReturnType<typeof triageRuntimeFor>>;
+  runtime: Awaited<ReturnType<typeof runtimeFor>>;
   result: GatewayResult;
   reading: NonNullable<TriageReading>;
 };
@@ -505,6 +486,10 @@ async function applyAnswer(input: ApplyInput): Promise<TriageOutcome> {
     account: input.account,
     triage: reading,
     redactedBodyLength: input.result.body_redacted.length,
+    // The verdict of a triage says nothing about a corpus nobody has searched. Both stay null, so
+    // the GROUND clause is not evaluable and a triaged ticket is never escalated for it.
+    retrieval: null,
+    validation: null,
     policyFlags: input.policyFlags,
   });
 
@@ -599,7 +584,7 @@ type DecisionInput = {
   orgId: string;
   ticketId: string;
   action: DecisionAction;
-  runtime: Awaited<ReturnType<typeof triageRuntimeFor>>;
+  runtime: Awaited<ReturnType<typeof runtimeFor>>;
   features: EscalationFeatures;
   now: number;
   reason: EscalationReason | null;

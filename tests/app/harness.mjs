@@ -35,6 +35,34 @@ export async function asOwner(work) {
   }
 }
 
+/**
+ * Runs `work` the way a component runs: as `app_rw`, under one set of claims, inside a transaction
+ * that is rolled back.
+ *
+ * This is how a test asks what a TENANT can see, as opposed to `asOwner`, which asks what is
+ * stored. The two questions have different answers wherever a policy is doing its job, and a test
+ * that only ever asks the second one never measures the first.
+ *
+ * `claims` is passed whole rather than assembled from an organisation, because the SHAPE of the
+ * claim set is itself under test in places: a session with `{org_id}` and no `role` is what the
+ * retrieval runs under, and a session with no `sub` is what every component in this system holds.
+ */
+export async function asTenant(claims, work) {
+  return asOwner(async (client) => {
+    await client.query('begin');
+    await client.query('set local role app_rw');
+    await client.query('select set_config($1, $2, true)', [
+      'request.jwt.claims',
+      JSON.stringify(claims),
+    ]);
+    try {
+      return await work(client);
+    } finally {
+      await client.query('rollback');
+    }
+  });
+}
+
 export async function waitForServer(attempts = 60) {
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     try {
@@ -129,18 +157,25 @@ export async function identities() {
 /**
  * Removes every row this run created. A test that leaves rows behind changes the next run.
  *
- * It only reaches tickets that nothing has recorded against. `ledger_entry` is append-only by
- * trigger — for the owner too — so a ticket a triage cycle has paid for cannot be deleted, and the
- * tests that produce one say so and leave their rows where they are. `ci/app_check.sh` builds its
- * database from nothing and drops it afterwards, so what those tests leave behind is a database
- * that no longer exists.
+ * It only reaches tickets that nothing has recorded against, and there are two kinds of record now.
+ * `ledger_entry` is append-only by trigger — for the owner too — so a ticket a cycle has paid for
+ * cannot be deleted at all. `response` is not append-only, but a ticket with an answer is a ticket
+ * whose answer references it, and deleting the ticket would fail on that reference rather than
+ * quietly taking the answer with it.
+ *
+ * Both exclusions are stated as predicates instead of being handled by deleting the children first,
+ * and that is deliberate: a cleanup helper that could remove an answer is a cleanup helper one edit
+ * away from removing the evidence a test was written to leave behind. `ci/app_check.sh` builds its
+ * database from nothing and drops it afterwards, so what the tests leave behind is a database that
+ * no longer exists.
  */
 export async function cleanup() {
   await asOwner(async (client) => {
     await client.query(
       `delete from ticket
         where (dedupe_key like $1 or subject like $2)
-          and not exists (select 1 from ledger_entry l where l.ticket_id = ticket.id)`,
+          and not exists (select 1 from ledger_entry l where l.ticket_id = ticket.id)
+          and not exists (select 1 from response r where r.ticket_id = ticket.id)`,
       [`apptest-${RUN_ID}%`, `%[${RUN_ID}]%`],
     );
   });
@@ -179,6 +214,62 @@ export async function auditRowsFor(ticketId) {
 /** Fires one triage cycle through the endpoint that exists to fire one. */
 export async function triage(cookie, ticketId) {
   return request(cookie, `/api/tickets/${ticketId}/triage`, { method: 'POST' });
+}
+
+/** Fires one drafting cycle — retrieval, a draft, a verdict on the draft — through its endpoint. */
+export async function draft(cookie, ticketId) {
+  return request(cookie, `/api/tickets/${ticketId}/draft`, { method: 'POST' });
+}
+
+/** Every answer written for a ticket, newest first, as the database holds them. */
+export async function responsesFor(ticketId) {
+  return asOwner(async (client) => {
+    const result = await client.query(
+      'select * from response where ticket_id = $1 order by created_at desc, id desc',
+      [ticketId],
+    );
+    return result.rows;
+  });
+}
+
+/** The citations of one answer, joined to the article each one names under its own snapshot. */
+export async function citationsFor(responseId) {
+  return asOwner(async (client) => {
+    const result = await client.query(
+      `select c.kb_article_id::text as kb_article_id, c.kb_snapshot, a.canonical_key, a.title
+         from response_citation c
+         join kb_article a on a.id = c.kb_article_id and a.kb_snapshot = c.kb_snapshot
+        where c.response_id = $1
+        order by a.canonical_key asc, a.id asc`,
+      [responseId],
+    );
+    return result.rows;
+  });
+}
+
+/** The corpus of one organisation under the snapshot in force for it. */
+export async function corpusOf(orgId) {
+  return asOwner(async (client) => {
+    const result = await client.query(
+      `select a.id::text as id, a.canonical_key, a.title, a.body, a.kb_snapshot
+         from kb_article a
+         join kb_snapshot_head h on h.org_id = a.org_id and h.kb_snapshot = a.kb_snapshot
+        where a.org_id = $1
+        order by a.canonical_key asc, a.id asc`,
+      [orgId],
+    );
+    return result.rows;
+  });
+}
+
+/** The snapshot in force for an organisation, read from the pointer. */
+export async function snapshotHead(orgId) {
+  return asOwner(async (client) => {
+    const result = await client.query('select kb_snapshot from kb_snapshot_head where org_id = $1', [
+      orgId,
+    ]);
+    return result.rows[0]?.kb_snapshot ?? null;
+  });
 }
 
 /**

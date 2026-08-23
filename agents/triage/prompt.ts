@@ -1,13 +1,15 @@
 /**
- * The triage prompt, generation 0.
+ * The triage prompt, in the two generations it has had.
  *
  * Three things about it are load-bearing and none of them is the wording.
  *
  * **It is a row before it is a string.** `ledger_entry.prompt_version_id` is NOT NULL and
  * references `prompt_version`, so nothing this prompt produces can be recorded until the prompt is
- * registered. The registration is the composition root's first act and its failure is
- * `E_PROMPT_NO_REGISTRADO` — a refusal to start, not a warning, because a process that cannot
- * record what it spends has no business spending it.
+ * registered. The registration happens while an organisation's runtime is being built, after the
+ * privilege preflight and before any gateway exists, and its failure is `E_PROMPT_NO_REGISTRADO` —
+ * a refusal to build that runtime at all, not a warning, because a process that cannot record what
+ * it spends has no business spending it. The refusal is not cached, so a database corrected a
+ * minute later is not reported as broken until somebody restarts the server.
  *
  * **Its digest is pinned twice, to two different things.** `prompt_hash` on every row is the
  * sha256 of the text below, taken by the gateway over what was actually sent — so a caller that
@@ -20,11 +22,25 @@
  * the triage block would leave `ledger_entry.confidence` null on every row while the envelope
  * still validated — the column would be empty and nothing would have gone wrong.
  *
- * The generation is 0 because this is the first prompt this agent has ever had. Later generations
- * are the promotion gate's to mint, with the lineage the `parent_id` column exists for; this
- * increment registers one and never a second.
+ * **There are two generations, and the words are the same in both.** That is unusual enough to be
+ * worth stating plainly: a generation is normally a new wording, and this one is not. The output
+ * contract these words demand gained the drafting agent's block and the bounds that go with it, so
+ * `AGENT_IO_SCHEMA_SHA256` moved — and `schema_hash` is a column of an immutable row. Editing
+ * generation 0 to carry the new digest is exactly what the immutability trigger exists to refuse,
+ * and it would also be a lie: the rows written under generation 0 were written against the old
+ * contract and still are. So generation 0 stays byte for byte as it was, with the digest it was
+ * registered under pinned below, and generation 1 stands beside it carrying the new one.
+ *
+ * The consequence, declared: the cache key includes `prompt_version_id`, so every triage answer
+ * recorded under generation 0 stops being reachable as a cache hit the moment this build runs. The
+ * rows are still there and still readable — nothing is destroyed — but the first triage of each
+ * ticket under this build is a fresh call. `state_hash` moves in the same release for two other
+ * reasons besides, so this is not the only thing emptying that cache.
+ *
+ * Later generations after this one are the promotion gate's to mint.
  */
 
+import { assertLineage, type PromptRegistration } from '../prompt_version.ts';
 import { AGENT_IO_SCHEMA_SHA256 } from './schema.ts';
 
 /**
@@ -35,6 +51,24 @@ import { AGENT_IO_SCHEMA_SHA256 } from './schema.ts';
 export const TRIAGE_PROMPT_ID = '7a1a9e00-0000-4000-8000-000000000001';
 
 export const TRIAGE_PROMPT_GENERATION = 0;
+
+/** Generation 1: same words, the contract of this build. */
+export const TRIAGE_PROMPT_ID_GEN1 = '7a1a9e00-0000-4000-8000-000000000002';
+
+/**
+ * The digest generation 0 was registered under — the bytes of `agent_io.schema.json` as they stood
+ * before the drafting agent's block was written into it.
+ *
+ * It is a literal and it has to be. The build publishes exactly one contract, so the only way to
+ * recompute this would be to keep a copy of the superseded document in the tree and digest that,
+ * which is a second published schema for the sake of a number. What the literal buys is that a
+ * clean database and a database carried forward from the previous increment register the *same two
+ * rows*: on the clean one both are inserted, on the carried-forward one generation 0 is found
+ * already standing under this exact digest and only generation 1 is new. There is no branch in the
+ * registration for "which kind of database is this", which is the branch that would rot.
+ */
+export const TRIAGE_SCHEMA_SHA256_GEN0 =
+  '16ef3df31e6fc5e9ca395b8fd2b4fade9796d8fc963e6c52592e3751b5d0757e';
 
 /**
  * The text. Changing a character changes `prompt_hash` on every row written afterwards, which is
@@ -76,11 +110,33 @@ export const TRIAGE_PROMPT_TEXT = [
   'with the same object and report your uncertainty in "confidence".',
 ].join('\n');
 
-/** Everything the registration needs, as one value, so no call site assembles a partial one. */
-export const TRIAGE_PROMPT = {
-  id: TRIAGE_PROMPT_ID,
-  agent: 'triage',
-  generation: TRIAGE_PROMPT_GENERATION,
-  text: TRIAGE_PROMPT_TEXT,
-  schema_hash: AGENT_IO_SCHEMA_SHA256,
-} as const;
+/**
+ * The lineage, oldest first.
+ *
+ * Both rows are registered when an organisation's runtime is first built — lazily and per
+ * organisation, like everything else the composition root constructs, and idempotently, so the
+ * second organisation to start finds what the first wrote. The generation this build RUNS under is
+ * the highest one whose `schema_hash` matches the contract the build publishes, which is not
+ * simply the highest: a build rolled back to an earlier schema must run under the generation
+ * registered for that schema rather than under a later one describing a contract it no longer holds.
+ */
+export const TRIAGE_PROMPT_GENERATIONS: readonly PromptRegistration[] = [
+  {
+    id: TRIAGE_PROMPT_ID,
+    agent: 'triage',
+    generation: TRIAGE_PROMPT_GENERATION,
+    text: TRIAGE_PROMPT_TEXT,
+    schema_hash: TRIAGE_SCHEMA_SHA256_GEN0,
+    parent_id: null,
+  },
+  {
+    id: TRIAGE_PROMPT_ID_GEN1,
+    agent: 'triage',
+    generation: 1,
+    text: TRIAGE_PROMPT_TEXT,
+    schema_hash: AGENT_IO_SCHEMA_SHA256,
+    parent_id: TRIAGE_PROMPT_ID,
+  },
+];
+
+assertLineage(TRIAGE_PROMPT_GENERATIONS);

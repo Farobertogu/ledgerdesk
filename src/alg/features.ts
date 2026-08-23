@@ -15,7 +15,8 @@
  * | `retries` | the ticket's own counter |
  * | `language` | the ticket's declared language, never a guess |
  * | `redactedBodyLength` | the gateway's result, or the sentinel below |
- * | `kbResultCount`, `grounded` | `null` until retrieval exists |
+ * | `kbResultCount` | the retrieval's own count, or `null` when it has not run |
+ * | `grounded` | the validated verdict, or `null` when no draft has been validated |
  * | `policyFlags` | the deterministic matcher |
  *
  * ## The two quantisations, and why they happen before the rule and not after
@@ -45,10 +46,23 @@
  *     `elapsed / (∞ − createdAt) = 0`. Both are the honest reading of "no policy has been chosen
  *     yet", and neither introduces a NaN into the arithmetic.
  *
- * `kbResultCount` and `grounded` stay `null` and MUST NOT be zero. `effectiveGrounded` reads a
- * count of zero as "the search ran and found nothing" and fires `GROUND` on it; a zero here would
- * escalate every ticket in the system for a retrieval that has not been built. Null is "the search
- * has not run", the clause is then not evaluable, and it does not fire.
+ * `kbResultCount` and `grounded` are `null` when the step that produces them has not run, and the
+ * null MUST NOT be replaced by a zero or a false. `effectiveGrounded` reads a count of zero as "the
+ * search ran and found nothing" and fires `GROUND` on it, so the three readings are three different
+ * facts and only one of them is an escalation:
+ *
+ * | Value | Means | The clause |
+ * |---|---|---|
+ * | `null` | retrieval has not run for this ticket | not evaluable, does not fire |
+ * | `0` | retrieval ran against the snapshot in force and matched nothing | fires `GROUND` |
+ * | `n > 0` | retrieval found sources; grounding is then the validator's question | depends on `grounded` |
+ *
+ * **`?? 0` on either of these fields is forbidden, and the prohibition has a name.** It is the
+ * single most natural edit anybody will make here — the types are `number | null` and `boolean |
+ * null`, every consumer wants a value, and a defaulting operator makes the type error go away in
+ * one keystroke. What it also does is escalate EVERY ticket in the system, correctly by the rule,
+ * for a retrieval that never ran. `test_ALG_features_sentinels` asserts the null, and that test is
+ * not to be edited; a case that needs different behaviour is a case added beside it.
  *
  * This module imports nothing outside `src/alg/`: it is a pure adapter over plain values, its
  * tests run with no database and no model, and the envelope reaches it as three numbers and a
@@ -132,6 +146,16 @@ export type FeatureInput = {
    * been asked.
    */
   redactedBodyLength: number | null;
+  /**
+   * What the retrieval found, or absent when it has not run for this ticket.
+   *
+   * Optional rather than required, and `null` rather than a count of zero when omitted. The triage
+   * cycle passes nothing here and must not: a triage happens before any retrieval, and a zero would
+   * make every triaged ticket in the system escalate on a search that never ran.
+   */
+  retrieval?: { resultCount: number } | null;
+  /** The validator's verdict on the draft, or absent when no draft has been validated. */
+  validation?: { grounded: boolean } | null;
   policyFlags: readonly PolicyFlag[];
 };
 
@@ -175,9 +199,10 @@ export function featuresFromTicket(input: FeatureInput): FeatureResult {
     retries: input.ticket.retries,
     language: input.ticket.language,
     redactedBodyLength: input.redactedBodyLength,
-    // Not zero. See the header: zero is "the search ran and found nothing", which fires GROUND.
-    kbResultCount: null,
-    grounded: null,
+    // `?? 0` and `?? false` are both forbidden here by name. See the header: an absent step is not
+    // a step that found nothing, and conflating the two escalates every ticket in the system.
+    kbResultCount: input.retrieval ? input.retrieval.resultCount : null,
+    grounded: input.validation ? input.validation.grounded : null,
     policyFlags: input.policyFlags,
   };
 

@@ -54,16 +54,67 @@ what keeps it from reaching an environment where that distinction would matter.
 `ci/sql/00_platform_shim.sql` recreates what the managed platform provides — the claim readers the
 policies call — so that a bare server behaves the way the deployment target does.
 
-The three checks, each runnable locally and each the same command CI runs:
+The four checks, each runnable locally and each the same command CI runs:
 
 ```sh
-bash ci/check.sh                    # repository structure, schemas, branch name, ADR gate
-PGPORT=55432 bash ci/db_check.sh    # migrations applied clean, schema diff, database tests
-PGPORT=55432 bash ci/app_check.sh   # consoles built and started, application tests
+bash ci/check.sh                        # repository structure, schemas, seam, algorithm, agent contracts
+PGPORT=55432 bash ci/db_check.sh        # migrations applied clean, schema diff, database tests
+PGPORT=55432 bash ci/app_check.sh       # consoles built and started, application tests
+PGPORT=55432 bash ci/gateway_check.sh   # the model chokepoint, against a real database
 ```
 
-Both database scripts drop the cluster-wide roles the migration set creates, so a development
-database that holds grants on those roles has to be dropped before either will run.
+All three database scripts drop the cluster-wide roles the migration set creates, so a development
+database that holds grants on those roles has to be dropped before any of them will run.
+
+**Every check runs on the fixture provider, always** — determinism and no network. See below.
+
+## Which model answers
+
+`LEDGERDESK_PROVIDER` selects the far side of the one path to a model:
+
+| Value | What answers | Used for |
+|---|---|---|
+| `fixture` (default) | a deterministic function of the request, never a network | every check, every battery, CI |
+| `real` | the vendor's API, through `agents/providers/anthropic.ts` | a rehearsal and the demonstration |
+
+`real` requires `ANTHROPIC_API_KEY` in the environment and refuses to start without it. The key is
+read by the SDK from the environment; it is never passed through this tree, so it cannot reach a
+stack frame, a log line, a detail bag or a row. An unrecognised value for `LEDGERDESK_PROVIDER` is
+refused at startup rather than treated as the default — a typo that silently produced a
+fixture-answering production process is a failure nobody finds until a customer reads an answer no
+model wrote. ADR-025 carries the decision, the models and the prices.
+
+## Rehearsing the demonstration without a network
+
+Replay reads its answers from the chain: under `LEDGERDESK_REPLAY=1` the provider is never invoked,
+and a lookup that misses is `E_REPLAY_CACHE_MISS` rather than a call. That is what makes "replay
+from the ledger requires no network" true in the present tense.
+
+**A replay can only reproduce what a real run put there**, so the order is:
+
+```sh
+# 1 · load the frozen dataset and check the corpus is where the demonstration expects it
+node seed/demo_load.mjs
+
+# 2 · one run WITH network, which seeds the chain
+LEDGERDESK_PROVIDER=real ANTHROPIC_API_KEY=... npm run dev     # then drive the beats
+
+# 3 · the rehearsal, with the network unplugged
+LEDGERDESK_REPLAY=1 npm run dev
+```
+
+The closing act is a question the corpus cannot answer, material admitted, and the same question
+answered — **one chain with two `state_hash` values and the admission row between them by `seq`**.
+Rehearsing against a chain that holds only the first half fails by design, with
+`E_REPLAY_CACHE_MISS`, and it fails at the point in the evening where there is no time to work out
+why. Run step 2 through both halves before relying on step 3.
+
+The branch that runs entirely on fixtures does not get this for free either: a fixture is
+deterministic, so a replay of a fixture run reproduces perfectly — but what it reproduces is a chain
+of fixture answers. Whichever provider is chosen, a chain has to exist before it can be replayed.
+
+`node seed/demo_load.mjs --status` reports where each demonstration ticket stands, what the corpus
+holds, and which snapshot each organisation reads under.
 
 ## Conventions
 

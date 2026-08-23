@@ -13,13 +13,25 @@
  * reader of its own: whoever has to decide whether the ticket is retried, failed or escalated.
  *
  * **The register is closed**, on the same terms as the other two: it is lengthened by a recorded
- * decision, never by a convenient addition at a call site. ADR-023 records the two below.
+ * decision, never by a convenient addition at a call site. ADR-023 records the first two and
+ * ADR-024 the third.
  *
- * **Reserved and not taken: `E_NO_GROUNDING`.** The validator of a drafted answer will need a code
- * for "the draft cites nothing that was retrieved", and it belongs in this register when the
- * increment that owns retrieval and drafting arrives. It is named here so the first person to need
- * it finds a reservation rather than inventing a synonym, and it is not in the array below because
- * a code that nothing can raise is a code nobody can trust.
+ * **The reservation that has now been taken: `E_NO_GROUNDING`.** ADR-023 named it here and left it
+ * out of the array, on the ground that a code nothing can raise is a code nobody can trust. The
+ * increment that owns retrieval and drafting raises it, so it is in the array.
+ *
+ * It covers exactly one of the three ways a draft can fail to be grounded, and the partition is
+ * worth writing down because collapsing it was the obvious mistake:
+ *
+ *   · **Retrieval returned nothing.** No model is called at all — the escalation rule settles it
+ *     from `kbResultCount = 0` and the ticket goes to a person at zero cost. No agent error is
+ *     raised because no agent ran.
+ *   · **The envelope came back with no citations.** That is a schema violation — `kb_ids` has
+ *     `minItems: 1` — so it is `E_SCHEMA`, and it is retried like any other malformed answer.
+ *   · **The draft cited a source it was not given, or reproduced one it did not cite.** That is
+ *     `E_NO_GROUNDING`, and it is deliberately NOT retried: a model that invented a source will
+ *     invent a different one under another seed, and four attempts buy four ways of learning the
+ *     same thing. It escalates.
  */
 
 /**
@@ -33,6 +45,11 @@ export const AGENT_ERROR_CODES = [
   'E_SCHEMA',
   /** No prompt version is registered for this agent, so no call it made could be recorded. */
   'E_PROMPT_NO_REGISTRADO',
+  /**
+   * The draft stands on something it was not given: a source that was never handed over, or a
+   * passage lifted out of one it did not cite. Added by ADR-024. Not retryable.
+   */
+  'E_NO_GROUNDING',
 ] as const;
 
 export type AgentErrorCode = (typeof AGENT_ERROR_CODES)[number];

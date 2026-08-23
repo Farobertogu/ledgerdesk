@@ -43,7 +43,7 @@ MIGRATIONS="$(ls migrations/[0-9][0-9][0-9][0-9]_*.sql | sort)"
 
 # Explicit, because the order is part of it. The reconciliation after the run fails the build if a
 # test file exists in tests/gateway/ and is not named here.
-TESTS="tests/gateway/test_SEC_pii_never_leaves.mjs tests/gateway/test_SEC_cache_is_tenant_isolated.mjs tests/gateway/test_SEC_security_events_are_recorded.mjs tests/gateway/test_GW_budget_cuts_off.mjs tests/gateway/test_GW_cache_hit_skips_call.mjs tests/gateway/test_GW_provider_faults_are_typed.mjs tests/gateway/test_GW_ledger_row_satisfies_contract.mjs tests/gateway/test_GW_replay_never_calls_provider.mjs tests/gateway/test_GW_state_hash_differs_across_rulesets.mjs"
+TESTS="tests/gateway/test_SEC_pii_never_leaves.mjs tests/gateway/test_SEC_cache_is_tenant_isolated.mjs tests/gateway/test_SEC_security_events_are_recorded.mjs tests/gateway/test_SEC_kb_injection_cannot_forge_a_citation.mjs tests/gateway/test_GW_budget_cuts_off.mjs tests/gateway/test_GW_cache_hit_skips_call.mjs tests/gateway/test_GW_provider_faults_are_typed.mjs tests/gateway/test_GW_ledger_row_satisfies_contract.mjs tests/gateway/test_GW_replay_never_calls_provider.mjs tests/gateway/test_GW_state_hash_differs_across_rulesets.mjs tests/gateway/test_GW_state_hash_tracks_the_snapshot_in_force.mjs tests/gateway/test_LEDGER_system_row_is_not_a_model_call.mjs"
 
 maint() { psql -X -v ON_ERROR_STOP=1 -q -d "$MAINT_DB" -c "$1" >/dev/null; }
 run_sql() { psql -X -v ON_ERROR_STOP=1 -q -d "$1" -f "$2"; }
@@ -82,9 +82,25 @@ export DATABASE_URL="postgresql://${PGUSER}:${PGPASSWORD}@${PGHOST}:${PGPORT}/${
 echo "== gateway tests"
 # One at a time. The files share one cluster and one seeded tenant, and a suite whose verdict
 # depends on the scheduler is a suite that will be green on one machine and red on another.
+#
+# The output is searched for `not ok` as well as being checked for an exit code, for the reason
+# `ci/app_check.sh` carries at the same place: Node's runner reports a suite whose `after` hook threw
+# as `not ok`, counts none of its subtests as failures, and exits 0. A green build containing a red
+# suite is the worst outcome a check can have.
+TEST_LOG="$(mktemp)"
+
 # shellcheck disable=SC2086
-node --experimental-strip-types --test --test-concurrency=1 $TESTS \
-  || fail "the gateway tests did not pass"
+if node --experimental-strip-types --test --test-concurrency=1 $TESTS 2>&1 | tee "$TEST_LOG"; then :; else
+  rm -f "$TEST_LOG"
+  fail "the gateway tests did not pass"
+fi
+
+if grep -Eq '^(not ok|# fail [1-9])' "$TEST_LOG"; then
+  grep -E '^not ok' "$TEST_LOG" >&2 || true
+  rm -f "$TEST_LOG"
+  fail "the gateway tests reported a failure the exit code did not (a suite or a hook failed)"
+fi
+rm -f "$TEST_LOG"
 
 for f in tests/gateway/test_*.mjs; do
   case " $TESTS " in

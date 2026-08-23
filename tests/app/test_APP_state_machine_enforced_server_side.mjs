@@ -91,10 +91,15 @@ describe('test_APP_state_machine_enforced_server_side', () => {
         // a ticket that leaves ESCALATED keeps the record of why it was there, so parking the row
         // back into ESCALATED later needs nothing further.
         const escalated = state === 'ESCALATED';
+        // Inserted in NEW and parked afterwards, because two states stopped being reachable by
+        // writing them: `0009` refuses `AWAITING_AGENT` without a grounded answer and `SENT`
+        // without one a person approved and sent, on INSERT as well as on UPDATE. A fixture cannot
+        // carry its own evidence at the moment it is created — the answer references the ticket —
+        // so the row is born in the state that needs none and moved once the evidence exists.
         const inserted = await client.query(
           `insert into ticket (id, org_id, account_id, customer_id, subject, body_raw, status,
                                dedupe_key, escalation_reason, escalation_clause)
-           values (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9)
+           values (gen_random_uuid(), $1, $2, $3, $4, $5, 'NEW', $6, $7, $8)
            returning id`,
           [
             people.northwindCustomer.org_id,
@@ -102,13 +107,33 @@ describe('test_APP_state_machine_enforced_server_side', () => {
             people.northwindCustomer.user_id,
             `fixture parked in ${state} [${RUN_ID}]`,
             'state machine fixture',
-            state,
             `apptest-${RUN_ID}-${state}`,
             escalated ? 'SLA' : null,
             escalated ? 'sla_breached' : null,
           ],
         );
         fixture.set(state, inserted.rows[0].id);
+      }
+
+      // This suite is about the EDGE PARTITION — which of the hundred ordered pairs the machine
+      // publishes — and it parks its fixtures in every state to ask. So each one carries the
+      // evidence the two guarded states require. Supplying it rather than weakening the guard is
+      // the point: the guard is what the drafting card added, and a suite that worked around it
+      // would be a suite measuring a machine nobody deploys.
+      const staff = await client.query(
+        "select id from app_user where org_id = $1 and role = 'agent' limit 1",
+        [people.northwindCustomer.org_id],
+      );
+      for (const [state, ticketId] of fixture) {
+        await client.query(
+          `insert into response (id, ticket_id, draft, kb_snapshot, grounded, validated_at,
+                                 approved_by, sent_at)
+           values (gen_random_uuid(), $1, 'a fixture answer', 'kb-2026-08-01', true, now(), $2, now())`,
+          [ticketId, staff.rows[0].id],
+        );
+        if (state !== 'NEW') {
+          await client.query('update ticket set status = $1 where id = $2', [state, ticketId]);
+        }
       }
     });
   });

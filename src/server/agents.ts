@@ -37,22 +37,48 @@
  * every restart would open a chain of its own, the consumption the ceiling recomputes would reset
  * with it, and `restarts` would have nothing to count.
  *
- * ## `restarts`, counted from the chain
+ * ## The run does NOT change when the corpus does
+ *
+ * This is the single easiest thing to get wrong in this increment, and getting it wrong destroys
+ * the evidence while looking like it is producing it.
+ *
+ * The demonstration's closing act is two runs "chained": a question asked against a corpus that
+ * cannot answer it, material admitted, the same question asked again and answered. It is tempting
+ * to give the second half a run of its own — it is a second act, the state has changed, a new run
+ * looks tidier in a listing. It is wrong. What makes the two halves comparable is that they are
+ * **one chain with two `state_hash` values and the admission row between them, ordered by `seq`**.
+ * Two runs are two chains: nothing orders them relative to each other, the admission belongs to
+ * neither, and the sentence "here is the same question before and after, in order, in one
+ * append-only record" stops being true.
+ *
+ * So the run identifier is a function of the organisation and the run label and of nothing else,
+ * `evictRuntime` rebuilds a runtime **into the same run**, and `claimRun` is idempotent for the
+ * holder precisely so that rebuilding is not a collision.
+ *
+ * ## `restarts`, counted from the chain — and not from a rebuild
  *
  * The column exists to say how many times the process behind a row had been restarted. It is
- * computed the way every other figure in this system is computed — from the chain, not from a
- * counter this process holds: the first writer into a run records 0, and a later process reads the
- * highest value the run already carries and records one more. A variable would reset with the
- * process it is meant to be counting.
+ * computed from the chain, not from a counter this process holds: the first writer into a run
+ * records 0, and a later process reads the highest value the run already carries and records one
+ * more. A variable would reset with the process it is meant to be counting.
  *
- * **Declared deviation.** The brief for this increment asked for a `class = 'start'` row per
- * process boot, with `restarts` counted from those rows. `migrations/0002_ledger.sql` §5 states
- * the opposite in the published contract of that class: *"A start is the opening of a promotion
- * attempt, not the launch of a run"*, and its terminal is the `promotion_attempt` row with the
- * same `attempt_id`. Writing one per boot would put starts with no terminals into a table the
- * promotion gate reads as attempts, and the consumption counter reads starts. The column is made
- * honest here without inventing rows the schema says mean something else; if the owner wants boot
- * rows, that is an amendment to the published class contract and belongs in its own record.
+ * The count is then **remembered for the life of the process**, keyed by run. `evictRuntime` exists
+ * so that a corpus change can be picked up without a restart, and a rebuild that re-read the chain
+ * would record one more restart than had happened — a column that lies in the other direction from
+ * the one ADR-023 §9 fixed.
+ *
+ * **Declared deviation, carried forward from ADR-023 §9.** The brief for the triage increment asked
+ * for a `class = 'start'` row per process boot. `migrations/0002_ledger.sql` §5 states the opposite
+ * in the published contract of that class, so the column is made honest without inventing rows the
+ * schema says mean something else.
+ *
+ * ## Which provider, and how a real one is chosen
+ *
+ * `LEDGERDESK_PROVIDER` selects between the fixture and a real model. The fixture is the default
+ * and it is what CI and all five batteries run on, always: they are determinism and zero network,
+ * and a suite whose verdict depends on a remote service is not a suite. The real provider is for a
+ * rehearsal and for the demonstration, it requires `ANTHROPIC_API_KEY` in the environment, and it
+ * refuses to start without one rather than discovering the absence at the first ticket.
  */
 
 import { readFileSync } from 'node:fs';
@@ -60,11 +86,23 @@ import path from 'node:path';
 
 import { canonicalJson, sha256Hex } from '@agents/canonical.ts';
 import type { Json } from '@agents/canonical.ts';
-import { createGateway, type Gateway, type GatewayConfig } from '@agents/gateway.ts';
+import { createGateway, type Gateway, type GatewayConfig, type ModelPrice, type ModelProvider } from '@agents/gateway.ts';
 import { PgLedgerStore } from '@agents/ledger/pg.ts';
-import { triageFixtureProvider, type TriageFixtureEntry } from '@agents/providers/triage_fixture.ts';
+import type { PromptRegistration } from '@agents/prompt_version.ts';
+import {
+  ANTHROPIC_LARGE_MODEL,
+  ANTHROPIC_PROVIDER_ID,
+  ANTHROPIC_SMALL_MODEL,
+  anthropicPricing,
+  anthropicProvider,
+} from '@agents/providers/anthropic.ts';
+import { fixtureProvider } from '@agents/providers/fixture.ts';
+import type { DraftFixtureEntry } from '@agents/providers/draft_fixture.ts';
+import type { TriageFixtureEntry } from '@agents/providers/triage_fixture.ts';
+import { DRAFT_PROMPT_GENERATIONS } from '@agents/draft/prompt.ts';
+import { VALIDATE_PROMPT_GENERATIONS } from '@agents/validate/prompt.ts';
 import { AgentError } from '@agents/triage/errors.ts';
-import { TRIAGE_PROMPT } from '@agents/triage/prompt.ts';
+import { TRIAGE_PROMPT_GENERATIONS } from '@agents/triage/prompt.ts';
 import { AGENT_IO_SCHEMA_SHA256 } from '@agents/triage/schema.ts';
 import {
   DEFAULT_ESCALATION_THRESHOLDS,
@@ -73,13 +111,31 @@ import {
 import { rulesetDescription } from '@/alg/ruleset';
 import { withAppSession } from '@/server/db';
 import { componentClaims } from '@/server/pipeline';
+import { snapshotHeadFor } from '@/server/kb/retrieval';
 import { claimRun, createRunClaims, releaseRun, type RunClaims } from '@/server/run_registry';
 
 /** The version that travels into `toolchain.app` on every row. */
 const APP_VERSION = '0.1.0';
 
-/** The model the triage agent asks for, and the sampling it asks with. */
-export const TRIAGE_MODEL = 'fixture-triage-small';
+/** The two provider worlds. `fixture` is the default and is what every battery runs on. */
+export type ProviderMode = 'fixture' | 'real';
+
+/** The fixture's model identities. Names, not claims about any real model. */
+export const FIXTURE_MODELS = {
+  triage: 'fixture-triage-small',
+  draft: 'fixture-draft-large',
+  validate: 'fixture-validate-small',
+} as const;
+
+/** What each agent asks for, in each world. */
+export type AgentModels = { triage: string; draft: string; validate: string };
+
+const REAL_MODELS: AgentModels = {
+  // ADR-004: cheap for the two narrow jobs, strong for the reply a person will read.
+  triage: ANTHROPIC_SMALL_MODEL,
+  draft: ANTHROPIC_LARGE_MODEL,
+  validate: ANTHROPIC_SMALL_MODEL,
+};
 
 /**
  * Temperature zero, and that is a requirement rather than a preference: the retry counter is the
@@ -88,6 +144,19 @@ export const TRIAGE_MODEL = 'fixture-triage-small';
  * ask the same question twice and get a different answer.
  */
 export const TRIAGE_SAMPLING = { temperature: 0, top_p: 1, max_tokens: 256 } as const;
+
+/**
+ * The drafting call's allowance.
+ *
+ * Larger than triage's because the answer is prose rather than four fields, and bounded well under
+ * what the envelope permits: the contract caps a reply at 4096 characters, which is roughly a
+ * thousand tokens, and the rest is the envelope around it. The number matters twice — it is the
+ * ceiling on the answer and it is what the budget projection charges the call at before it is made.
+ */
+export const DRAFT_SAMPLING = { temperature: 0, top_p: 1, max_tokens: 1536 } as const;
+
+/** The validator answers with a boolean and a short list. It needs very little room. */
+export const VALIDATE_SAMPLING = { temperature: 0, top_p: 1, max_tokens: 512 } as const;
 
 /**
  * The ceiling, in the two figures the requirement carries, and the scope it is measured over.
@@ -102,11 +171,22 @@ export const TRIAGE_SAMPLING = { temperature: 0, top_p: 1, max_tokens: 256 } as 
  * accessor can sum the whole term — a migration, named and not taken here — the honest reading is
  * to divide: each organisation gets its share, and the sum of the shares is the figure that was
  * approved.
+ *
+ * **Measured before the rehearsal, and stated here so it is not a surprise:** this increment
+ * TRIPLES the calls a ticket can make. A triage was one call; a triage followed by a drafting cycle
+ * is three, and the third is on the expensive model. The share each organisation holds did not
+ * change, so the number of tickets a term can carry fell by roughly the same factor.
  */
 export const TERM_BUDGET_AUD = { cap_aud: 120, cut_aud: 100 } as const;
 
-/** The knowledge base does not exist yet. The sentinel says so; an empty string would not. */
-const KB_SNAPSHOT = 'kb:none';
+/**
+ * The value the state component carries when an organisation has no snapshot at all.
+ *
+ * It survives for exactly that case and no other. An organisation that holds articles has a head,
+ * the head is what the state records, and `test_GW_state_hash_tracks_the_snapshot_in_force` is what
+ * keeps a regression from quietly putting every row back under this sentinel.
+ */
+export const NO_KB_SNAPSHOT = 'kb:none';
 
 const SCHEMA_VERSION = '1.0';
 
@@ -117,12 +197,17 @@ export type OrgRuntime = {
   org_id: string;
   run_id: string;
   gateway: Gateway;
-  prompt_version_id: string;
+  /** The prompt version each agent runs under, chosen by generation. */
+  prompts: { triage: string; draft: string; validate: string };
+  models: AgentModels;
+  /** The snapshot in force when this runtime was built. `evictRuntime` is how it moves. */
+  kb_snapshot: string;
   /** The digest of everything the verdict depends on, as it travels into `state_hash`. */
   ruleset_hash: string;
   thresholds: EscalationThresholds;
   /** What this process recorded as its restart count for this run. */
   restarts: number;
+  provider_mode: ProviderMode;
 };
 
 type Registry = {
@@ -137,6 +222,11 @@ type Registry = {
    * one was awaiting this one is two organisations waiting on each other with no timeout.
    */
   runs: RunClaims;
+  /**
+   * The restart count this process recorded for each run, remembered so that a rebuild is not
+   * counted as a restart. See the header.
+   */
+  restarts: Map<string, number>;
 };
 
 // Next.js reloads modules in development. Without this, every reload would build a second store
@@ -148,9 +238,10 @@ const globalForAgents = globalThis as unknown as { ledgerdeskAgents?: Registry }
  * input itself.
  *
  * It travels into `state_hash`, whose whole purpose is to say that two rows carrying the same
- * `input_hash` under different conditions are not comparable. With a rule and a matcher in the
- * path, the ruleset is one of those conditions: two runs under different thresholds, different
- * weights or a different policy table must not pool, and the digest is what keeps them apart.
+ * `input_hash` under different conditions are not comparable. With a rule, a matcher and now a
+ * retrieval in the path, all three are among those conditions: two runs under different thresholds,
+ * different weights, a different policy table or a different `k` must not pool, and the digest is
+ * what keeps them apart.
  *
  * The policy patterns are in it as their source text, because a `RegExp` has no JSON form and the
  * source is exactly what changes when a pattern changes.
@@ -166,6 +257,8 @@ export function rulesetHash(thresholds: EscalationThresholds = DEFAULT_ESCALATIO
  * survives them; distinct per organisation, so the one-to-one-to-one invariant holds by
  * construction; and distinct per label, so a rehearsal can be given a chain of its own without
  * touching the demonstration's.
+ *
+ * The knowledge-base snapshot is deliberately NOT an input. See the header.
  */
 export function runIdFor(orgId: string, label: string): string {
   const digest = sha256Hex(`ledgerdesk:run:${label}:${orgId}`);
@@ -179,6 +272,19 @@ export function runIdFor(orgId: string, label: string): string {
   ].join('-');
 }
 
+/**
+ * The `kb_snapshot` component of `state_hash`, qualified by organisation.
+ *
+ * Two organisations share the label `kb-2026-08-01` today and hold entirely different corpora under
+ * it. An unqualified component would give their rows the same state — the column whose one job is
+ * to say "these two rows are not comparable" saying that they are. The organisation is in front of
+ * the label so that a row identifies the corpus it cited and not merely the date somebody stamped
+ * on two of them.
+ */
+export function kbSnapshotComponent(orgId: string, label: string): string {
+  return `${orgId}:${label}`;
+}
+
 function runLabel(): string {
   return process.env.LEDGERDESK_RUN ?? 'demo';
 }
@@ -188,22 +294,64 @@ function replayEnabled(): boolean {
 }
 
 /**
- * The demonstration's authored verdicts, if the frozen dataset is on disk.
+ * Which provider this process runs on, or a refusal.
+ *
+ * An unrecognised value is refused rather than falling back to the fixture. A typo in a deployment
+ * variable that silently produced a fixture-answering production process is the kind of failure
+ * nobody finds until a customer reads an answer no model wrote.
+ */
+export function providerMode(): ProviderMode {
+  const declared = process.env.LEDGERDESK_PROVIDER ?? 'fixture';
+  if (declared === 'fixture' || declared === 'real') return declared;
+  throw new Error(
+    `LEDGERDESK_PROVIDER is '${declared}'; it selects the model provider and the values are 'fixture' or 'real'`,
+  );
+}
+
+export function modelsFor(mode: ProviderMode): AgentModels {
+  return mode === 'real' ? REAL_MODELS : { ...FIXTURE_MODELS };
+}
+
+/**
+ * Every price this process could need, in both worlds.
+ *
+ * The fixture's models are priced because a call that cannot be charged is refused with
+ * `E_MODEL_PRICE_UNKNOWN`, and a fixture call still writes a row with a cost in it. The real models
+ * are priced from the published list, converted once at a declared rate. Both sets are present in
+ * both modes: the map is configuration and a mode does not make a price wrong, it makes it unused.
+ */
+export function pricingTable(): Record<string, ModelPrice> {
+  return {
+    [FIXTURE_MODELS.triage]: { input_aud_per_1k: 0.001, output_aud_per_1k: 0.004 },
+    [FIXTURE_MODELS.draft]: { input_aud_per_1k: 0.004, output_aud_per_1k: 0.016 },
+    [FIXTURE_MODELS.validate]: { input_aud_per_1k: 0.001, output_aud_per_1k: 0.004 },
+    ...anthropicPricing(),
+  };
+}
+
+/**
+ * The demonstration's authored answers, if the frozen dataset is on disk.
  *
  * Absence is not an error: the dataset is the demonstration's, the built-in markers are the
  * tests', and a checkout that has one and not the other is a checkout that still runs. A malformed
  * dataset IS an error, because a silently ignored fixture table is a rehearsal that produces the
  * wrong verdict on the day.
  */
-function demoFixtures(): readonly TriageFixtureEntry[] {
+function demoFixtures(): {
+  triage: readonly TriageFixtureEntry[];
+  draft: readonly DraftFixtureEntry[];
+} {
   let text: string;
   try {
     text = readFileSync(path.join(process.cwd(), DEMO_DATASET_PATH), 'utf8');
   } catch {
-    return [];
+    return { triage: [], draft: [] };
   }
-  const parsed = JSON.parse(text) as { triage_fixtures?: TriageFixtureEntry[] };
-  return parsed.triage_fixtures ?? [];
+  const parsed = JSON.parse(text) as {
+    triage_fixtures?: TriageFixtureEntry[];
+    draft_fixtures?: DraftFixtureEntry[];
+  };
+  return { triage: parsed.triage_fixtures ?? [], draft: parsed.draft_fixtures ?? [] };
 }
 
 function store(): PgLedgerStore {
@@ -216,7 +364,7 @@ function registry(): Registry {
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) {
     throw new Error(
-      'DATABASE_URL is not set. The triage agent needs the same PostgreSQL instance the consoles ' +
+      'DATABASE_URL is not set. The agents need the same PostgreSQL instance the consoles ' +
         'use, with the migration set applied in order, plus the seed.',
     );
   }
@@ -226,26 +374,40 @@ function registry(): Registry {
     store: new PgLedgerStore({ connectionString, max: 4 }),
     runtimes: new Map(),
     runs: createRunClaims(),
+    restarts: new Map(),
   };
   globalForAgents.ledgerdeskAgents = created;
   return created;
 }
 
 /**
- * The privileges a first triage would otherwise discover one statement at a time.
+ * The privileges a first call would otherwise discover one statement at a time.
  *
- * This is the trap ADR-020 and ADR-021 were both written for: a development database created
- * before a grant migration existed applies every later migration cleanly and works entirely,
- * until the first row that needs the missing grant. Asking the three questions at startup turns
- * "permission denied for sequence" in the middle of a demonstration into a refusal to start with
- * the fix in the message.
+ * This is the trap ADR-020, ADR-021 and ADR-023 were all written for: a development database
+ * created before a grant migration existed applies every later migration cleanly and works
+ * entirely, until the first row that needs the missing grant. Asking the questions at startup turns
+ * "permission denied" in the middle of a demonstration into a refusal to start with the fix in the
+ * message.
+ *
+ * The three new questions are 0009's, and they are the ones a drafting cycle would hit in order:
+ * it reads the corpus, it reads the gap records beside a ticket, and it writes an answer.
  */
 async function assertPrivileges(): Promise<void> {
   const granted = await withAppSession(null, async (client) => {
-    const result = await client.query<{ seq: boolean; audit: boolean; prompt: boolean }>(
+    const result = await client.query<{
+      seq: boolean;
+      audit: boolean;
+      prompt: boolean;
+      kb_article: boolean;
+      kb_gap: boolean;
+      response: boolean;
+    }>(
       `select has_sequence_privilege('app_rw','ledger_entry_id_seq','usage') as seq,
               has_table_privilege('app_rw','audit_event','insert')          as audit,
-              has_table_privilege('app_rw','prompt_version','insert')       as prompt`,
+              has_table_privilege('app_rw','prompt_version','insert')       as prompt,
+              has_table_privilege('app_rw','kb_article','select')           as kb_article,
+              has_table_privilege('app_rw','kb_gap','select')               as kb_gap,
+              has_table_privilege('app_rw','response','insert')             as response`,
     );
     return result.rows[0];
   });
@@ -254,6 +416,9 @@ async function assertPrivileges(): Promise<void> {
     granted.seq ? null : 'usage on ledger_entry_id_seq (0006)',
     granted.audit ? null : 'insert on audit_event (0007)',
     granted.prompt ? null : 'insert on prompt_version (0008)',
+    granted.kb_article ? null : 'select on kb_article (0009)',
+    granted.kb_gap ? null : 'select on kb_gap (0009)',
+    granted.response ? null : 'insert on response (0009)',
   ].filter((entry): entry is string => entry !== null);
 
   if (missing.length > 0) {
@@ -265,76 +430,95 @@ async function assertPrivileges(): Promise<void> {
 }
 
 /**
- * The prompt, registered or refused.
+ * One agent's prompt lineage, registered, and the generation this build runs under.
  *
- * Registered generation 0 is this build's triage prompt. If a row already stands there under a
- * different text or a different schema digest, the process refuses to start rather than writing
- * rows that name a prompt version whose words produced none of them. A new wording is a new
- * generation, and generations are the promotion gate's to mint.
+ * **Every generation is registered, not only the current one.** A row that already stands is
+ * checked and left alone; a row that is missing is inserted. That is what makes the two kinds of
+ * database — a clean one, and one carried forward from the previous increment — end in the same
+ * state with no branch anywhere asking which kind this is. On the clean database both triage
+ * generations are inserted; on the carried-forward one generation 0 is found exactly as it was
+ * registered and only generation 1 is new. `parent_id` is then a real reference in both.
+ *
+ * **A standing row that disagrees is a refusal to start.** `prompt_version` is immutable by
+ * trigger, so there is no third option: either the row describes what this build carries, or this
+ * build would be writing ledger rows naming a prompt whose words produced none of them.
+ *
+ * **The current generation is the highest one whose contract this build publishes.** Not simply the
+ * highest: a build rolled back to an earlier schema must run under the generation registered for
+ * that schema, not under a later one describing a contract it no longer holds.
  */
-async function ensureTriagePrompt(): Promise<string> {
+async function ensurePromptLineage(generations: readonly PromptRegistration[]): Promise<string> {
+  const agent = (generations[0] as PromptRegistration).agent;
+
   return withAppSession(null, async (client) => {
-    const existing = await client.query<{ id: string; text: string; schema_hash: string }>(
-      'select id, text, schema_hash from prompt_version where agent = $1 and generation = $2',
-      [TRIAGE_PROMPT.agent, TRIAGE_PROMPT.generation],
-    );
-
-    const row = existing.rows[0];
-    if (row) {
-      if (row.text !== TRIAGE_PROMPT.text) {
-        throw new AgentError(
-          'E_PROMPT_NO_REGISTRADO',
-          'generation 0 of the triage prompt is registered under different words than this build carries',
-          { prompt_version_id: row.id, generation: TRIAGE_PROMPT.generation },
-        );
-      }
-      if (row.schema_hash !== AGENT_IO_SCHEMA_SHA256) {
-        throw new AgentError(
-          'E_PROMPT_NO_REGISTRADO',
-          'the registered triage prompt demands a different output schema than this build publishes',
-          {
-            prompt_version_id: row.id,
-            registered_schema_hash: row.schema_hash,
-            published_schema_hash: AGENT_IO_SCHEMA_SHA256,
-          },
-        );
-      }
-      return row.id;
-    }
-
-    const inserted = await client.query<{ id: string }>(
-      `insert into prompt_version (id, agent, generation, text, schema_hash)
-       values ($1, $2, $3, $4, $5)
-       on conflict (agent, generation) do nothing
-       returning id`,
-      [
-        TRIAGE_PROMPT.id,
-        TRIAGE_PROMPT.agent,
-        TRIAGE_PROMPT.generation,
-        TRIAGE_PROMPT.text,
-        TRIAGE_PROMPT.schema_hash,
-      ],
-    );
-
-    const id = inserted.rows[0]?.id;
-    if (!id) {
-      // Another process registered it between the select and the insert. Reading it back is the
-      // only honest answer; assuming the identifier would be assuming a race went our way.
-      const reread = await client.query<{ id: string }>(
-        'select id from prompt_version where agent = $1 and generation = $2',
-        [TRIAGE_PROMPT.agent, TRIAGE_PROMPT.generation],
+    for (const generation of generations) {
+      const existing = await client.query<{ id: string; text: string; schema_hash: string }>(
+        'select id, text, schema_hash from prompt_version where agent = $1 and generation = $2',
+        [generation.agent, generation.generation],
       );
-      const found = reread.rows[0]?.id;
-      if (!found) {
-        throw new AgentError(
-          'E_PROMPT_NO_REGISTRADO',
-          'the triage prompt could not be registered and is not present',
-          { generation: TRIAGE_PROMPT.generation },
-        );
+
+      const row = existing.rows[0];
+      if (row) {
+        if (row.id !== generation.id) {
+          throw new AgentError(
+            'E_PROMPT_NO_REGISTRADO',
+            `generation ${generation.generation} of the ${agent} prompt is registered under a different identifier than this build carries`,
+            { registered: row.id, published: generation.id },
+          );
+        }
+        if (row.text !== generation.text) {
+          throw new AgentError(
+            'E_PROMPT_NO_REGISTRADO',
+            `generation ${generation.generation} of the ${agent} prompt is registered under different words than this build carries`,
+            { prompt_version_id: row.id, generation: generation.generation },
+          );
+        }
+        if (row.schema_hash !== generation.schema_hash) {
+          throw new AgentError(
+            'E_PROMPT_NO_REGISTRADO',
+            `generation ${generation.generation} of the ${agent} prompt demands a different output schema than this build publishes for it`,
+            {
+              prompt_version_id: row.id,
+              registered_schema_hash: row.schema_hash,
+              published_schema_hash: generation.schema_hash,
+            },
+          );
+        }
+        continue;
       }
-      return found;
+
+      await client.query(
+        `insert into prompt_version (id, agent, generation, text, schema_hash, parent_id)
+         values ($1, $2, $3, $4, $5, $6)
+         on conflict (agent, generation) do nothing`,
+        [
+          generation.id,
+          generation.agent,
+          generation.generation,
+          generation.text,
+          generation.schema_hash,
+          generation.parent_id,
+        ],
+      );
     }
-    return id;
+
+    // Read back rather than assume: `do nothing` above swallows the race in which another process
+    // registered the same generation between the select and the insert, and assuming the identifier
+    // would be assuming the race went our way.
+    const registered = await client.query<{ id: string; generation: number; schema_hash: string }>(
+      'select id, generation, schema_hash from prompt_version where agent = $1 order by generation desc',
+      [agent],
+    );
+
+    const current = registered.rows.find((row) => row.schema_hash === AGENT_IO_SCHEMA_SHA256);
+    if (!current) {
+      throw new AgentError(
+        'E_PROMPT_NO_REGISTRADO',
+        `no registered generation of the ${agent} prompt demands the contract this build publishes`,
+        { agent, published_schema_hash: AGENT_IO_SCHEMA_SHA256, generations: registered.rowCount },
+      );
+    }
+    return current.id;
   });
 }
 
@@ -347,9 +531,12 @@ async function tenantCount(): Promise<number> {
   return Math.max(1, n);
 }
 
-/** The restart count this process records for a run, read from the run itself. */
+/** The restart count this process records for a run, read from the run itself, once. */
 async function restartsOf(orgId: string, runId: string): Promise<number> {
-  return withAppSession(componentClaims(orgId), async (client) => {
+  const remembered = registry().restarts.get(runId);
+  if (remembered !== undefined) return remembered;
+
+  const counted = await withAppSession(componentClaims(orgId), async (client) => {
     const result = await client.query<{ rows_written: number; highest: number | null }>(
       `select count(*)::int as rows_written, max(restarts) as highest
          from ledger_entry where run_id = $1::uuid`,
@@ -359,38 +546,70 @@ async function restartsOf(orgId: string, runId: string): Promise<number> {
     if (!row || row.rows_written === 0) return 0;
     return Number(row.highest ?? 0) + 1;
   });
+
+  registry().restarts.set(runId, counted);
+  return counted;
+}
+
+/** The provider this process runs on, built once per runtime. */
+function buildProvider(mode: ProviderMode, models: AgentModels): { provider: ModelProvider; provider_id: string } {
+  if (mode === 'real') {
+    return { provider: anthropicProvider(), provider_id: ANTHROPIC_PROVIDER_ID };
+  }
+  const fixtures = demoFixtures();
+  return {
+    provider: fixtureProvider({ models, triage: fixtures.triage, draft: fixtures.draft }),
+    provider_id: 'ledgerdesk-fixture@2',
+  };
 }
 
 /**
  * Everything an organisation's runtime needs, built once.
  *
  * `run_id` arrives as an argument rather than being derived here, and that is deliberate: it is
- * claimed synchronously by `triageRuntimeFor` before this function is called, so there is exactly
- * one derivation site and the invariant is enforced before anything can await.
+ * claimed synchronously by `runtimeFor` before this function is called, so there is exactly one
+ * derivation site and the invariant is enforced before anything can await.
  */
 async function buildRuntime(orgId: string, run_id: string): Promise<OrgRuntime> {
   await assertPrivileges();
 
-  const promptVersionId = await ensureTriagePrompt();
+  const prompts = {
+    triage: await ensurePromptLineage(TRIAGE_PROMPT_GENERATIONS),
+    draft: await ensurePromptLineage(DRAFT_PROMPT_GENERATIONS),
+    validate: await ensurePromptLineage(VALIDATE_PROMPT_GENERATIONS),
+  };
+
   const share = await tenantCount();
   const restarts = await restartsOf(orgId, run_id);
   const ruleset_hash = rulesetHash();
 
+  // READ, never assumed and never configured. An organisation with a corpus and no head is a
+  // database that predates 0009; the sentinel is for an organisation that genuinely has none.
+  const kb_snapshot = (await snapshotHeadFor(orgId)) ?? NO_KB_SNAPSHOT;
+
+  const mode = providerMode();
+  const models = modelsFor(mode);
+  const { provider, provider_id } = buildProvider(mode, models);
+
   const config: GatewayConfig = {
-    provider: triageFixtureProvider({ entries: demoFixtures() }),
-    provider_id: 'triage-fixture@1',
+    provider,
+    provider_id,
     store: store(),
     run_id,
-    state: { schema_version: SCHEMA_VERSION, ruleset_hash, kb_snapshot: KB_SNAPSHOT },
-    toolchain: { app: APP_VERSION, ruleset: `triage@${ruleset_hash.slice(0, 12)}` },
+    state: {
+      schema_version: SCHEMA_VERSION,
+      ruleset_hash,
+      kb_snapshot: kbSnapshotComponent(orgId, kb_snapshot),
+    },
+    toolchain: { app: APP_VERSION, ruleset: `ruleset@${ruleset_hash.slice(0, 12)}` },
     audit: store(),
-    pricing: { [TRIAGE_MODEL]: { input_aud_per_1k: 0.001, output_aud_per_1k: 0.004 } },
+    pricing: pricingTable(),
     budget: {
       cap_aud: TERM_BUDGET_AUD.cap_aud / share,
       cut_aud: TERM_BUDGET_AUD.cut_aud / share,
       scope: 'term',
     },
-    timeout_ms: 15_000,
+    timeout_ms: 30_000,
     restarts,
     replay: replayEnabled(),
   };
@@ -399,10 +618,13 @@ async function buildRuntime(orgId: string, run_id: string): Promise<OrgRuntime> 
     org_id: orgId,
     run_id,
     gateway: createGateway(config),
-    prompt_version_id: promptVersionId,
+    prompts,
+    models,
+    kb_snapshot,
     ruleset_hash,
     thresholds: DEFAULT_ESCALATION_THRESHOLDS,
     restarts,
+    provider_mode: mode,
   };
 }
 
@@ -410,7 +632,7 @@ async function buildRuntime(orgId: string, run_id: string): Promise<OrgRuntime> 
  * The runtime of one organisation, built once and shared.
  *
  * **The promise is what is cached, not the value.** Two requests arriving together on a cold
- * registry would otherwise both run the preflight, both register the prompt and both build a
+ * registry would otherwise both run the preflight, both register the prompts and both build a
  * gateway, and the in-flight budget reservation of the loser would live in an instance nobody
  * consults.
  *
@@ -422,7 +644,7 @@ async function buildRuntime(orgId: string, run_id: string): Promise<OrgRuntime> 
  * timeout: two organisations booting together hung permanently, and the demonstration's own seed
  * spreads its beats across both of them.
  */
-export async function triageRuntimeFor(orgId: string): Promise<OrgRuntime> {
+export async function runtimeFor(orgId: string): Promise<OrgRuntime> {
   const { runtimes, runs } = registry();
 
   const existing = runtimes.get(orgId);
@@ -446,4 +668,26 @@ export async function triageRuntimeFor(orgId: string): Promise<OrgRuntime> {
   });
   runtimes.set(orgId, pending);
   return pending;
+}
+
+/**
+ * Forgets an organisation's runtime so that the next call rebuilds it.
+ *
+ * This exists because the snapshot in force is read at build time and the corpus can move while a
+ * process is running: an admission advances the head, and every runtime holding the old label would
+ * go on writing rows that name a corpus the organisation has left. Restarting the server would fix
+ * it and is not a thing anybody can do in the middle of a demonstration.
+ *
+ * **The rebuilt runtime writes into the SAME run**, because `runIdFor` is a pure function of the
+ * organisation and the label. The claim is released and re-taken by the rebuild, which `claimRun`
+ * permits for the holder; the restart count is remembered, so a rebuild is not counted as a
+ * restart; and the chain gains its second `state_hash` in the place where the evidence needs it —
+ * after the admission row, in one chain, ordered by `seq`.
+ *
+ * Nothing else is dropped: the store, its pool and the run claims outlive every rebuild.
+ */
+export function evictRuntime(orgId: string): void {
+  const { runtimes, runs } = registry();
+  if (!runtimes.delete(orgId)) return;
+  releaseRun(runs, runIdFor(orgId, runLabel()), orgId);
 }

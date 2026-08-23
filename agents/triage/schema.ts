@@ -23,6 +23,15 @@
  * `envelope.ts` is therefore deliberately stricter than this document, and ADR-023 §6 records the
  * three conditions it adds. Hardening never accepts what the schema rejects, so this stays the
  * outer bound and no other consumer of it is made wrong.
+ *
+ * **What changing this document costs, and who pays it.** `AGENT_IO_SCHEMA_SHA256` is written into
+ * `prompt_version.schema_hash` at registration, and that row is immutable by trigger. So an edit
+ * here does not update a registration — it makes the standing one describe a contract this build no
+ * longer publishes, and a database that already holds the old row would refuse to start. The
+ * mechanism the schema already carries for that is a **generation**: the old row stays exactly as it
+ * is, a new one is registered beside it with the new digest and the old one as its parent, and the
+ * run that follows names the generation whose contract it actually ran under. ADR-024 records the
+ * edit; `prompt.ts` carries the two generations and the historical digest that pins the first.
  */
 
 import { sha256Hex } from '../canonical.ts';
@@ -40,6 +49,35 @@ export const AGENT_NAMES = ['triage', 'draft', 'validate', 'evolve'] as const;
  * against a corpus is where an oversized envelope would first matter.
  */
 export const BODY_REDACTED_MAX = 8192;
+
+/**
+ * The longest excerpt a single retrieved source may carry into the envelope.
+ *
+ * Retrieval decides how much of an article travels, and an unbounded excerpt makes the size of one
+ * prompt a property of whatever somebody last admitted into the knowledge base. Four sources at
+ * this bound sit inside the body's own allowance, which is the ratio the number was chosen for.
+ */
+export const EXCERPT_MAX = 2048;
+
+/**
+ * The longest answer the drafting agent may produce.
+ *
+ * A reply to a support enquiry that does not fit in this is not a reply, it is a document, and the
+ * console that has to show it to a person before anybody sends it is sized for the former.
+ */
+export const DRAFT_TEXT_MAX = 4096;
+
+/**
+ * What a knowledge-base identifier may be made of, as a contract rather than as a habit.
+ *
+ * The identifier travels three ways — into the envelope the gateway digests, back out of the model
+ * as a citation, and into `response_citation` as half of a composite foreign key — and the third of
+ * those is the one that matters: a citation is compared for set membership against the identifiers
+ * the call was given, and a value carrying whitespace or punctuation nobody expected makes two
+ * spellings of one source. Restricting the alphabet at the border is cheaper than discovering the
+ * second spelling in a row that already claims to be grounded.
+ */
+export const KB_ID_PATTERN = '^[A-Za-z0-9:_/-]{1,128}$';
 
 export const AGENT_IO_SCHEMA: Json = {
   $schema: 'https://json-schema.org/draft/2020-12/schema',
@@ -70,7 +108,10 @@ export const AGENT_IO_SCHEMA: Json = {
             type: 'object',
             required: ['kb_id', 'excerpt'],
             additionalProperties: false,
-            properties: { kb_id: { type: 'string' }, excerpt: { type: 'string' } },
+            properties: {
+              kb_id: { type: 'string', pattern: KB_ID_PATTERN },
+              excerpt: { type: 'string', maxLength: EXCERPT_MAX },
+            },
           },
         },
         locale: { type: 'string' },
@@ -105,17 +146,23 @@ export const AGENT_IO_SCHEMA: Json = {
     },
     draft_block: {
       type: 'object',
-      description: 'Reserved for the drafting agent. No writer exists yet.',
-      required: ['answer', 'citations'],
+      description:
+        'The drafted reply and the sources it stands on. kb_ids has minItems 1 because that is the only place "never a draft without a source" is expressible as a contract rather than as a check somebody remembers to write.',
+      required: ['text', 'kb_ids'],
       additionalProperties: false,
       properties: {
-        answer: { type: 'string' },
-        citations: { type: 'array', items: { type: 'string' } },
+        text: { type: 'string', maxLength: DRAFT_TEXT_MAX },
+        kb_ids: {
+          type: 'array',
+          minItems: 1,
+          items: { type: 'string', pattern: KB_ID_PATTERN },
+        },
       },
     },
     validate_block: {
       type: 'object',
-      description: 'Reserved for the grounding validator. No writer exists yet.',
+      description:
+        "The validator's verdict. grounded is a veto and never a signature: four arithmetic conditions are computed locally over the same sources the gateway digested, and this field can only withhold the fifth. policy_flags is deliberately absent — a policy judgement is the deterministic matcher's and never a model's.",
       required: ['grounded', 'unsupported_claims'],
       additionalProperties: false,
       properties: {
