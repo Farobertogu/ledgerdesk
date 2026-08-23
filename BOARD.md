@@ -8,13 +8,14 @@ Source of truth for build order: the specification's build plan, as amended — 
 
 ## In progress
 
-*(empty)*
+| Card | Increment | Branch | Closing evidence |
+|---|---|---|---|
+| I7-bis | The complete gap cycle: typed gap record on GROUND escalation → versioned admission with provenance and human approver → re-run → closure by verification | `card/I7-bis-the-gap-cycle` | the three `test_KB_*` plus the two new FR-A15 tests green, and the two chained runs in the ledger with the `kb_admission` row between them |
 
 ## Backlog (plan order)
 
 | Card | Increment | Depends on | Closing evidence |
 |---|---|---|---|
-| I7-bis | The complete gap cycle: typed gap record on GROUND escalation → versioned admission with provenance and human approver → re-run → closure by verification | I7, I2b | the three `test_KB_*` plus the two new FR-A15 tests green, and the two chained runs in the ledger with the `kb_admission` row between them |
 | I8 | Agent console: edit/approve/send + `human_edit` capture | I7 | US-05 + `approved_by` as a DB constraint |
 | I9 | Decision Audit Log surface | I2b, I6 | US-07 + `test_LEDGER_hash_chain_*` |
 | I10 | Sealed splits + `quality/eval` + stats sidecar + Model Quality — **five-step internal order: `0004` migration → derivator run → pre-registration anchor row → sealing → first scored run; any permutation invalidates the run** | I9, I2, I11a | sealed `splits.json` (four disjoint kinds) + accuracy with clan-aware CI on report |
@@ -43,6 +44,21 @@ chain with two `state_hash` values and the admission row between them by `seq`; 
 be two chains, and nothing orders two chains relative to each other. **Rehearsing against a chain
 that holds only the pre-admission run fails by design**, with `E_REPLAY_CACHE_MISS`, at the point in
 the evening where there is no time left to work out why. The commands are in `README.md`.
+
+**Seed last, and seed after the LAST merge.** The networked run is valid only for the tree it ran on.
+The cache is keyed on `state_hash`, `state_hash` carries `ruleset_hash`, and `ruleset_hash` moves
+with almost any hardening — this card moved it twice, for a normaliser and a retrieval filter, and
+`adr/ADR-026` §10 declares the consequence in as many words. So a merge landing after the seeding run
+invalidates the seeded chain **silently**: nothing turns red, no test can see it, and the first
+symptom is `E_REPLAY_CACHE_MISS` on the central beat of Act 1. I8 and I9 sit between this card and
+the demonstration on the critical path, which is exactly the window this rule exists for. Re-seeding
+is not free either: it spends a dataset variant, and each beat has two.
+
+**And do not run the checks against the seeded database.** `ci/db_check.sh`, `ci/app_check.sh` and
+`ci/gateway_check.sh` each drop and rebuild their database *and the cluster-wide roles*. Running any
+of them between the seeding run and the rehearsal destroys the chain the rehearsal replays — and
+destroys it the same silent way, because a dropped database produces no failure until something asks
+it for a row that used to be there.
 
 ## Done
 

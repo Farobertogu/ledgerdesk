@@ -12,9 +12,10 @@ ls ci/sql/test_*.sql >/dev/null 2>&1 || fail "no SQL tests in ci/sql/"
 grep -q "## Backlog" BOARD.md || fail "BOARD.md missing Backlog section"
 echo "structure OK"
 
-# --- schema: the sealed-manifest schema is a frozen path; this is its executable cover.
-command -v node >/dev/null 2>&1 || fail "node is not on PATH (test_SPLITS_schema_accepts_and_rejects needs it)"
-node ci/schema_check.mjs || fail "test_SPLITS_schema_accepts_and_rejects"
+# --- schema: the published schemas are frozen paths; this is their executable cover. Two of them
+#     now: the sealed manifest, and the typed gap channel that the boundary's fourth row names.
+command -v node >/dev/null 2>&1 || fail "node is not on PATH (the schema cases need it)"
+node ci/schema_check.mjs || fail "test_SPLITS_schema_accepts_and_rejects / test_GAP_channel_schema_accepts_and_rejects"
 
 # --- seam: the module boundary of ADR-007 and the LLM chokepoint of ADR-008, checked rather than
 #     trusted. Static: no database, no install, no build, so it runs in this job and not the others.
@@ -22,8 +23,10 @@ node ci/seam_check.mjs || fail "test_ARCH_seam_holds"
 
 # --- algorithm: the priority and the escalation rule are pure functions of a feature vector, so
 #     their tests need no database, no model and no install — they belong in this job. The list is
-#     explicit because the order is part of it; the reconciliation after the run fails the build if
-#     a test file exists in tests/alg/ and is not named here.
+#     explicit so that the reconciliation after the run fails the build if a test file exists in
+#     tests/alg/ and is not named here. The ORDER of the list buys nothing: `node --test` sorts the
+#     files it is given, whatever order they arrive in — measured, not assumed. Nothing in these
+#     three suites depends on an order, which is why the correction is a comment and not a change.
 #
 #     The tests import TypeScript directly and are stripped by the runtime, so the engine floor of
 #     package.json is a requirement here and not a preference. Checked, so that an older runtime
@@ -79,7 +82,7 @@ done
 # --- the drafting cycle's contracts: two more strict envelopes, and the conjunction that decides
 #     whether an answer may be shown to anybody. All pure functions of text, so they belong in the
 #     fastest job: no database, no model, no server.
-AGENT_TESTS="tests/agents/test_AGENT_envelopes_share_a_root_contract.mjs tests/agents/test_SEC_identifiers_survive_the_redactor.mjs tests/agents/test_DRAFT_envelope_refuses_ungrounded_citations.mjs tests/agents/test_VALIDATE_envelope_rejects_a_policy_judgement.mjs tests/agents/test_ALG_grounding_is_a_conjunction.mjs"
+AGENT_TESTS="tests/agents/test_AGENT_envelopes_share_a_root_contract.mjs tests/agents/test_SEC_identifiers_survive_the_redactor.mjs tests/agents/test_DRAFT_envelope_refuses_ungrounded_citations.mjs tests/agents/test_VALIDATE_envelope_rejects_a_policy_judgement.mjs tests/agents/test_ALG_grounding_is_a_conjunction.mjs tests/agents/test_SEC_admission_channel_refuses_out_of_contract.mjs"
 # shellcheck disable=SC2086
 node --experimental-strip-types --test $AGENT_TESTS || fail "the drafting contract tests did not pass"
 
@@ -112,7 +115,33 @@ node --experimental-strip-types -e '
   }).catch((error) => { console.error(error); process.exit(1); });
 ' || fail "test_TRIAGE_published_schema_is_current"
 
-echo "agent contract OK (three strict envelope validators agreeing on one root contract, the grounding conjunction, the injection corpus, the published schema diffed, and the demonstration dataset checked against the complete rule of eight clauses)"
+# The typed gap channel is published the same way and for the same reason: the document is authored
+# in `src/alg/gap_channel.ts` and the file in `quality/schemas/` is its serialisation, so a receiver
+# never has to open a file to learn its own contract — a server bundle does not carry the
+# repository's directory layout. A hand-edit and a stale file fail identically here.
+node --experimental-strip-types -e '
+  import("./src/alg/gap_channel.ts").then(async (channel) => {
+    const { readFileSync } = await import("node:fs");
+    let onDisk;
+    try {
+      onDisk = readFileSync(channel.GAP_CHANNEL_SCHEMA_PATH, "utf8");
+    } catch {
+      console.error(channel.GAP_CHANNEL_SCHEMA_PATH + " is missing");
+      process.exit(1);
+    }
+    if (onDisk !== channel.GAP_CHANNEL_SCHEMA_TEXT) {
+      console.error(channel.GAP_CHANNEL_SCHEMA_PATH + " differs from src/alg/gap_channel.ts; regenerate it instead of editing it");
+      process.exit(1);
+    }
+    if (channel.GAP_CHANNEL_TOTAL_BYTES > channel.GAP_CHANNEL_RECORD_MAX_BYTES) {
+      console.error("the per-field caps sum to " + channel.GAP_CHANNEL_TOTAL_BYTES + " bytes, above the declared " + channel.GAP_CHANNEL_RECORD_MAX_BYTES);
+      process.exit(1);
+    }
+    console.log("test_GAP_channel_published_schema_is_current OK (" + channel.GAP_CHANNEL_TOTAL_BYTES + " of " + channel.GAP_CHANNEL_RECORD_MAX_BYTES + " bytes declared, " + channel.GAP_CHANNEL_OPEN_CONTENT_MAX_BYTES + " of them open content)");
+  }).catch((error) => { console.error(error); process.exit(1); });
+' || fail "test_GAP_channel_published_schema_is_current"
+
+echo "agent contract OK (three strict envelope validators agreeing on one root contract, the grounding conjunction, the injection corpus, the two published schemas diffed, and the demonstration dataset checked against the complete rule of eight clauses)"
 
 # --- branch_name: every branch except main must match card/<ID>-<slug>, ID from BOARD.md.
 #     Named exemptions, literal and enumerated:

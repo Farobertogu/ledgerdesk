@@ -241,21 +241,40 @@ function digestOfRequest(request: ProviderRequest): string {
  * wording borrowed from it. Without them a marker would have to name a source from the seed, and
  * every test using it would break the day the seed changed — which is the failure the phrase-based
  * selection of these fixtures exists to avoid in the first place.
+ *
+ * **`<key:...>` is the third, and it exists because the seed now moves on purpose.** An identifier
+ * is `<canonical key>:<identity>`, and an advance of the snapshot mints a NEW identity for every row
+ * it copies — so an authored reply citing a literal identity cites a document that stops existing
+ * the moment the corpus moves. The demonstration's anchored beat would then escalate for lack of
+ * grounding under the fixture provider, which is the declared fallback, at the point in the evening
+ * when there is no time to work out why. The key is copied verbatim across an advance; the identity
+ * is not. So an authored citation names the key and this resolves it against what the call was
+ * actually handed.
+ *
+ * **An unresolved marker is left exactly as it is.** It fails the published identifier pattern, so
+ * the envelope is refused at the border and the cycle reports it — which is the loud failure. The
+ * quiet alternative, substituting some other source, would have the reply cite a document nobody
+ * authored it against and still look grounded.
  */
 function resolvePlaceholders(
   verdict: DraftFixtureVerdict,
   sources: readonly FixtureSource[],
 ): DraftFixtureVerdict {
   const first = sources[0];
+  const byKey = new Map(sources.map((source) => [source.kb_id.split(':')[0] ?? '', source.kb_id]));
+
   return {
     ...verdict,
     text: verdict.text.replace(
       '<grounded-draft>',
       first ? `Thanks for getting in touch. ${leadingWords(first.excerpt, 12)}` : 'Thanks for getting in touch.',
     ),
-    kb_ids: verdict.kb_ids.map((kb_id) =>
-      kb_id === '<first>' ? (first ? first.kb_id : kb_id) : kb_id,
-    ),
+    kb_ids: verdict.kb_ids.map((kb_id) => {
+      if (kb_id === '<first>') return first ? first.kb_id : kb_id;
+      const key = kb_id.startsWith('<key:') && kb_id.endsWith('>') ? kb_id.slice(5, -1) : null;
+      if (key === null) return kb_id;
+      return byKey.get(key) ?? kb_id;
+    }),
   };
 }
 

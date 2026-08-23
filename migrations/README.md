@@ -13,6 +13,15 @@ Forward-only. One numbered file per change; no destructive edits to an applied m
 | `0007_audit_writer.sql` | the audit writer's grants |
 | `0008_triage_columns.sql` | the priority, escalation reason and clause with their one-directional invariant, the body digest and its index, and the triage writer's prompt grant |
 | `0009_kb_retrieval.sql` | the snapshot pointer, an immutable knowledge base, the answer's evidence columns and its citations as composite references, the application role's knowledge-base grants and the staff-only write policies, the gap's closure and its unreachable state, `kb_snapshot_advance`, the two ticket-state triggers, and the cross-tenant approver made unrepresentable |
+| `0010_kb_gap_cycle.sql` | the gap-record writer, the advance re-signed to derive everything from the row of the chain and to write the admission with it, the closure by verification, the revocation of every callable definer function from PUBLIC, `select` on `kb_admission`, the staff-only read policy on `kb_gap`, the admission's reference to the article it admitted, four bounds that were prose, and one ledger row per admission by index |
+
+## Every `security definer` function carries its own revocation
+
+**A standing rule from `0010`, and it is a rule because the language's default is the opposite of what this schema wants.** `create function` grants EXECUTE to PUBLIC. A `security definer` function is therefore, on the day it is written, a privilege escalation available to every role in the cluster unless the migration that creates it says otherwise — and for three migrations nobody said otherwise. What that cost was measured rather than supposed: the application role could write articles into another organisation's corpus and move that organisation's snapshot pointer, with no approver, no admission and no row in any chain.
+
+So: **every migration that creates a `security definer` function revokes EXECUTE from `public` in the same file**, and grants it to the role that needs it — by name, one grant per caller, or to nobody at all when the function exists for the owner and the tests. `test_SEC_kb_definer_functions_are_not_public` sweeps `pg_proc` rather than a list, so a function added without its revocation fails the build instead of waiting to be noticed.
+
+Trigger functions are outside the rule and outside the sweep, and the exclusion is written here rather than left to be inferred: a trigger function is not callable — invoking one directly raises *trigger functions can only be called as triggers* — so its EXECUTE privilege grants nobody anything, while revoking it would change the conditions under which every existing trigger was created.
 
 ## Applying them
 

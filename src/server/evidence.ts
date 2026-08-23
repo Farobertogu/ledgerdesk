@@ -69,6 +69,40 @@ export type GapLine = {
   null_rule: string;
   closed_by_check_at: string | null;
   not_documentable_reason: string | null;
+  /**
+   * Who owns closing it and by when — the two human facts the record carries.
+   *
+   * They are on screen because the act this card exists to show is a person being handed a piece of
+   * work with a name and a date on it. A queue of gaps with neither is a list of things nobody
+   * agreed to do.
+   */
+  owner_id: string;
+  owner_role: string;
+  committed_date: string;
+};
+
+/**
+ * One admission, read BY THE GAP it answered rather than by the ticket.
+ *
+ * The distinction is not pedantry: an admission is a fact about the corpus, and the ticket is where
+ * it happens to be visible because the gap that prompted it belongs to one. Reading it by ticket
+ * would make the panel wrong the first time one admission answers a gap raised on another ticket.
+ */
+export type AdmissionLine = {
+  id: string;
+  gap_id: string;
+  approved_by: string;
+  /** The approver's role, joined here so the panel shows a standing rather than an identifier. */
+  approver_role: string;
+  snapshot_from: string;
+  snapshot_to: string;
+  /** The digest of the admitted body. Shown short; the full value is on the element's title. */
+  content_hash: string;
+  provenance_source: string;
+  admitted_at: string;
+  /** What was admitted, when the article is still readable under the snapshot it entered. */
+  canonical_key: string | null;
+  title: string | null;
 };
 
 /** What a drafting cycle decided, when there is no response row to show for it. */
@@ -86,6 +120,8 @@ export type TicketEvidence = {
   drafts: DraftLine[];
   ledger: LedgerLine[];
   gaps: GapLine[];
+  /** Every admission made against a gap of this ticket, newest first. */
+  admissions: AdmissionLine[];
   /** The drafting cycle's own decisions, newest first. Empty until a cycle has run. */
   retrievals: RetrievalLine[];
 };
@@ -122,10 +158,35 @@ const LEDGER = `
 
 const GAPS = `
   select g.id::text as id, g.kb_snapshot, g.zero_match, g.state::text as state, g.null_rule,
-         g.closed_by_check_at, g.not_documentable_reason
+         g.closed_by_check_at, g.not_documentable_reason,
+         g.owner_id::text as owner_id, u.role::text as owner_role, g.committed_date
     from kb_gap g
+    join app_user u on u.id = g.owner_id
    where g.ticket_id = $1::uuid
    order by g.created_at desc`;
+
+/**
+ * The admissions made against a set of gaps.
+ *
+ * The approver is joined to their role, because the person reading this panel needs to know that a
+ * supervisor let the document in and not that some identifier did. The article is joined on the
+ * composite key so that the title shown is the title of the document as it stands under the snapshot
+ * it entered, rather than of whatever now stands at that identity.
+ *
+ * A LEFT join on the article: `article_id` is nullable, and a row written before this migration — or
+ * by a fixture — is still a real admission and belongs on the panel with its key unknown rather than
+ * absent from it.
+ */
+const ADMISSIONS = `
+  select m.id::text as id, m.gap_id::text as gap_id, m.approved_by::text as approved_by,
+         u.role::text as approver_role, m.snapshot_from, m.snapshot_to, m.content_hash,
+         m.provenance ->> 'source' as provenance_source, m.admitted_at,
+         a.canonical_key, a.title
+    from kb_admission m
+    join app_user u on u.id = m.approved_by
+    left join kb_article a on a.id = m.article_id and a.kb_snapshot = m.snapshot_to
+   where m.gap_id = any($1::uuid[])
+   order by m.admitted_at desc`;
 
 /**
  * The drafting cycle's decisions, from the organisation's audit chain.
@@ -159,6 +220,34 @@ type DecisionRow = {
     unsupported_claim_count?: number | null;
   };
 };
+
+type AdmissionRow = {
+  id: string;
+  gap_id: string;
+  approved_by: string;
+  approver_role: string;
+  snapshot_from: string;
+  snapshot_to: string;
+  content_hash: string;
+  provenance_source: string | null;
+  admitted_at: Date;
+  canonical_key: string | null;
+  title: string | null;
+};
+
+/**
+ * A calendar day rendered as one.
+ *
+ * The driver hands a `date` column back as a `Date` at local midnight, so `toISOString` on it can
+ * name the day before in any zone west of UTC. What was committed to is a day, and this is how a day
+ * is written down.
+ */
+function dateOnly(value: Date): string {
+  const year = value.getFullYear();
+  const month = `${value.getMonth() + 1}`.padStart(2, '0');
+  const day = `${value.getDate()}`.padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
 
 export async function evidenceFor(claims: Claims, ticketId: string): Promise<TicketEvidence> {
   return withAppSession(claims, async (client) => {
@@ -231,7 +320,17 @@ export async function evidenceFor(claims: Claims, ticketId: string): Promise<Tic
       null_rule: string;
       closed_by_check_at: Date | null;
       not_documentable_reason: string | null;
+      owner_id: string;
+      owner_role: string;
+      committed_date: Date;
     }>(GAPS, [ticketId]);
+
+    // By gap, and only when there is a gap. An empty list would make the query a scan over every
+    // admission the tenant holds for no result at all.
+    const gapIds = gaps.rows.map((row) => row.id);
+    const admissions = gapIds.length === 0
+      ? { rows: [] as AdmissionRow[] }
+      : await client.query<AdmissionRow>(ADMISSIONS, [gapIds]);
 
     return {
       drafts: withCitations,
@@ -255,6 +354,24 @@ export async function evidenceFor(claims: Claims, ticketId: string): Promise<Tic
         null_rule: row.null_rule,
         closed_by_check_at: row.closed_by_check_at ? row.closed_by_check_at.toISOString() : null,
         not_documentable_reason: row.not_documentable_reason,
+        owner_id: row.owner_id,
+        owner_role: row.owner_role,
+        // A `date` column arrives as a Date at local midnight; the calendar day is what was
+        // committed to, so it is rendered as one rather than as an instant in some zone.
+        committed_date: dateOnly(row.committed_date),
+      })),
+      admissions: admissions.rows.map((row) => ({
+        id: row.id,
+        gap_id: row.gap_id,
+        approved_by: row.approved_by,
+        approver_role: row.approver_role,
+        snapshot_from: row.snapshot_from,
+        snapshot_to: row.snapshot_to,
+        content_hash: row.content_hash,
+        provenance_source: row.provenance_source ?? 'not stated',
+        admitted_at: row.admitted_at.toISOString(),
+        canonical_key: row.canonical_key,
+        title: row.title,
       })),
       retrievals: decisions.rows
         .filter((row) => row.detail.stage === 'draft' || row.detail.stage === 'validate')

@@ -88,6 +88,7 @@ import { canonicalJson, sha256Hex } from '@agents/canonical.ts';
 import type { Json } from '@agents/canonical.ts';
 import { createGateway, type Gateway, type GatewayConfig, type ModelPrice, type ModelProvider } from '@agents/gateway.ts';
 import { PgLedgerStore } from '@agents/ledger/pg.ts';
+import type { LedgerStore } from '@agents/ledger/store.ts';
 import type { PromptRegistration } from '@agents/prompt_version.ts';
 import {
   ANTHROPIC_LARGE_MODEL,
@@ -110,6 +111,7 @@ import {
 } from '@/alg/escalation';
 import { rulesetDescription } from '@/alg/ruleset';
 import { withAppSession } from '@/server/db';
+import { AppError } from '@/server/errors';
 import { componentClaims } from '@/server/pipeline';
 import { snapshotHeadFor } from '@/server/kb/retrieval';
 import { claimRun, createRunClaims, releaseRun, type RunClaims } from '@/server/run_registry';
@@ -188,7 +190,14 @@ export const TERM_BUDGET_AUD = { cap_aud: 120, cut_aud: 100 } as const;
  */
 export const NO_KB_SNAPSHOT = 'kb:none';
 
-const SCHEMA_VERSION = '1.0';
+/**
+ * The schema component of `state_hash`.
+ *
+ * Exported because the chokepoint is no longer the only writer of a row: the admission writes a
+ * non-model row of its own and has to pin the same state the model rows pin, from the same value.
+ * Two spellings of the state would make two rows of one chain incomparable for no reason at all.
+ */
+export const STATE_SCHEMA_VERSION = '1.0';
 
 /** Where the frozen demonstration dataset lives, relative to the repository root. */
 const DEMO_DATASET_PATH = 'seed/demo_tickets.json';
@@ -204,11 +213,35 @@ export type OrgRuntime = {
   kb_snapshot: string;
   /** The digest of everything the verdict depends on, as it travels into `state_hash`. */
   ruleset_hash: string;
+  /**
+   * The three components whose digest is `state_hash`, in the form every row of this run carries.
+   *
+   * **One object, handed to both writers, for the same reason `toolchain` below is.** The chokepoint
+   * pins this when its gateway is built and the admission writer pins it when it appends its row, and
+   * those two rows have to be comparable — the evidence of the gap cycle is one chain whose halves
+   * differ in exactly one state, with the admission on the side that decided. Composed twice from
+   * three parts, it is a field with two producers, and a field with two producers is a field that can
+   * disagree with itself. Composed once here, the two rows cannot say different things about the
+   * state they were written under, and the assertion that checks it stops being a matter of
+   * vigilance.
+   */
+  state: { schema_version: string; ruleset_hash: string; kb_snapshot: string };
   thresholds: EscalationThresholds;
   /** What this process recorded as its restart count for this run. */
   restarts: number;
+  /**
+   * What produced the rows of this run, in the form every row carries.
+   *
+   * Held on the runtime rather than rebuilt by each writer: the chokepoint and the admission writer
+   * both pin it, and two spellings of one toolchain would put two rows of one chain under two
+   * different claims about what wrote them.
+   */
+  toolchain: Toolchain;
   provider_mode: ProviderMode;
 };
+
+/** What produced a row, in the two fields every row of this system carries. */
+export type Toolchain = { app: string; ruleset: string };
 
 type Registry = {
   store: PgLedgerStore;
@@ -261,7 +294,20 @@ export function rulesetHash(thresholds: EscalationThresholds = DEFAULT_ESCALATIO
  * The knowledge-base snapshot is deliberately NOT an input. See the header.
  */
 export function runIdFor(orgId: string, label: string): string {
-  const digest = sha256Hex(`ledgerdesk:run:${label}:${orgId}`);
+  return derivedUuid(`ledgerdesk:run:${label}:${orgId}`);
+}
+
+/**
+ * A version-4-shaped identifier that is a function of a written seed rather than of a coin toss.
+ *
+ * Two callers want this and they want it for the same reason: an identifier that survives a retry.
+ * A run derived from its organisation keeps one chain across restarts; an admission derived from the
+ * gap it answers and the body it admits proposes the SAME identity on a second attempt, so the
+ * unique index on the chain recognises the retry instead of letting it write a second row for one
+ * fact. A random identifier would make both of those "usually fine".
+ */
+export function derivedUuid(seed: string): string {
+  const digest = sha256Hex(seed);
   const variant = ((parseInt(digest[16] as string, 16) & 0x3) | 0x8).toString(16);
   return [
     digest.slice(0, 8),
@@ -591,17 +637,23 @@ async function buildRuntime(orgId: string, run_id: string): Promise<OrgRuntime> 
   const models = modelsFor(mode);
   const { provider, provider_id } = buildProvider(mode, models);
 
+  const toolchain: Toolchain = { app: APP_VERSION, ruleset: `ruleset@${ruleset_hash.slice(0, 12)}` };
+
+  // Composed ONCE and handed to both writers. See `OrgRuntime.state` for why it is not composed
+  // again anywhere else.
+  const state = {
+    schema_version: STATE_SCHEMA_VERSION,
+    ruleset_hash,
+    kb_snapshot: kbSnapshotComponent(orgId, kb_snapshot),
+  };
+
   const config: GatewayConfig = {
     provider,
     provider_id,
     store: store(),
     run_id,
-    state: {
-      schema_version: SCHEMA_VERSION,
-      ruleset_hash,
-      kb_snapshot: kbSnapshotComponent(orgId, kb_snapshot),
-    },
-    toolchain: { app: APP_VERSION, ruleset: `ruleset@${ruleset_hash.slice(0, 12)}` },
+    state,
+    toolchain,
     audit: store(),
     pricing: pricingTable(),
     budget: {
@@ -622,10 +674,26 @@ async function buildRuntime(orgId: string, run_id: string): Promise<OrgRuntime> 
     models,
     kb_snapshot,
     ruleset_hash,
+    state,
     thresholds: DEFAULT_ESCALATION_THRESHOLDS,
     restarts,
+    toolchain,
     provider_mode: mode,
   };
+}
+
+/**
+ * The chain this process writes into.
+ *
+ * Exported because the chokepoint is no longer the only writer. The admission records a non-model
+ * row, and it has to land in the SAME chain as the calls around it — the evidence of this whole
+ * cycle is one chain with two state values and the admission row between them by `seq`, and a second
+ * store would be a second chain with nothing ordering the two.
+ *
+ * It is the store and not the gateway: this is not a path to a model and must never become one.
+ */
+export function ledgerStore(): LedgerStore {
+  return store();
 }
 
 /**
@@ -690,4 +758,32 @@ export function evictRuntime(orgId: string): void {
   const { runtimes, runs } = registry();
   if (!runtimes.delete(orgId)) return;
   releaseRun(runs, runIdFor(orgId, runLabel()), orgId);
+}
+
+/**
+ * Refuses to run a cycle on a runtime whose corpus has moved underneath it.
+ *
+ * **This is the half that makes forgetting the other half impossible to ignore**, and it is worth
+ * being explicit about what it prevents, because the failure it prevents is invisible while it
+ * happens. The pointer is read twice with two lifetimes: frozen into `state` when a runtime is
+ * built, and fresh at the top of every cycle. After an admission that did not evict, the retrieval
+ * reads the NEW corpus — it queries by the fresh head — while every row the cycle writes records the
+ * OLD label in `state_hash`. The answer improves, the rows look ordinary, and the evidence that this
+ * card exists to produce is falsified in the act of producing it. Nothing downstream could tell.
+ *
+ * So the two are compared and a divergence is a typed refusal rather than a silent divergence. The
+ * runtime is evicted on the way out, which makes the refusal recoverable rather than permanent: the
+ * next attempt rebuilds against the corpus in force and proceeds. Noisy once, in front of whoever
+ * pressed the control, is the outcome to want; quiet for ever is the one to make unreachable.
+ */
+export function refuseIfRuntimeIsStale(runtime: OrgRuntime, head: string): void {
+  if (runtime.kb_snapshot === head) return;
+  evictRuntime(runtime.org_id);
+  throw new AppError(
+    'E_RUNTIME_SNAPSHOT_STALE',
+    409,
+    'the corpus in force has moved since this runtime was built, so a cycle run now would cite one ' +
+      'snapshot and record another. The runtime has been discarded; run it again.',
+    { org_id: runtime.org_id, runtime_snapshot: runtime.kb_snapshot, head },
+  );
 }

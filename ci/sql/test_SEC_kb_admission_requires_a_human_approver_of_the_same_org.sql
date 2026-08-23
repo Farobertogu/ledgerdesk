@@ -52,26 +52,26 @@ begin
   -- 1 · The gap's owner must belong to the gap's organisation.
   begin
     insert into kb_gap (id, org_id, ticket_id, query_terms, kb_snapshot, zero_match, query_sha256,
-                        owner_id, committed_date, null_rule)
+                        question_sha256, owner_id, committed_date, null_rule)
     values (v_gap, v_org_a, v_ticket, 'a query', 'kb-2026-08-01', true, repeat('d', 64),
-            v_staff_b, current_date, 'a declared rule');
+            repeat('e', 64), v_staff_b, current_date, 'a declared rule');
     raise exception 'test_SEC_kb_admission_requires_a_human_approver_of_the_same_org: a gap took an owner from another organisation';
   exception when foreign_key_violation then null;
   end;
 
   -- The same gap with an owner of its own organisation is accepted.
   insert into kb_gap (id, org_id, ticket_id, query_terms, kb_snapshot, zero_match, query_sha256,
-                      owner_id, committed_date, null_rule)
+                      question_sha256, owner_id, committed_date, null_rule)
   values (v_gap, v_org_a, v_ticket, 'a query', 'kb-2026-08-01', true, repeat('d', 64),
-          v_staff_a, current_date, 'a declared rule');
+          repeat('e', 64), v_staff_a, current_date, 'a declared rule');
 
   -- 2 · Exactly one gap record per (ticket, query). The retry of a failed emission is idempotent
   --     by mechanism rather than by the writer remembering to look first.
   begin
     insert into kb_gap (id, org_id, ticket_id, query_terms, kb_snapshot, zero_match, query_sha256,
-                        owner_id, committed_date, null_rule)
+                        question_sha256, owner_id, committed_date, null_rule)
     values ('9a000009-0000-4000-8000-00000000000b', v_org_a, v_ticket, 'a query', 'kb-2026-08-01',
-            true, repeat('d', 64), v_staff_a, current_date, 'a declared rule');
+            true, repeat('d', 64), repeat('f', 64), v_staff_a, current_date, 'a declared rule');
     raise exception 'test_SEC_kb_admission_requires_a_human_approver_of_the_same_org: a second gap for the same query was accepted';
   exception when unique_violation then null;
   end;

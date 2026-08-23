@@ -79,7 +79,13 @@ import {
 } from '@/alg/escalation';
 import { matchPolicyFlags, policyInput } from '@/alg/policy';
 import { computePriority } from '@/alg/priority';
-import { TRIAGE_SAMPLING, runtimeFor } from '@/server/agents';
+import {
+  NO_KB_SNAPSHOT,
+  TRIAGE_SAMPLING,
+  refuseIfRuntimeIsStale,
+  runtimeFor,
+} from '@/server/agents';
+import { snapshotHeadFor } from '@/server/kb/retrieval';
 import { withAppSession } from '@/server/db';
 import { AppError } from '@/server/errors';
 import { recordDecision, type DecisionAction } from '@/server/decisions';
@@ -203,6 +209,33 @@ async function triageCycle(
   if (!TRIAGEABLE.includes(ticket.status)) {
     return { outcome: 'SKIPPED', status: ticket.status };
   }
+
+  // --- 1·bis · the corpus in force, against the one this runtime was built with ------------------
+  //
+  // **Triage cites no corpus, so this is not about the answer. It is about the ROW.** Every row of
+  // this chain pins the conditions it was produced under, and `state_hash` carries the snapshot
+  // label — so a cycle running on a runtime whose corpus has moved writes rows naming a corpus the
+  // organisation has already left. Two consequences follow and neither is cosmetic. The record is
+  // false about the world, in a system whose whole claim is that the chain says what happened. And
+  // `state_hash` is part of the replay cache key, so the call is stored under a state no later
+  // runtime will present: its replay is unreachable, which for a demonstration whose second half is
+  // served from the chain is a cache miss on the beat.
+  //
+  // **The runtime can be stale here even though an admission evicts on its way out**, because
+  // `evictRuntime` reaches only the process that ran it. A second process goes on holding the label
+  // it was built with until something makes it notice, and until this was added, nothing did: the
+  // drafting cycle and both knowledge-base routes compared the two, and triage was the one path
+  // that did not.
+  //
+  // It is asked AFTER the status check, so a ticket this cycle would skip is not refused for a
+  // reason that has nothing to do with it, and before anything is spent. The refusal evicts on its
+  // way out: noisy once, recovered on the next attempt.
+  //
+  // Read as a nullable head against the same sentinel `buildRuntime` uses, NOT through the refusing
+  // reader the drafting cycle calls. That one exists because a retrieval without a corpus cannot
+  // proceed; a triage without one can, and always could, and making it fail here would refuse an
+  // organisation that has simply never published an article.
+  refuseIfRuntimeIsStale(runtime, (await snapshotHeadFor(orgId)) ?? NO_KB_SNAPSHOT);
 
   const createdAt = ticket.created_at.getTime();
 
