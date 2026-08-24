@@ -132,7 +132,7 @@ const ADVANCE = `
   select article_id::text as article_id, canonical_key, body_sha256
     from kb_snapshot_advance($1::bigint, $2::jsonb)`;
 
-function refuse(code: 'E_FIELD_INVALID' | 'E_CONTRATO', detail: string, extra: Record<string, unknown> = {}): never {
+function refuse(code: 'E_FIELD_INVALID' | 'E_CONTRACT_VIOLATION', detail: string, extra: Record<string, unknown> = {}): never {
   throw new AppError(code, 422, detail, extra);
 }
 
@@ -146,13 +146,13 @@ function refuse(code: 'E_FIELD_INVALID' | 'E_CONTRATO', detail: string, extra: R
  *
  * The probe and the advance are not one transaction, so two admissions racing on the same day can
  * still both choose the same label. That is safe rather than merely unlikely: the loser meets
- * `E_KB_SNAPSHOT_YA_EXISTE` from inside the advance, which is a refusal and not a corruption, and
+ * `E_KB_SNAPSHOT_ALREADY_EXISTS` from inside the advance, which is a refusal and not a corruption, and
  * the retry probes again and takes the next suffix.
  *
  * **And the case where they choose DIFFERENT labels is the one this probe cannot cover at all**,
  * which is why it is not covered here. Two admissions that read one head and mint two successors
  * would both pass this function and both advance, stranding one of the two documents. That is caught
- * where it has to be — inside the advance, on a locked pointer, as `E_KB_SNAPSHOT_MOVIDO` — because
+ * where it has to be — inside the advance, on a locked pointer, as `E_KB_SNAPSHOT_MOVED` — because
  * no amount of probing from outside a transaction can decide it.
  */
 export async function nextSnapshotLabel(
@@ -238,7 +238,7 @@ export async function admitMaterial(
 
   const problems = admissibilityViolations(request);
   if (problems.length > 0) {
-    refuse('E_CONTRATO', `this document is not admissible: ${problems.join('; ')}`, {
+    refuse('E_CONTRACT_VIOLATION', `this document is not admissible: ${problems.join('; ')}`, {
       canonical_key: request.canonical_key,
       problems,
     });

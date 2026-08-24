@@ -14,6 +14,7 @@ Forward-only. One numbered file per change; no destructive edits to an applied m
 | `0008_triage_columns.sql` | the priority, escalation reason and clause with their one-directional invariant, the body digest and its index, and the triage writer's prompt grant |
 | `0009_kb_retrieval.sql` | the snapshot pointer, an immutable knowledge base, the answer's evidence columns and its citations as composite references, the application role's knowledge-base grants and the staff-only write policies, the gap's closure and its unreachable state, `kb_snapshot_advance`, the two ticket-state triggers, and the cross-tenant approver made unrepresentable |
 | `0010_kb_gap_cycle.sql` | the gap-record writer, the advance re-signed to derive everything from the row of the chain and to write the admission with it, the closure by verification, the revocation of every callable definer function from PUBLIC, `select` on `kb_admission`, the staff-only read policy on `kb_gap`, the admission's reference to the article it admitted, four bounds that were prose, and one ledger row per admission by index |
+| `0011_error_codes_in_english.sql` | every error code the schema raises, restated in English. Nine functions are replaced with `create or replace` because a raised code lives inside a function body and a body cannot be edited in place; nothing else changes — no table, column, index, policy, trigger or privilege — and the claim is checked rather than asserted, by comparing the regenerated schema against the previous one with the identifiers substituted |
 
 ## Every `security definer` function carries its own revocation
 
@@ -36,7 +37,7 @@ The applied schema is then diffed, in both directions and with no exception list
 
 ## Carrying a database forward across the envelope contract change
 
-`0009` lands together with a correction to the published agent output contract, and that correction moves `AGENT_IO_SCHEMA_SHA256`. `prompt_version.schema_hash` holds that digest and the row is immutable by trigger, so a database that already carries the triage prompt would otherwise refuse to start: the standing registration describes a contract this build no longer publishes, and the process raises `E_PROMPT_NO_REGISTRADO`.
+`0009` lands together with a correction to the published agent output contract, and that correction moves `AGENT_IO_SCHEMA_SHA256`. `prompt_version.schema_hash` holds that digest and the row is immutable by trigger, so a database that already carries the triage prompt would otherwise refuse to start: the standing registration describes a contract this build no longer publishes, and the process raises `E_PROMPT_NOT_REGISTERED`.
 
 **Nothing has to be done by hand, and two things must not be done at all.**
 

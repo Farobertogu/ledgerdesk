@@ -94,10 +94,15 @@ begin
   -- ANSWER and none of them compared either against the session. Measured, in a transaction that was
   -- rolled back: a Corella Health session read zero rows for a Northwind gap and then closed it.
   --
-  -- §2 of this file already set the standard — a function that took the organisation on trust would
-  -- let any holder of EXECUTE write a record into any tenant — and this function was the one that
-  -- did not meet it. "Nothing load-bearing is taken from the caller" was true of the FACTS it
-  -- decides on and false of the AUTHORISATION to decide them, which are not the same claim.
+  -- `kb_gap_open` had already set the standard where it was introduced — a function that took the
+  -- organisation on trust would let any holder of EXECUTE write a record into any tenant — and this
+  -- function was the one that did not meet it. "Nothing load-bearing is taken from the caller" was
+  -- true of the FACTS it decides on and false of the AUTHORISATION to decide them, which are not
+  -- the same claim.
+  --
+  -- The reference names the function rather than a section of the file it was first written in,
+  -- because that file is no longer this one: a pointer by position is true only where it was
+  -- written, and this paragraph is now two migrations away from what it was pointing at.
   --
   -- It is folded into the read rather than added as a check afterwards, so a foreign session is
   -- refused with "no such gap" — indistinguishable from one that does not exist, which is the
@@ -106,34 +111,34 @@ begin
     from kb_gap g
    where g.id = p_gap and g.org_id = (auth.jwt() ->> 'org_id')::uuid;
   if gap_org is null then
-    raise exception 'E_KB_CIERRE_SIN_HUECO';
+    raise exception 'E_KB_CLOSURE_GAP_NOT_VISIBLE';
   end if;
   if gap_state <> 'OPEN' then
-    raise exception 'E_KB_CIERRE_HUECO_NO_ABIERTO';
+    raise exception 'E_KB_CLOSURE_GAP_NOT_OPEN';
   end if;
   select t.org_id, r.kb_snapshot, r.grounded, r.validate_ledger_ref
     into res_org, res_snapshot, res_grounded, res_witness
     from response r join ticket t on t.id = r.ticket_id
    where r.id = p_response;
   if res_org is null then
-    raise exception 'E_KB_CIERRE_SIN_RESPUESTA';
+    raise exception 'E_KB_CLOSURE_RESPONSE_MISSING';
   end if;
   -- 2 · the same organisation. Checked before anything else is read out of the answer, so a caller
   --     cannot learn whether another tenant's answer exists from which refusal comes back.
   if res_org is distinct from gap_org then
-    raise exception 'E_KB_CIERRE_ORG_AJENA';
+    raise exception 'E_KB_CLOSURE_FOREIGN_ORG';
   end if;
   -- 1 · anchored, and with the row that paid for the verdict.
   if res_grounded is not true then
-    raise exception 'E_KB_CIERRE_SIN_ANCLAJE';
+    raise exception 'E_KB_CLOSURE_NOT_GROUNDED';
   end if;
   if res_witness is null then
-    raise exception 'E_KB_CIERRE_SIN_TESTIGO';
+    raise exception 'E_KB_CLOSURE_WITNESS_MISSING';
   end if;
   -- 3 · produced under the corpus in force, which is what "the current snapshot" means.
   select h.kb_snapshot into head from kb_snapshot_head h where h.org_id = gap_org;
   if head is null or res_snapshot is null or res_snapshot is distinct from head then
-    raise exception 'E_KB_CIERRE_SNAPSHOT_NO_VIGENTE';
+    raise exception 'E_KB_CLOSURE_SNAPSHOT_NOT_CURRENT';
   end if;
   -- 4 · and it cites material admitted against THIS gap, matched by the key that survives an
   --     advance and derived here rather than accepted from whoever called.
@@ -155,7 +160,7 @@ begin
         where m.gap_id = p_gap
           and m.org_id = gap_org
           and c.response_id = p_response) then
-    raise exception 'E_KB_CIERRE_SIN_CITA_ADMITIDA';
+    raise exception 'E_KB_CLOSURE_ADMISSION_NOT_CITED';
   end if;
   perform set_config('ledgerdesk.kb_gap_close', p_gap::text, true);
   update kb_gap set state = 'CLOSED', closed_by_check_at = now(), closing_ledger_ref = res_witness
@@ -168,7 +173,7 @@ CREATE FUNCTION public.kb_gap_mark_not_documentable(p_gap uuid, p_reason text) R
     AS $$
 begin
   if p_reason is null or btrim(p_reason) = '' then
-    raise exception 'E_KB_GAP_SIN_MOTIVO';
+    raise exception 'E_KB_GAP_REASON_MISSING';
   end if;
   perform set_config('ledgerdesk.kb_gap_close', p_gap::text, true);
   update kb_gap set state = 'NOT_DOCUMENTABLE', not_documentable_reason = p_reason
@@ -183,34 +188,34 @@ declare
   existing uuid;
 begin
   if p_org is distinct from (auth.jwt() ->> 'org_id')::uuid then
-    raise exception 'E_KB_HUECO_ORG_AJENA';
+    raise exception 'E_KB_GAP_FOREIGN_ORG';
   end if;
   -- Evidence: what was searched for, under which corpus, and what came back.
   if p_query_terms is null or p_query_terms !~ '[^[:space:]]' then
-    raise exception 'E_KB_HUECO_SIN_EVIDENCIA';
+    raise exception 'E_KB_GAP_EVIDENCE_MISSING';
   end if;
   if p_kb_snapshot is null or p_kb_snapshot !~ '[^[:space:]]' then
-    raise exception 'E_KB_HUECO_SIN_EVIDENCIA';
+    raise exception 'E_KB_GAP_EVIDENCE_MISSING';
   end if;
   if p_zero_match is null then
-    raise exception 'E_KB_HUECO_SIN_EVIDENCIA';
+    raise exception 'E_KB_GAP_EVIDENCE_MISSING';
   end if;
   if p_query_sha256 is null or p_query_sha256 !~ '^[a-f0-9]{64}$' then
-    raise exception 'E_KB_HUECO_SIN_EVIDENCIA';
+    raise exception 'E_KB_GAP_EVIDENCE_MISSING';
   end if;
   if p_question_sha256 is null or p_question_sha256 !~ '^[a-f0-9]{64}$' then
-    raise exception 'E_KB_HUECO_SIN_EVIDENCIA';
+    raise exception 'E_KB_GAP_EVIDENCE_MISSING';
   end if;
   -- The commitment: who closes it, and by when. Both are human facts and neither is invented here.
   if p_owner is null then
-    raise exception 'E_KB_HUECO_SIN_DUENO';
+    raise exception 'E_KB_GAP_OWNER_MISSING';
   end if;
   if p_committed_date is null then
-    raise exception 'E_KB_HUECO_SIN_FECHA';
+    raise exception 'E_KB_GAP_DATE_MISSING';
   end if;
   -- The rule for what the absence means, declared before the absence rather than after it.
   if p_null_rule is null or p_null_rule !~ '[^[:space:]]' then
-    raise exception 'E_KB_HUECO_SIN_REGLA_DE_NULO';
+    raise exception 'E_KB_GAP_NULL_RULE_MISSING';
   end if;
   -- The STANDING record for this question on this ticket, whatever corpus it was raised under. This
   -- is what makes a question re-asked after an admission the same episode rather than a new one:
@@ -250,7 +255,7 @@ begin
      where ticket_id = p_ticket and query_sha256 = p_query_sha256;
   end if;
   if existing is null then
-    raise exception 'E_KB_HUECO_NO_ESCRITO';
+    raise exception 'E_KB_GAP_NOT_WRITTEN';
   end if;
   return existing;
 end $_$;
@@ -261,7 +266,7 @@ CREATE FUNCTION public.kb_gap_state_guard() RETURNS trigger
 begin
   if new.state is distinct from old.state
      and coalesce(current_setting('ledgerdesk.kb_gap_close', true), '') <> old.id::text then
-    raise exception 'E_KB_GAP_CIERRE_NO_VERIFICADO';
+    raise exception 'E_KB_GAP_CLOSURE_NOT_VERIFIED';
   end if;
   return new;
 end $$;
@@ -289,10 +294,10 @@ begin
     from ledger_entry l
    where l.id = p_ledger and l.class = 'kb_admission';
   if row_org is null then
-    raise exception 'E_KB_AVANCE_SIN_FILA';
+    raise exception 'E_KB_ADVANCE_LEDGER_ROW_MISSING';
   end if;
   if row_org is distinct from (auth.jwt() ->> 'org_id')::uuid then
-    raise exception 'E_KB_AVANCE_ORG_AJENA';
+    raise exception 'E_KB_ADVANCE_FOREIGN_ORG';
   end if;
   snapshot_from := row_out ->> 'snapshot_from';
   snapshot_to   := row_out ->> 'snapshot_to';
@@ -300,13 +305,13 @@ begin
   gap           := (row_out ->> 'gap_id')::uuid;
   approver      := (row_out ->> 'approved_by')::uuid;
   if approver is null or auth.uid() is distinct from approver then
-    raise exception 'E_KB_AVANCE_SIN_APROBADOR';
+    raise exception 'E_KB_ADVANCE_CALLER_NOT_APPROVER';
   end if;
   if snapshot_from is null or snapshot_to is null or snapshot_from = snapshot_to then
-    raise exception 'E_KB_SNAPSHOT_NO_AVANZA';
+    raise exception 'E_KB_SNAPSHOT_NOT_ADVANCING';
   end if;
   if exists (select 1 from kb_article where org_id = row_org and kb_snapshot = snapshot_to) then
-    raise exception 'E_KB_SNAPSHOT_YA_EXISTE';
+    raise exception 'E_KB_SNAPSHOT_ALREADY_EXISTS';
   end if;
   -- The corpus this admission was decided under has to be the one still in force, and the pointer is
   -- LOCKED before that is asked.
@@ -326,36 +331,36 @@ begin
   -- refused by name. Read without the lock, both would pass the comparison and both would write.
   --
   -- **It is asked AFTER the two above, and the order is deliberate.** A retried admission — the same
-  -- chain row replayed — trips both this and `E_KB_SNAPSHOT_YA_EXISTE`, and "this admission has
+  -- chain row replayed — trips both this and `E_KB_SNAPSHOT_ALREADY_EXISTS`, and "this admission has
   -- already happened" is the more useful of the two things to be told. This one is for the case
   -- nobody has a word for yet, so it gets the message about the corpus having moved.
   select kb_snapshot into head_now from kb_snapshot_head where org_id = row_org for update;
   if head_now is distinct from snapshot_from then
-    raise exception 'E_KB_SNAPSHOT_MOVIDO';
+    raise exception 'E_KB_SNAPSHOT_MOVED';
   end if;
   -- The chain row has to hang off the gap's own ticket, or the admission does not appear in the
   -- panel that shows the ticket's chain and the evidence of the cycle is invisible where it is read.
   select g.ticket_id into gap_ticket from kb_gap g where g.id = gap and g.org_id = row_org;
   if gap_ticket is null then
-    raise exception 'E_KB_ADMISION_SIN_HUECO';
+    raise exception 'E_KB_ADMISSION_GAP_MISSING';
   end if;
   if row_ticket is distinct from gap_ticket then
-    raise exception 'E_KB_ADMISION_SIN_TICKET';
+    raise exception 'E_KB_ADMISSION_TICKET_MISMATCH';
   end if;
   if row_out -> 'provenance' is null or jsonb_typeof(row_out -> 'provenance') <> 'object' then
-    raise exception 'E_KB_ADMISION_SIN_PROVENIENCIA';
+    raise exception 'E_KB_ADMISSION_PROVENANCE_MISSING';
   end if;
   -- One body per admission, because one admission names one article: `kb_admission.article_id` is a
   -- single reference and a list would have to pick one of its own elements to put in it.
   if p_admitted is null or jsonb_typeof(p_admitted) <> 'array' or jsonb_array_length(p_admitted) <> 1 then
-    raise exception 'E_KB_ADMISION_NO_ES_UNA';
+    raise exception 'E_KB_ADMISSION_NOT_EXACTLY_ONE';
   end if;
   item := p_admitted -> 0;
   if item ->> 'canonical_key' is null or item ->> 'title' is null or item ->> 'body' is null then
-    raise exception 'E_KB_ADMISION_INCOMPLETA';
+    raise exception 'E_KB_ADMISSION_INCOMPLETE';
   end if;
   if item -> 'citable' is null or jsonb_typeof(item -> 'citable') <> 'boolean' then
-    raise exception 'E_KB_ADMISION_SIN_CITABILIDAD';
+    raise exception 'E_KB_ADMISSION_CITABLE_MISSING';
   end if;
   body := item ->> 'body';
   -- A body that does not fit whole into one excerpt is refused rather than trimmed. The retrieval
@@ -364,11 +369,11 @@ begin
   -- to close would close on padding. 2048 is `EXCERPT_MAX` of the published envelope contract; the
   -- two are compared by a test rather than kept in step by hand.
   if length(body) > 2048 then
-    raise exception 'E_KB_ADMISION_NO_CABE_EN_EXTRACTO';
+    raise exception 'E_KB_ADMISSION_EXCEEDS_EXCERPT';
   end if;
   digest := encode(sha256(convert_to(body, 'UTF8')), 'hex');
   if row_out ->> 'content_hash' is distinct from digest then
-    raise exception 'E_KB_ADMISION_HASH_NO_CUADRA';
+    raise exception 'E_KB_ADMISSION_HASH_MISMATCH';
   end if;
   -- The complete copy, exactly as 0009 argues it: a snapshot is a set and never a delta.
   insert into kb_article (id, org_id, kb_snapshot, canonical_key, title, body, body_sha256, citable)
@@ -399,10 +404,10 @@ declare
   item    jsonb;
 begin
   if p_from = p_to then
-    raise exception 'E_KB_SNAPSHOT_NO_AVANZA';
+    raise exception 'E_KB_SNAPSHOT_NOT_ADVANCING';
   end if;
   if exists (select 1 from kb_article where org_id = p_org and kb_snapshot = p_to) then
-    raise exception 'E_KB_SNAPSHOT_YA_EXISTE';
+    raise exception 'E_KB_SNAPSHOT_ALREADY_EXISTS';
   end if;
   insert into kb_article (id, org_id, kb_snapshot, canonical_key, title, body, body_sha256, citable)
   select gen_random_uuid(), org_id, p_to, canonical_key, title, body, body_sha256, citable
@@ -460,7 +465,7 @@ begin
        new.input_hash        is null or new.input_path      is null or
        new.prompt_hash       is null or new.response_hash   is null or
        new.state_hash        is null) then
-    raise exception 'E_LEDGER_FILA_INCOMPLETA';
+    raise exception 'E_LEDGER_ROW_INCOMPLETE';
   end if;
   -- Presence of the keys each class owns. The database guarantees that nothing is missing;
   -- the writer validates the full typing against quality/schemas/ledger_class/<class>.schema.json.
@@ -486,18 +491,18 @@ begin
        select 1 from unnest(required) as k
         where k <> 'failing_conjunct'
           and (new.output -> k is null or jsonb_typeof(new.output -> k) = 'null')) then
-    raise exception 'E_LEDGER_FILA_INCOMPLETA';
+    raise exception 'E_LEDGER_ROW_INCOMPLETE';
   end if;
   if new.class = 'promotion_attempt' then
     if (new.output -> 'failing_conjunct') is null then
-      raise exception 'E_LEDGER_FILA_INCOMPLETA';
+      raise exception 'E_LEDGER_ROW_INCOMPLETE';
     end if;
     if jsonb_typeof(new.output -> 'failing_conjunct') = 'null'
        and (new.output ->> 'outcome') is distinct from 'PROMOTED' then
-      raise exception 'E_LEDGER_FILA_INCOMPLETA';
+      raise exception 'E_LEDGER_ROW_INCOMPLETE';
     end if;
     if (new.output ->> 'outcome') = 'ABORTED' and (new.output -> 'abort_reason') is null then
-      raise exception 'E_LEDGER_FILA_INCOMPLETA';
+      raise exception 'E_LEDGER_ROW_INCOMPLETE';
     end if;
   end if;
   return new;
@@ -508,7 +513,7 @@ CREATE FUNCTION public.prompt_version_only_promoted_at() RETURNS trigger
     AS $$
 begin
   if (to_jsonb(new) - 'promoted_at') is distinct from (to_jsonb(old) - 'promoted_at') then
-    raise exception 'E_PROMPT_VERSION_INMUTABLE';
+    raise exception 'E_PROMPT_VERSION_IMMUTABLE';
   end if;
   return new;
 end $$;
@@ -522,13 +527,13 @@ begin
         where r.ticket_id = new.id
           and r.approved_by is not null
           and r.sent_at is not null) then
-    raise exception 'E_TICKET_ENVIO_SIN_APROBACION';
+    raise exception 'E_TICKET_SENT_NOT_APPROVED';
   end if;
   if new.status = 'AWAITING_AGENT' and not exists (
        select 1 from response r
         where r.ticket_id = new.id
           and r.grounded is true) then
-    raise exception 'E_TICKET_ESPERA_SIN_ANCLAJE';
+    raise exception 'E_TICKET_AWAITING_NOT_GROUNDED';
   end if;
   return new;
 end $$;

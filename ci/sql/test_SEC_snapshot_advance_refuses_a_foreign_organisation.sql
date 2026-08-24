@@ -49,7 +49,7 @@ declare
   -- A destination label OWNED BY THIS CASE, and the qualifier is not decoration. The first version
   -- reached for `kb-2026-11-01`, which reads like a free label and is not:
   -- `test_SEC_gap_closure_refuses_a_ledger_row_that_proves_nothing` stands articles under it for this
-  -- same organisation and runs earlier in the list, so case 11 met `E_KB_SNAPSHOT_YA_EXISTE` —
+  -- same organisation and runs earlier in the list, so case 11 met `E_KB_SNAPSHOT_ALREADY_EXISTS` —
   -- correctly, and from the check it was written to prove could not answer. A label nobody else can
   -- reach for is what makes the case measure the refusal it names.
   v_late       text := 'kb-2026-12-01-advance-race';
@@ -127,7 +127,7 @@ begin
     perform * from kb_snapshot_advance(v_row, v_admitted);
     raise exception 'test_SEC_snapshot_advance_refuses_a_foreign_organisation: another organisation advanced this corpus';
   exception when raise_exception then
-    if sqlerrm not like '%E_KB_AVANCE_ORG_AJENA%' then raise; end if;
+    if sqlerrm not like '%E_KB_ADVANCE_FOREIGN_ORG%' then raise; end if;
   end;
 
   -- 2 · The right organisation, the wrong person. Whoever approves is whoever executes.
@@ -137,7 +137,7 @@ begin
     perform * from kb_snapshot_advance(v_row, v_admitted);
     raise exception 'test_SEC_snapshot_advance_refuses_a_foreign_organisation: somebody other than the approver executed the admission';
   exception when raise_exception then
-    if sqlerrm not like '%E_KB_AVANCE_SIN_APROBADOR%' then raise; end if;
+    if sqlerrm not like '%E_KB_ADVANCE_CALLER_NOT_APPROVER%' then raise; end if;
   end;
 
   -- 3 · The machine actor: an organisation, a role, and no subject. It fails the tie by
@@ -148,7 +148,7 @@ begin
     perform * from kb_snapshot_advance(v_row, v_admitted);
     raise exception 'test_SEC_snapshot_advance_refuses_a_foreign_organisation: a session with no subject admitted material';
   exception when raise_exception then
-    if sqlerrm not like '%E_KB_AVANCE_SIN_APROBADOR%' then raise; end if;
+    if sqlerrm not like '%E_KB_ADVANCE_CALLER_NOT_APPROVER%' then raise; end if;
   end;
 
   -- From here on the session is the approver's own.
@@ -160,7 +160,7 @@ begin
     perform * from kb_snapshot_advance(v_wrong_row, v_admitted);
     raise exception 'test_SEC_snapshot_advance_refuses_a_foreign_organisation: a checkpoint row was accepted as an admission';
   exception when raise_exception then
-    if sqlerrm not like '%E_KB_AVANCE_SIN_FILA%' then raise; end if;
+    if sqlerrm not like '%E_KB_ADVANCE_LEDGER_ROW_MISSING%' then raise; end if;
   end;
 
   -- 5 · Citability has no default. The original advance treated an absent flag as "yes", which is
@@ -172,7 +172,7 @@ begin
       'body', v_body)));
     raise exception 'test_SEC_snapshot_advance_refuses_a_foreign_organisation: a document with no citability decision was admitted';
   exception when raise_exception then
-    if sqlerrm not like '%E_KB_ADMISION_SIN_CITABILIDAD%' then raise; end if;
+    if sqlerrm not like '%E_KB_ADMISSION_CITABLE_MISSING%' then raise; end if;
   end;
 
   -- 6 · The declared hash has to be the hash of the body that is actually inserted. Without this the
@@ -185,7 +185,7 @@ begin
       'citable', true)));
     raise exception 'test_SEC_snapshot_advance_refuses_a_foreign_organisation: a body was admitted under a hash of a different body';
   exception when raise_exception then
-    if sqlerrm not like '%E_KB_ADMISION_HASH_NO_CUADRA%' then raise; end if;
+    if sqlerrm not like '%E_KB_ADMISSION_HASH_MISMATCH%' then raise; end if;
   end;
 
   -- 7 · A body that does not fit whole into one excerpt is refused rather than trimmed.
@@ -197,7 +197,7 @@ begin
       'citable', true)));
     raise exception 'test_SEC_snapshot_advance_refuses_a_foreign_organisation: a body longer than an excerpt was admitted';
   exception when raise_exception then
-    if sqlerrm not like '%E_KB_ADMISION_NO_CABE_EN_EXTRACTO%' then raise; end if;
+    if sqlerrm not like '%E_KB_ADMISSION_EXCEEDS_EXCERPT%' then raise; end if;
   end;
 
   -- 8 · One body per admission: the admission names a single article and a list would have to pick
@@ -206,7 +206,7 @@ begin
     perform * from kb_snapshot_advance(v_row, v_admitted || v_admitted);
     raise exception 'test_SEC_snapshot_advance_refuses_a_foreign_organisation: two documents were admitted under one admission';
   exception when raise_exception then
-    if sqlerrm not like '%E_KB_ADMISION_NO_ES_UNA%' then raise; end if;
+    if sqlerrm not like '%E_KB_ADMISSION_NOT_EXACTLY_ONE%' then raise; end if;
   end;
 
   -- 9 · And the legitimate one goes through, which is what shows the door is still open.
@@ -246,7 +246,7 @@ begin
     perform * from kb_snapshot_advance(v_row, v_admitted);
     raise exception 'test_SEC_snapshot_advance_refuses_a_foreign_organisation: an advance into an existing snapshot was accepted';
   exception when raise_exception then
-    if sqlerrm not like '%E_KB_SNAPSHOT_YA_EXISTE%' then raise; end if;
+    if sqlerrm not like '%E_KB_SNAPSHOT_ALREADY_EXISTS%' then raise; end if;
   end;
 
   -- 11 · The lost update: a second admission decided under the SAME corpus, refused rather than
@@ -254,7 +254,7 @@ begin
   --
   -- This is the shape the console produces the moment two gaps are worked at once, which ADR-026 §8
   -- says has to be possible in either order. Both admissions read one head and mint two DIFFERENT
-  -- successors — so neither trips `E_KB_SNAPSHOT_YA_EXISTE`, which only sees a label that already
+  -- successors — so neither trips `E_KB_SNAPSHOT_ALREADY_EXISTS`, which only sees a label that already
   -- exists. Before the pointer was locked and compared, both advanced: the second overwrote the
   -- first, and the document the first admitted stopped being in force while every record of it — the
   -- chain row, the admission row, the approver — went on saying it had been admitted. Nothing was
@@ -298,7 +298,7 @@ begin
     perform * from kb_snapshot_advance(v_late_row, v_admitted);
     raise exception 'test_SEC_snapshot_advance_refuses_a_foreign_organisation: an admission decided under a corpus that had already moved advanced anyway, stranding the document admitted before it';
   exception when raise_exception then
-    if sqlerrm not like '%E_KB_SNAPSHOT_MOVIDO%' then raise; end if;
+    if sqlerrm not like '%E_KB_SNAPSHOT_MOVED%' then raise; end if;
   end;
 
   -- And the half that matters more than the refusal: the FIRST admission is still the one in force.

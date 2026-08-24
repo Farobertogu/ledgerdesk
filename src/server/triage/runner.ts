@@ -100,13 +100,13 @@ import type { TicketState } from '@/server/states';
 /**
  * A failure the cycle answers by asking again with a fresh seed.
  *
- * `E_SCHEMA` is here because a model that answered badly may answer well; `E_MODELO_INESPERADO` is
+ * `E_SCHEMA` is here because a model that answered badly may answer well; `E_MODEL_UNEXPECTED` is
  * here because the row is already written and the pin is what raised — the call happened and can
  * happen again under the model that was asked for. `E_EMPTY_AFTER_REDACTION` is deliberately NOT
  * here: a body that redacted to nothing will redact to nothing again, and retrying it four times
  * is four ways of learning the same thing.
  */
-const RETRYABLE = new Set(['E_SCHEMA', 'E_PROVIDER_TIMEOUT', 'E_PROVIDER_FAILED', 'E_MODELO_INESPERADO']);
+const RETRYABLE = new Set(['E_SCHEMA', 'E_PROVIDER_TIMEOUT', 'E_PROVIDER_FAILED', 'E_MODEL_UNEXPECTED']);
 
 /**
  * A failure that says the system could not try, which is not one of the three the guard on

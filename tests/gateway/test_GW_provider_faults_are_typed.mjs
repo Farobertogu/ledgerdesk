@@ -131,7 +131,7 @@ test('a model other than the one requested is recorded, and raises only under a 
   assert.equal(recorded.model_returned, 'someone-elses-model');
 
   // With a pin: an error — and the row is written all the same.
-  const error = await refusedWith('E_MODELO_INESPERADO', () =>
+  const error = await refusedWith('E_MODEL_UNEXPECTED', () =>
     gateway.call(
       baseCall({
         prompt_version_id: PROMPT_ID,

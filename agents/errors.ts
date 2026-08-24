@@ -15,10 +15,14 @@
  * construction and neither substitutes for the other. A gateway refusal that a console has to
  * report is translated at the boundary, never renamed here.
  *
- * **One code is not this register's to name.** `E_MODELO_INESPERADO` is fixed by the specification
- * of the agent contract — the row is written and the pin is what raises — so it is reused verbatim
- * rather than given an English synonym that would then have to be reconciled with the source. Every
- * other code below is new here and is named in the language the rest of this tree is written in.
+ * **One code is not this register's to define.** `E_MODEL_UNEXPECTED` names a condition the agent
+ * contract fixes — the row is written and the pin is what raises — so this file owns its spelling
+ * and not its meaning, and it is the one entry below that has to be reconciled with that contract
+ * whenever either of them moves. Every other code is this register's own from end to end.
+ *
+ * **Every code here is spelled in English**, as is every code the instrument raises, so that a
+ * refusal reads the same in a log line, in a test name and in the sentence somebody says out loud
+ * while pointing at it. That is the whole of the rule; there is no exempt name.
  */
 export const GATEWAY_ERROR_CODES = [
   /** The configuration cannot hold the guarantees this module exists to hold. */
@@ -46,7 +50,7 @@ export const GATEWAY_ERROR_CODES = [
   /** The provider answered with a failure, or with a response that is not of the declared shape. */
   'E_PROVIDER_FAILED',
   /** The response carried a model id other than the one requested, under a declared pin. */
-  'E_MODELO_INESPERADO',
+  'E_MODEL_UNEXPECTED',
   /** The chain could not be extended, so the call is not recorded and is reported as failed. */
   'E_LEDGER_WRITE_FAILED',
   /**

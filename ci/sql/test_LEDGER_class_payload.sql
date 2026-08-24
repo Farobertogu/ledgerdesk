@@ -75,8 +75,8 @@ begin
       $q$ using '11111111-1111-4111-8111-111111111111'::uuid, col;
     exception when others then
       ok := true;
-      if position('E_LEDGER_FILA_INCOMPLETA' in sqlerrm) = 0 then
-        raise exception 'test_LEDGER_class_payload/agent_call without %: rejected with "%" instead of E_LEDGER_FILA_INCOMPLETA', col, sqlerrm;
+      if position('E_LEDGER_ROW_INCOMPLETE' in sqlerrm) = 0 then
+        raise exception 'test_LEDGER_class_payload/agent_call without %: rejected with "%" instead of E_LEDGER_ROW_INCOMPLETE', col, sqlerrm;
       end if;
     end;
     if not ok then
@@ -123,7 +123,7 @@ select pg_temp.expect_reject(
              "power":{"delta":0.01,"ci_low":-0.02,"ci_high":0.04,"ci_unit":"clan","mde_n":0.06,"mdi":0.05},
              "outcome":"REJECTED", "interpretation":"INFORMATIVE-NULL"}'::jsonb,
            'GENESIS', repeat('e', 64))$stmt$,
-  'E_LEDGER_FILA_INCOMPLETA',
+  'E_LEDGER_ROW_INCOMPLETE',
   'test_LEDGER_class_payload/promotion_attempt REJECTED with failing_conjunct null');
 
 -- 5 · an abort must carry its reason from the closed taxonomy, or it is not a row of the chain
@@ -143,7 +143,7 @@ select pg_temp.expect_reject(
              "power":{"delta":0,"ci_low":0,"ci_high":0,"ci_unit":"clan","mde_n":0,"mdi":0.05},
              "outcome":"ABORTED", "interpretation":"UNDERPOWERED"}'::jsonb,
            'GENESIS', repeat('e', 64))$stmt$,
-  'E_LEDGER_FILA_INCOMPLETA',
+  'E_LEDGER_ROW_INCOMPLETE',
   'test_LEDGER_class_payload/ABORTED without abort_reason');
 
 -- 6 · a per-item agreement row must name the sealed set it was measured over
@@ -262,8 +262,8 @@ begin
                   c.payload - k;
       exception when others then
         ok := true;
-        if position('E_LEDGER_FILA_INCOMPLETA' in sqlerrm) = 0 then
-          raise exception 'test_LEDGER_class_payload/% without %: rejected with "%" instead of E_LEDGER_FILA_INCOMPLETA', c.class, k, sqlerrm;
+        if position('E_LEDGER_ROW_INCOMPLETE' in sqlerrm) = 0 then
+          raise exception 'test_LEDGER_class_payload/% without %: rejected with "%" instead of E_LEDGER_ROW_INCOMPLETE', c.class, k, sqlerrm;
         end if;
       end;
       if not ok then

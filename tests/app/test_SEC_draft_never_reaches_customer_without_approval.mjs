@@ -144,7 +144,7 @@ describe('test_SEC_draft_never_reaches_customer_without_approval', () => {
         try {
           await client.query("update ticket set status = 'SENT' where id = $1", [ticketId]);
         } catch (error) {
-          assert.match(error.message, /E_TICKET_ENVIO_SIN_APROBACION/, because);
+          assert.match(error.message, /E_TICKET_SENT_NOT_APPROVED/, because);
           return;
         }
         assert.fail(`${because}: SENT was accepted`);

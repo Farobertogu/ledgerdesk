@@ -125,7 +125,7 @@ const OPEN = `
                      $11, $12::uuid[], $13::bigint) as gap_id`;
 
 function refuse(detail: string, extra: Record<string, unknown> = {}): never {
-  throw new AppError('E_CONTRATO', 422, `the gap channel refused a record: ${detail}`, extra);
+  throw new AppError('E_CONTRACT_VIOLATION', 422, `the gap channel refused a record: ${detail}`, extra);
 }
 
 /**

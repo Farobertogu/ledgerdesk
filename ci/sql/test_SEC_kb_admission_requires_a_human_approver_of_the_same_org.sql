@@ -121,7 +121,7 @@ begin
     update kb_gap set state = 'CLOSED' where id = v_gap;
     raise exception 'test_SEC_kb_admission_requires_a_human_approver_of_the_same_org: a gap changed state with no marker set';
   exception when raise_exception then
-    if sqlerrm not like '%E_KB_GAP_CIERRE_NO_VERIFICADO%' then raise; end if;
+    if sqlerrm not like '%E_KB_GAP_CLOSURE_NOT_VERIFIED%' then raise; end if;
   end;
 
   -- 7b · And the second: a CLOSED row without its witnesses is refused by the check, even for a
@@ -161,7 +161,7 @@ begin
     perform kb_gap_mark_not_documentable(v_gap, '   ');
     raise exception 'test_SEC_kb_admission_requires_a_human_approver_of_the_same_org: a gap was marked not documentable with no reason';
   exception when raise_exception then
-    if sqlerrm not like '%E_KB_GAP_SIN_MOTIVO%' then raise; end if;
+    if sqlerrm not like '%E_KB_GAP_REASON_MISSING%' then raise; end if;
   end;
 
   perform kb_gap_mark_not_documentable(v_gap, 'no admissible source states a retention period');
@@ -279,7 +279,7 @@ begin
     update ticket set status = 'AWAITING_AGENT' where id = v_ticket;
     raise exception 'test_SEC_kb_admission_requires_a_human_approver_of_the_same_org: AWAITING_AGENT with no response at all';
   exception when raise_exception then
-    if sqlerrm not like '%E_TICKET_ESPERA_SIN_ANCLAJE%' then raise; end if;
+    if sqlerrm not like '%E_TICKET_AWAITING_NOT_GROUNDED%' then raise; end if;
   end;
 
   insert into response (id, ticket_id, draft, kb_snapshot, grounded)
@@ -289,7 +289,7 @@ begin
     update ticket set status = 'AWAITING_AGENT' where id = v_ticket;
     raise exception 'test_SEC_kb_admission_requires_a_human_approver_of_the_same_org: AWAITING_AGENT with an ungrounded response';
   exception when raise_exception then
-    if sqlerrm not like '%E_TICKET_ESPERA_SIN_ANCLAJE%' then raise; end if;
+    if sqlerrm not like '%E_TICKET_AWAITING_NOT_GROUNDED%' then raise; end if;
   end;
 
   -- SENT means a person approved it and it went. Neither half alone will do.
@@ -297,7 +297,7 @@ begin
     update ticket set status = 'SENT' where id = v_ticket;
     raise exception 'test_SEC_kb_admission_requires_a_human_approver_of_the_same_org: SENT with nothing approved';
   exception when raise_exception then
-    if sqlerrm not like '%E_TICKET_ENVIO_SIN_APROBACION%' then raise; end if;
+    if sqlerrm not like '%E_TICKET_SENT_NOT_APPROVED%' then raise; end if;
   end;
 
   update response set approved_by = v_staff where id = v_response;
@@ -305,7 +305,7 @@ begin
     update ticket set status = 'SENT' where id = v_ticket;
     raise exception 'test_SEC_kb_admission_requires_a_human_approver_of_the_same_org: SENT with an approval and no send';
   exception when raise_exception then
-    if sqlerrm not like '%E_TICKET_ENVIO_SIN_APROBACION%' then raise; end if;
+    if sqlerrm not like '%E_TICKET_SENT_NOT_APPROVED%' then raise; end if;
   end;
 
   -- Both halves, and the state becomes reachable. `no_autosend` on the response is the other end of
@@ -363,7 +363,7 @@ begin
     perform kb_snapshot_advance(v_org, 'kb-2026-08-01', 'kb-2026-08-99');
     raise exception 'test_SEC_kb_admission_requires_a_human_approver_of_the_same_org: an advance into an existing snapshot was accepted';
   exception when raise_exception then
-    if sqlerrm not like '%E_KB_SNAPSHOT_YA_EXISTE%' then raise; end if;
+    if sqlerrm not like '%E_KB_SNAPSHOT_ALREADY_EXISTS%' then raise; end if;
   end;
 
   -- And an advance that changes nothing is refused too.
@@ -371,7 +371,7 @@ begin
     perform kb_snapshot_advance(v_org, 'kb-2026-08-01', 'kb-2026-08-01');
     raise exception 'test_SEC_kb_admission_requires_a_human_approver_of_the_same_org: an advance from a snapshot to itself was accepted';
   exception when raise_exception then
-    if sqlerrm not like '%E_KB_SNAPSHOT_NO_AVANZA%' then raise; end if;
+    if sqlerrm not like '%E_KB_SNAPSHOT_NOT_ADVANCING%' then raise; end if;
   end;
 
   -- Put the corpus back where the rest of the suite expects it. The copied rows stay, because

@@ -110,7 +110,7 @@ const GROUND_CLAUSE = 'draft_not_grounded';
  * the same price. Four attempts would be four ways of learning the same thing. It escalates on the
  * first occurrence.
  */
-const RETRYABLE = new Set(['E_SCHEMA', 'E_PROVIDER_TIMEOUT', 'E_PROVIDER_FAILED', 'E_MODELO_INESPERADO']);
+const RETRYABLE = new Set(['E_SCHEMA', 'E_PROVIDER_TIMEOUT', 'E_PROVIDER_FAILED', 'E_MODEL_UNEXPECTED']);
 
 /** A failure that says the system could not try. The ticket does not move. */
 const SYSTEMIC = new Set([

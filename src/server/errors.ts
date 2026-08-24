@@ -51,7 +51,7 @@ export const APP_ERROR_CODES = [
    * Nothing is trimmed and nothing is filled in on the way to it. A receiver that shortened an
    * over-long field would store a sentence its author did not write.
    */
-  'E_CONTRATO',
+  'E_CONTRACT_VIOLATION',
   /**
    * The organisation has declared no knowledge-gap commitment, so no record for it could name an
    * owner or a date.
