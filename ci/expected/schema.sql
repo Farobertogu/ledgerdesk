@@ -73,6 +73,95 @@ begin
    where id = p_gap;
   perform set_config('ledgerdesk.kb_gap_close', '', true);
 end $$;
+CREATE FUNCTION public.kb_gap_close_by_verification(p_gap uuid, p_response uuid) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+declare
+  gap_org      uuid;
+  gap_state    kb_gap_state;
+  res_org      uuid;
+  res_snapshot text;
+  res_grounded boolean;
+  res_witness  bigint;
+  head         text;
+begin
+  -- 0 · the caller's own organisation, folded into the read of the gap itself.
+  --
+  -- **This is `security definer`, so RLS does not apply inside it — and without this line the
+  -- function undid the policy that hides the row.** A session of another tenant could not SEE this
+  -- gap under RLS and could still close it, because every check below compares the gap against the
+  -- ANSWER and none of them compared either against the session. Measured, in a transaction that was
+  -- rolled back: a Corella Health session read zero rows for a Northwind gap and then closed it.
+  --
+  -- §2 of this file already set the standard — a function that took the organisation on trust would
+  -- let any holder of EXECUTE write a record into any tenant — and this function was the one that
+  -- did not meet it. "Nothing load-bearing is taken from the caller" was true of the FACTS it
+  -- decides on and false of the AUTHORISATION to decide them, which are not the same claim.
+  --
+  -- It is folded into the read rather than added as a check afterwards, so a foreign session is
+  -- refused with "no such gap" — indistinguishable from one that does not exist, which is the
+  -- doctrine the application surface already applies at this boundary.
+  select g.org_id, g.state into gap_org, gap_state
+    from kb_gap g
+   where g.id = p_gap and g.org_id = (auth.jwt() ->> 'org_id')::uuid;
+  if gap_org is null then
+    raise exception 'E_KB_CIERRE_SIN_HUECO';
+  end if;
+  if gap_state <> 'OPEN' then
+    raise exception 'E_KB_CIERRE_HUECO_NO_ABIERTO';
+  end if;
+  select t.org_id, r.kb_snapshot, r.grounded, r.validate_ledger_ref
+    into res_org, res_snapshot, res_grounded, res_witness
+    from response r join ticket t on t.id = r.ticket_id
+   where r.id = p_response;
+  if res_org is null then
+    raise exception 'E_KB_CIERRE_SIN_RESPUESTA';
+  end if;
+  -- 2 · the same organisation. Checked before anything else is read out of the answer, so a caller
+  --     cannot learn whether another tenant's answer exists from which refusal comes back.
+  if res_org is distinct from gap_org then
+    raise exception 'E_KB_CIERRE_ORG_AJENA';
+  end if;
+  -- 1 · anchored, and with the row that paid for the verdict.
+  if res_grounded is not true then
+    raise exception 'E_KB_CIERRE_SIN_ANCLAJE';
+  end if;
+  if res_witness is null then
+    raise exception 'E_KB_CIERRE_SIN_TESTIGO';
+  end if;
+  -- 3 · produced under the corpus in force, which is what "the current snapshot" means.
+  select h.kb_snapshot into head from kb_snapshot_head h where h.org_id = gap_org;
+  if head is null or res_snapshot is null or res_snapshot is distinct from head then
+    raise exception 'E_KB_CIERRE_SNAPSHOT_NO_VIGENTE';
+  end if;
+  -- 4 · and it cites material admitted against THIS gap, matched by the key that survives an
+  --     advance and derived here rather than accepted from whoever called.
+  --
+  --     The chain of joins is the whole argument: an admission for this gap names an article; that
+  --     article carries a canonical key; the corpus in force carries a row under the same key; and
+  --     the answer cites THAT row. Nothing in it is a value the caller supplied.
+  if not exists (
+       select 1
+         from kb_admission m
+         join kb_article admitted
+           on admitted.id = m.article_id and admitted.kb_snapshot = m.snapshot_to
+         join kb_article standing
+           on standing.canonical_key = admitted.canonical_key
+          and standing.org_id = gap_org
+          and standing.kb_snapshot = res_snapshot
+         join response_citation c
+           on c.kb_article_id = standing.id and c.kb_snapshot = standing.kb_snapshot
+        where m.gap_id = p_gap
+          and m.org_id = gap_org
+          and c.response_id = p_response) then
+    raise exception 'E_KB_CIERRE_SIN_CITA_ADMITIDA';
+  end if;
+  perform set_config('ledgerdesk.kb_gap_close', p_gap::text, true);
+  update kb_gap set state = 'CLOSED', closed_by_check_at = now(), closing_ledger_ref = res_witness
+   where id = p_gap;
+  perform set_config('ledgerdesk.kb_gap_close', '', true);
+end $$;
 CREATE FUNCTION public.kb_gap_mark_not_documentable(p_gap uuid, p_reason text) RETURNS void
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public', 'pg_temp'
@@ -86,6 +175,85 @@ begin
    where id = p_gap and state = 'OPEN';
   perform set_config('ledgerdesk.kb_gap_close', '', true);
 end $$;
+CREATE FUNCTION public.kb_gap_open(p_gap uuid, p_org uuid, p_ticket uuid, p_query_terms text, p_kb_snapshot text, p_zero_match boolean, p_query_sha256 text, p_question_sha256 text, p_owner uuid, p_committed_date date, p_null_rule text, p_divergent uuid[] DEFAULT NULL::uuid[], p_ledger bigint DEFAULT NULL::bigint) RETURNS uuid
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $_$
+declare
+  existing uuid;
+begin
+  if p_org is distinct from (auth.jwt() ->> 'org_id')::uuid then
+    raise exception 'E_KB_HUECO_ORG_AJENA';
+  end if;
+  -- Evidence: what was searched for, under which corpus, and what came back.
+  if p_query_terms is null or p_query_terms !~ '[^[:space:]]' then
+    raise exception 'E_KB_HUECO_SIN_EVIDENCIA';
+  end if;
+  if p_kb_snapshot is null or p_kb_snapshot !~ '[^[:space:]]' then
+    raise exception 'E_KB_HUECO_SIN_EVIDENCIA';
+  end if;
+  if p_zero_match is null then
+    raise exception 'E_KB_HUECO_SIN_EVIDENCIA';
+  end if;
+  if p_query_sha256 is null or p_query_sha256 !~ '^[a-f0-9]{64}$' then
+    raise exception 'E_KB_HUECO_SIN_EVIDENCIA';
+  end if;
+  if p_question_sha256 is null or p_question_sha256 !~ '^[a-f0-9]{64}$' then
+    raise exception 'E_KB_HUECO_SIN_EVIDENCIA';
+  end if;
+  -- The commitment: who closes it, and by when. Both are human facts and neither is invented here.
+  if p_owner is null then
+    raise exception 'E_KB_HUECO_SIN_DUENO';
+  end if;
+  if p_committed_date is null then
+    raise exception 'E_KB_HUECO_SIN_FECHA';
+  end if;
+  -- The rule for what the absence means, declared before the absence rather than after it.
+  if p_null_rule is null or p_null_rule !~ '[^[:space:]]' then
+    raise exception 'E_KB_HUECO_SIN_REGLA_DE_NULO';
+  end if;
+  -- The STANDING record for this question on this ticket, whatever corpus it was raised under. This
+  -- is what makes a question re-asked after an admission the same episode rather than a new one:
+  -- the corpus moved, the query digest moved with it, and the question did not.
+  select id into existing from kb_gap
+   where ticket_id = p_ticket and question_sha256 = p_question_sha256 and state <> 'CLOSED';
+  if existing is not null then
+    return existing;
+  end if;
+  -- And the record for this exact query under this exact corpus, in whatever state it is in. 0009's
+  -- uniqueness forbids a second one, so a retried emission finds its own row here.
+  --
+  -- **Declared residual**: when that row is CLOSED, this returns a closed episode to a live
+  -- escalation. It is honest — same question, same corpus, already adjudicated — and it is visible:
+  -- a supervisor following the link from an escalated ticket lands on a record marked CLOSED. The
+  -- alternative would be writing a second row for a pair the frozen constraint says is one, which is
+  -- not this migration's to change. ADR-026 §2 records it.
+  select id into existing from kb_gap
+   where ticket_id = p_ticket and query_sha256 = p_query_sha256;
+  if existing is not null then
+    return existing;
+  end if;
+  -- No conflict target: two uniqueness rules can refuse this row now, and a target would name only
+  -- one of them. Whichever refuses, the read-backs below find the row that stands.
+  insert into kb_gap (id, org_id, ticket_id, query_terms, kb_snapshot, zero_match, query_sha256,
+                      question_sha256, divergent_kb_ids, owner_id, committed_date, null_rule, state,
+                      opened_ledger_ref)
+  values (p_gap, p_org, p_ticket, p_query_terms, p_kb_snapshot, p_zero_match, p_query_sha256,
+          p_question_sha256, p_divergent, p_owner, p_committed_date, p_null_rule, 'OPEN', p_ledger)
+  on conflict do nothing;
+  -- Read back in the same order the two checks above ask in, because a concurrent writer may have
+  -- won either race.
+  select id into existing from kb_gap
+   where ticket_id = p_ticket and question_sha256 = p_question_sha256 and state <> 'CLOSED';
+  if existing is null then
+    select id into existing from kb_gap
+     where ticket_id = p_ticket and query_sha256 = p_query_sha256;
+  end if;
+  if existing is null then
+    raise exception 'E_KB_HUECO_NO_ESCRITO';
+  end if;
+  return existing;
+end $_$;
 CREATE FUNCTION public.kb_gap_state_guard() RETURNS trigger
     LANGUAGE plpgsql
     SET search_path TO 'pg_catalog', 'pg_temp'
@@ -96,6 +264,130 @@ begin
     raise exception 'E_KB_GAP_CIERRE_NO_VERIFICADO';
   end if;
   return new;
+end $$;
+CREATE FUNCTION public.kb_snapshot_advance(p_ledger bigint, p_admitted jsonb) RETURNS TABLE(article_id uuid, canonical_key text, body_sha256 text)
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+declare
+  row_org       uuid;
+  row_ticket    uuid;
+  row_out       jsonb;
+  snapshot_from text;
+  snapshot_to   text;
+  admission     uuid;
+  gap           uuid;
+  approver      uuid;
+  gap_ticket    uuid;
+  item          jsonb;
+  body          text;
+  digest        text;
+  minted        uuid;
+  head_now      text;
+begin
+  select l.org_id, l.ticket_id, l.output into row_org, row_ticket, row_out
+    from ledger_entry l
+   where l.id = p_ledger and l.class = 'kb_admission';
+  if row_org is null then
+    raise exception 'E_KB_AVANCE_SIN_FILA';
+  end if;
+  if row_org is distinct from (auth.jwt() ->> 'org_id')::uuid then
+    raise exception 'E_KB_AVANCE_ORG_AJENA';
+  end if;
+  snapshot_from := row_out ->> 'snapshot_from';
+  snapshot_to   := row_out ->> 'snapshot_to';
+  admission     := (row_out ->> 'admission_id')::uuid;
+  gap           := (row_out ->> 'gap_id')::uuid;
+  approver      := (row_out ->> 'approved_by')::uuid;
+  if approver is null or auth.uid() is distinct from approver then
+    raise exception 'E_KB_AVANCE_SIN_APROBADOR';
+  end if;
+  if snapshot_from is null or snapshot_to is null or snapshot_from = snapshot_to then
+    raise exception 'E_KB_SNAPSHOT_NO_AVANZA';
+  end if;
+  if exists (select 1 from kb_article where org_id = row_org and kb_snapshot = snapshot_to) then
+    raise exception 'E_KB_SNAPSHOT_YA_EXISTE';
+  end if;
+  -- The corpus this admission was decided under has to be the one still in force, and the pointer is
+  -- LOCKED before that is asked.
+  --
+  -- **The lost update this closes.** The application reads the head, puts it in the chain row as
+  -- `snapshot_from`, and calls this. Two admissions decided in the same window therefore read one
+  -- head, mint two different successors, copy the same corpus twice and set the pointer twice: the
+  -- second wins and the document the first admitted stops being in force — while its chain row, its
+  -- `kb_admission` row and its approver all record an admission that happened. Nothing is destroyed,
+  -- because the corpus is append-only and the stranded snapshot keeps its articles; but the gap the
+  -- first was raised for can then never close, because the closure asks the corpus IN FORCE for the
+  -- admitted key and it is not there. A supervisor is left with an admission that succeeded and a
+  -- gap that will not shut, and nothing on any screen connects the two.
+  --
+  -- `for update` is what makes the check mean anything rather than merely usually hold: the second
+  -- transaction blocks here until the first commits, then reads the pointer the first moved and is
+  -- refused by name. Read without the lock, both would pass the comparison and both would write.
+  --
+  -- **It is asked AFTER the two above, and the order is deliberate.** A retried admission — the same
+  -- chain row replayed — trips both this and `E_KB_SNAPSHOT_YA_EXISTE`, and "this admission has
+  -- already happened" is the more useful of the two things to be told. This one is for the case
+  -- nobody has a word for yet, so it gets the message about the corpus having moved.
+  select kb_snapshot into head_now from kb_snapshot_head where org_id = row_org for update;
+  if head_now is distinct from snapshot_from then
+    raise exception 'E_KB_SNAPSHOT_MOVIDO';
+  end if;
+  -- The chain row has to hang off the gap's own ticket, or the admission does not appear in the
+  -- panel that shows the ticket's chain and the evidence of the cycle is invisible where it is read.
+  select g.ticket_id into gap_ticket from kb_gap g where g.id = gap and g.org_id = row_org;
+  if gap_ticket is null then
+    raise exception 'E_KB_ADMISION_SIN_HUECO';
+  end if;
+  if row_ticket is distinct from gap_ticket then
+    raise exception 'E_KB_ADMISION_SIN_TICKET';
+  end if;
+  if row_out -> 'provenance' is null or jsonb_typeof(row_out -> 'provenance') <> 'object' then
+    raise exception 'E_KB_ADMISION_SIN_PROVENIENCIA';
+  end if;
+  -- One body per admission, because one admission names one article: `kb_admission.article_id` is a
+  -- single reference and a list would have to pick one of its own elements to put in it.
+  if p_admitted is null or jsonb_typeof(p_admitted) <> 'array' or jsonb_array_length(p_admitted) <> 1 then
+    raise exception 'E_KB_ADMISION_NO_ES_UNA';
+  end if;
+  item := p_admitted -> 0;
+  if item ->> 'canonical_key' is null or item ->> 'title' is null or item ->> 'body' is null then
+    raise exception 'E_KB_ADMISION_INCOMPLETA';
+  end if;
+  if item -> 'citable' is null or jsonb_typeof(item -> 'citable') <> 'boolean' then
+    raise exception 'E_KB_ADMISION_SIN_CITABILIDAD';
+  end if;
+  body := item ->> 'body';
+  -- A body that does not fit whole into one excerpt is refused rather than trimmed. The retrieval
+  -- truncates at the envelope's bound, so an article whose deciding sentence falls after the cut
+  -- would be quoted to a customer with the deciding sentence missing — and the gap it was admitted
+  -- to close would close on padding. 2048 is `EXCERPT_MAX` of the published envelope contract; the
+  -- two are compared by a test rather than kept in step by hand.
+  if length(body) > 2048 then
+    raise exception 'E_KB_ADMISION_NO_CABE_EN_EXTRACTO';
+  end if;
+  digest := encode(sha256(convert_to(body, 'UTF8')), 'hex');
+  if row_out ->> 'content_hash' is distinct from digest then
+    raise exception 'E_KB_ADMISION_HASH_NO_CUADRA';
+  end if;
+  -- The complete copy, exactly as 0009 argues it: a snapshot is a set and never a delta.
+  insert into kb_article (id, org_id, kb_snapshot, canonical_key, title, body, body_sha256, citable)
+  select gen_random_uuid(), a.org_id, snapshot_to, a.canonical_key, a.title, a.body, a.body_sha256, a.citable
+    from kb_article a
+   where a.org_id = row_org and a.kb_snapshot = snapshot_from;
+  minted := gen_random_uuid();
+  insert into kb_article (id, org_id, kb_snapshot, canonical_key, title, body, body_sha256, citable)
+  values (minted, row_org, snapshot_to, item ->> 'canonical_key', item ->> 'title', body, digest,
+          (item ->> 'citable')::boolean);
+  insert into kb_admission (id, org_id, gap_id, approved_by, snapshot_from, snapshot_to,
+                            content_hash, provenance, ledger_ref, article_id)
+  values (admission, row_org, gap, approver, snapshot_from, snapshot_to, digest,
+          row_out -> 'provenance', p_ledger, minted);
+  insert into kb_snapshot_head (org_id, kb_snapshot, set_by, set_at)
+  values (row_org, snapshot_to, p_ledger, now())
+  on conflict (org_id) do update
+    set kb_snapshot = excluded.kb_snapshot, set_by = excluded.set_by, set_at = excluded.set_at;
+  return query select minted, item ->> 'canonical_key', digest;
 end $$;
 CREATE FUNCTION public.kb_snapshot_advance(p_org uuid, p_from text, p_to text, p_admitted jsonb DEFAULT '[]'::jsonb, p_set_by bigint DEFAULT NULL::bigint) RETURNS integer
     LANGUAGE plpgsql SECURITY DEFINER
@@ -334,7 +626,9 @@ CREATE TABLE public.kb_admission (
     provenance jsonb NOT NULL,
     ledger_ref bigint NOT NULL,
     admitted_at timestamp with time zone DEFAULT now() NOT NULL,
-    CONSTRAINT kb_admission_check CHECK ((snapshot_from <> snapshot_to))
+    article_id uuid,
+    CONSTRAINT kb_admission_check CHECK ((snapshot_from <> snapshot_to)),
+    CONSTRAINT kb_admission_snapshot_shape CHECK (((snapshot_from ~ '^[A-Za-z0-9:._-]{1,64}$'::text) AND (snapshot_to ~ '^[A-Za-z0-9:._-]{1,64}$'::text)))
 );
 CREATE TABLE public.kb_article (
     id uuid NOT NULL,
@@ -366,8 +660,12 @@ CREATE TABLE public.kb_gap (
     closing_ledger_ref bigint,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     not_documentable_reason text,
+    question_sha256 text NOT NULL,
     CONSTRAINT kb_gap_check CHECK (((state <> 'CLOSED'::public.kb_gap_state) OR ((closed_by_check_at IS NOT NULL) AND (closing_ledger_ref IS NOT NULL)))),
-    CONSTRAINT kb_gap_not_documentable_has_a_reason CHECK (((state = 'NOT_DOCUMENTABLE'::public.kb_gap_state) = (not_documentable_reason IS NOT NULL)))
+    CONSTRAINT kb_gap_commitment_is_not_born_overdue CHECK ((committed_date >= ((created_at AT TIME ZONE 'UTC'::text))::date)),
+    CONSTRAINT kb_gap_not_documentable_has_a_reason CHECK (((state = 'NOT_DOCUMENTABLE'::public.kb_gap_state) = (not_documentable_reason IS NOT NULL))),
+    CONSTRAINT kb_gap_not_documentable_reason_is_bounded CHECK (((not_documentable_reason IS NULL) OR (octet_length(not_documentable_reason) <= 512))),
+    CONSTRAINT kb_gap_question_sha256_shape CHECK ((question_sha256 ~ '^[a-f0-9]{64}$'::text))
 );
 CREATE TABLE public.kb_snapshot_head (
     org_id uuid NOT NULL,
@@ -609,6 +907,8 @@ ALTER TABLE ONLY quality_report.eval_outcome
 ALTER TABLE ONLY quality_report.eval_outcome
     ADD CONSTRAINT eval_outcome_pkey PRIMARY KEY (id);
 CREATE UNIQUE INDEX audit_one_child_per_head ON public.audit_event USING btree (org_id, prev_hash);
+CREATE UNIQUE INDEX kb_gap_one_standing_record_per_question ON public.kb_gap USING btree (ticket_id, question_sha256) WHERE (state <> 'CLOSED'::public.kb_gap_state);
+CREATE UNIQUE INDEX ledger_admission_unique_per_admission ON public.ledger_entry USING btree (((output ->> 'admission_id'::text))) WHERE (class = 'kb_admission'::public.ledger_class);
 CREATE UNIQUE INDEX ledger_one_child_per_head ON public.ledger_entry USING btree (run_id, prev_hash);
 CREATE UNIQUE INDEX ledger_start_unique_per_attempt ON public.ledger_entry USING btree (((output ->> 'attempt_id'::text))) WHERE (class = 'start'::public.ledger_class);
 CREATE UNIQUE INDEX ledger_terminal_unique_per_attempt ON public.ledger_entry USING btree (((output ->> 'attempt_id'::text))) WHERE (class = 'promotion_attempt'::public.ledger_class);
@@ -646,6 +946,8 @@ ALTER TABLE ONLY public.eval_result
     ADD CONSTRAINT eval_result_split_id_fkey FOREIGN KEY (split_id) REFERENCES public.eval_split(id);
 ALTER TABLE ONLY public.kb_admission
     ADD CONSTRAINT fk_admission_approver_same_org FOREIGN KEY (approved_by, org_id) REFERENCES public.app_user(id, org_id);
+ALTER TABLE ONLY public.kb_admission
+    ADD CONSTRAINT fk_admission_article_in_snapshot FOREIGN KEY (article_id, snapshot_to) REFERENCES public.kb_article(id, kb_snapshot);
 ALTER TABLE ONLY public.ledger_checkpoint
     ADD CONSTRAINT fk_checkpoint_row FOREIGN KEY (run_id, seq_covered) REFERENCES public.ledger_entry(run_id, seq);
 ALTER TABLE ONLY public.response_citation
@@ -730,6 +1032,7 @@ ALTER TABLE public.kb_article ENABLE ROW LEVEL SECURITY;
 CREATE POLICY kb_article_write_is_staff ON public.kb_article AS RESTRICTIVE FOR INSERT WITH CHECK (((auth.jwt() ->> 'role'::text) = ANY (ARRAY['agent'::text, 'supervisor'::text])));
 ALTER TABLE public.kb_gap ENABLE ROW LEVEL SECURITY;
 CREATE POLICY kb_gap_insert_is_staff ON public.kb_gap AS RESTRICTIVE FOR INSERT WITH CHECK (((auth.jwt() ->> 'role'::text) = ANY (ARRAY['agent'::text, 'supervisor'::text])));
+CREATE POLICY kb_gap_read_is_staff ON public.kb_gap AS RESTRICTIVE FOR SELECT USING (((org_id = ((auth.jwt() ->> 'org_id'::text))::uuid) AND ((auth.jwt() ->> 'role'::text) = ANY (ARRAY['agent'::text, 'supervisor'::text]))));
 CREATE POLICY kb_gap_update_is_staff ON public.kb_gap AS RESTRICTIVE FOR UPDATE USING (((auth.jwt() ->> 'role'::text) = ANY (ARRAY['agent'::text, 'supervisor'::text]))) WITH CHECK (((auth.jwt() ->> 'role'::text) = ANY (ARRAY['agent'::text, 'supervisor'::text])));
 ALTER TABLE public.kb_snapshot_head ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ledger_entry ENABLE ROW LEVEL SECURITY;
@@ -757,6 +1060,15 @@ CREATE POLICY ticket_write_is_staff ON public.ticket AS RESTRICTIVE FOR UPDATE U
 GRANT USAGE ON SCHEMA auth TO PUBLIC;
 GRANT USAGE ON SCHEMA quality_report TO quality_ro;
 GRANT USAGE ON SCHEMA quality_report TO quality_eval;
+REVOKE ALL ON FUNCTION public.kb_gap_close_by_check(p_gap uuid, p_ledger bigint) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.kb_gap_close_by_verification(p_gap uuid, p_response uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.kb_gap_close_by_verification(p_gap uuid, p_response uuid) TO app_rw;
+REVOKE ALL ON FUNCTION public.kb_gap_mark_not_documentable(p_gap uuid, p_reason text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.kb_gap_open(p_gap uuid, p_org uuid, p_ticket uuid, p_query_terms text, p_kb_snapshot text, p_zero_match boolean, p_query_sha256 text, p_question_sha256 text, p_owner uuid, p_committed_date date, p_null_rule text, p_divergent uuid[], p_ledger bigint) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.kb_gap_open(p_gap uuid, p_org uuid, p_ticket uuid, p_query_terms text, p_kb_snapshot text, p_zero_match boolean, p_query_sha256 text, p_question_sha256 text, p_owner uuid, p_committed_date date, p_null_rule text, p_divergent uuid[], p_ledger bigint) TO app_rw;
+REVOKE ALL ON FUNCTION public.kb_snapshot_advance(p_ledger bigint, p_admitted jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.kb_snapshot_advance(p_ledger bigint, p_admitted jsonb) TO app_rw;
+REVOKE ALL ON FUNCTION public.kb_snapshot_advance(p_org uuid, p_from text, p_to text, p_admitted jsonb, p_set_by bigint) FROM PUBLIC;
 GRANT SELECT ON TABLE public.account TO app_rw;
 GRANT SELECT ON TABLE public.app_user TO app_rw;
 GRANT SELECT,INSERT ON TABLE public.audit_event TO app_rw;
@@ -768,6 +1080,7 @@ GRANT SELECT ON TABLE public.eval_result TO quality_ro;
 GRANT SELECT ON TABLE public.eval_result TO app_rw;
 GRANT SELECT ON TABLE public.eval_split TO quality_ro;
 GRANT SELECT ON TABLE public.eval_split TO app_rw;
+GRANT SELECT ON TABLE public.kb_admission TO app_rw;
 GRANT SELECT ON TABLE public.kb_article TO app_rw;
 GRANT SELECT ON TABLE public.kb_gap TO app_rw;
 GRANT SELECT ON TABLE public.kb_snapshot_head TO app_rw;

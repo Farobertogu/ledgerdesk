@@ -43,6 +43,7 @@ import { parseTriageEnvelope } from '../../agents/triage/envelope.ts';
 import { redact } from '../../agents/redaction.ts';
 import { renderDraftEnvelope } from '../../agents/providers/draft_fixture.ts';
 import { renderTriageEnvelope, TRIAGE_FIXTURE_MARKERS } from '../../agents/providers/triage_fixture.ts';
+import { EXCERPT_MAX } from '../../agents/triage/schema.ts';
 import {
   CLAUSE_STAGE,
   DEFAULT_ESCALATION_THRESHOLDS,
@@ -50,9 +51,37 @@ import {
   evaluateEscalationClauses,
 } from '../../src/alg/escalation.ts';
 import { featuresFromTicket } from '../../src/alg/features.ts';
-import { matchPolicyFlags, policyInput } from '../../src/alg/policy.ts';
+import { matchPolicyFlags, policyInput as matchInput } from '../../src/alg/policy.ts';
+import { MIN_RANK, kbIdOf } from '../../src/alg/retrieval.ts';
 
-const DATASET = JSON.parse(readFileSync('seed/demo_tickets.json', 'utf8'));
+const RAW = readFileSync('seed/demo_tickets.json', 'utf8');
+const DATASET = JSON.parse(RAW);
+
+/**
+ * The canonical keys seed/orgs.sql holds, TRANSCRIBED rather than read.
+ *
+ * Same rule the account facts above live under: a test that derived the keys from the file it is
+ * checking would be asking the seed whether it agrees with itself. A marker naming a key that is not
+ * here can never resolve, and the reply that carries it would cite nothing.
+ */
+const SEEDED_KEYS = [
+  'billing/duplicate-charge',
+  'exports/destinations',
+  'exports/schedule',
+  'access/password-reset',
+];
+
+/**
+ * A key marker resolved the way the provider resolves it, against a stand-in identity.
+ *
+ * The identity is irrelevant to what this file measures — the shape of the envelope and what it
+ * cites — and using a real one from the seed would reintroduce exactly the coupling the markers were
+ * introduced to remove.
+ */
+function resolveKeyMarker(kb_id) {
+  if (!kb_id.startsWith('<key:') || !kb_id.endsWith('>')) return kb_id;
+  return kbIdOf(kb_id.slice(5, -1), '00000000-0000-4000-8000-000000000001');
+}
 
 /** seed/orgs.sql, §account. */
 const ACCOUNTS = {
@@ -95,7 +124,7 @@ function recordStage(ticket) {
     redactedBodyLength: null,
     retrieval: null,
     validation: null,
-    policyFlags: matchPolicyFlags(policyInput(ticket.subject, ticket.body)),
+    policyFlags: matchPolicyFlags(matchInput(ticket.subject, ticket.body)),
   });
 }
 
@@ -123,7 +152,7 @@ function afterTriage(ticket, envelope, { retrieval = null, validation = null } =
     redactedBodyLength: ticket.body.length,
     retrieval,
     validation,
-    policyFlags: matchPolicyFlags(policyInput(ticket.subject, ticket.body)),
+    policyFlags: matchPolicyFlags(matchInput(ticket.subject, ticket.body)),
   });
 }
 
@@ -213,13 +242,115 @@ describe('test_TRIAGE_demo_dataset_is_authored_for_its_beats', () => {
       assert.equal(entry.agent, 'draft', `'${entry.match}' does not say which agent it answers for`);
       assert.ok(entry.answer.draft, `'${entry.match}' authors no reply`);
 
-      // Parsed against sources that are exactly the identifiers it cites, which measures the shape
-      // and the containment. Whether it OVERLAPS the real corpus is a question about the database
-      // and is measured there, by the drafting cycle running against the seeded articles.
-      const offered = entry.answer.draft.kb_ids.map((kb_id) => ({ kb_id, excerpt: '' }));
-      const envelope = parseDraftEnvelope(renderDraftEnvelope(entry.answer.draft), offered);
+      // The markers are resolved first, because that is what the provider does before an envelope is
+      // ever rendered. Parsed against sources that are exactly the identifiers it cites, which
+      // measures the shape and the containment. Whether it OVERLAPS the real corpus is a question
+      // about the database and is measured there, by the cycle running against the seeded articles.
+      const resolved = {
+        ...entry.answer.draft,
+        kb_ids: entry.answer.draft.kb_ids.map(resolveKeyMarker),
+      };
+      const offered = resolved.kb_ids.map((kb_id) => ({ kb_id, excerpt: '' }));
+      const envelope = parseDraftEnvelope(renderDraftEnvelope(resolved), offered);
       assert.equal(envelope.agent, 'draft');
       assert.ok(envelope.draft.kb_ids.length > 0, 'a draft with no citation is not a draft');
+    }
+  });
+
+  it('cites a canonical key and never an identity, in every authored reply', () => {
+    // The assertion that keeps the anchored beat alive across an advance of the corpus. An advance
+    // mints a new identity for every row it copies, so a citation naming one is a citation of a
+    // document that stops existing the moment anything is admitted — and the beat would escalate for
+    // lack of grounding, correctly, in the middle of the demonstration. A key is copied verbatim.
+    //
+    // Measured over the WHOLE file rather than over the citation lists, because a literal identity
+    // pasted into a match phrase or a body would be the same failure arriving by another door.
+    const hexRuns = [...RAW.matchAll(/[0-9a-f]{32}/g)].map((match) => match[0]);
+    assert.deepEqual(
+      hexRuns,
+      [],
+      `the dataset carries ${hexRuns.length} literal identity/identities; cite <key:...> instead`,
+    );
+
+    for (const entry of DATASET.draft_fixtures) {
+      for (const kb_id of entry.answer.draft.kb_ids) {
+        assert.match(
+          kb_id,
+          /^<key:[A-Za-z0-9_/-]{1,64}>$/,
+          `'${kb_id}' is not a key marker, so it names something an advance can move`,
+        );
+        const key = kb_id.slice(5, -1);
+        assert.ok(
+          SEEDED_KEYS.includes(key),
+          `'${key}' is not a canonical key the seed holds, so the marker can never resolve`,
+        );
+      }
+    }
+  });
+
+  it('carries admissible material for every variant of the gap beat, and it is admissible', () => {
+    const gapTickets = DATASET.tickets.filter((ticket) => stageOf(ticket) === 'draft');
+    const material = DATASET.admissible_material ?? [];
+    assert.equal(
+      material.length,
+      gapTickets.length,
+      'a rehearsal spends one document per gap, so there is one per variant and no fewer',
+    );
+
+    for (const item of material) {
+      const ticket = DATASET.tickets.find((entry) => entry.id === item.for_ticket);
+      assert.ok(ticket, `${item.canonical_key} names a ticket the dataset does not hold`);
+      assert.equal(stageOf(ticket), 'draft', `${item.canonical_key} is not attached to a gap beat`);
+
+      // The alphabet the constraint on the column holds, transcribed. A key outside it produces an
+      // identifier the envelope validator refuses, which is a retrieval that fails at the border.
+      assert.match(
+        item.canonical_key,
+        /^[A-Za-z0-9_/-]{1,64}$/,
+        `${item.canonical_key} is outside the published alphabet for a canonical key`,
+      );
+
+      // Whole inside one excerpt. A body whose deciding sentence falls past the cut would close a
+      // gap on padding, and nothing downstream could tell.
+      assert.ok(
+        item.body.length <= EXCERPT_MAX,
+        `${item.canonical_key} is ${item.body.length} characters and an excerpt carries ${EXCERPT_MAX}`,
+      );
+
+      // Unchanged by the redactor, which is the condition the writer imposes and the reason
+      // content_hash has exactly one thing it can be a digest of.
+      const pass = redact(item.body, []);
+      assert.equal(
+        pass.text,
+        item.body,
+        `the redactor removes ${pass.removed.length} value(s) from ${item.canonical_key}, so every citation of it would quote a marker`,
+      );
+
+      // And no flag, least of all the one that says somebody is talking to the model.
+      const flags = matchPolicyFlags(matchInput(item.title, item.body));
+      assert.deepEqual(
+        [...flags],
+        [],
+        `${item.canonical_key} raises ${flags.join(', ')}, and material that raises a flag is not admitted`,
+      );
+
+      assert.equal(
+        item.expected_rank_floor,
+        MIN_RANK,
+        `${item.canonical_key} declares a floor the retrieval does not publish`,
+      );
+
+      for (const field of ['source', 'obtained_at', 'citability']) {
+        assert.ok(
+          typeof item.provenance?.[field] === 'string' && item.provenance[field].trim() !== '',
+          `${item.canonical_key} declares no provenance.${field}`,
+        );
+      }
+      assert.equal(
+        typeof item.citable,
+        'boolean',
+        `${item.canonical_key} does not say whether it may be quoted, and there is no default`,
+      );
     }
   });
 

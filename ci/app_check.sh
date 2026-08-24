@@ -43,13 +43,37 @@ ROLES="app_rw quality_ro quality_gen quality_eval anon authenticated service_rol
 MIGRATIONS="$(ls migrations/[0-9][0-9][0-9][0-9]_*.sql | sort)"
 [ -n "$MIGRATIONS" ] || fail "no numbered migrations in migrations/"
 
-# Explicit, because the order is part of it. The reconciliation after the run fails the build if a
-# test file exists in tests/app/ and is not named here.
-# test_APP_composition_root_serves_two_orgs is FIRST, and that is part of the test rather than a
-# preference: the triage runtimes are cached for the life of the server process, so "two
-# organisations starting at the same instant" is a state that exists exactly once, before anything
-# else has triaged anything.
-TESTS="tests/app/test_APP_composition_root_serves_two_orgs.mjs tests/app/test_US01_ticket_created_and_acknowledged.mjs tests/app/test_APP_state_machine_enforced_server_side.mjs tests/app/test_APP_intake_dedupe_collapses_to_incumbent.mjs tests/app/test_APP_recordstage_escalates_without_model.mjs tests/app/test_APP_escalation_atomic_with_triage.mjs tests/app/test_APP_retry_seed_from_persisted_counter.mjs tests/app/test_INT_triage_ticket_to_chain.mjs tests/app/test_KB_seeded_articles_survive_redaction.mjs tests/app/test_KB_retrieval_order_is_total.mjs tests/app/test_SEC_retrieval_is_tenant_isolated.mjs tests/app/test_US03_draft_generated_with_grounded_context.mjs tests/app/test_APP_draft_atomic_with_validation.mjs tests/app/test_SEC_draft_never_reaches_customer_without_approval.mjs"
+# Explicit, so that the reconciliation after the run fails the build if a test file exists in
+# tests/app/ and is not named here. The ORDER of the list decides nothing: see below.
+#
+# test_APP_composition_root_serves_two_orgs has to run FIRST, and that is a real requirement — the
+# triage runtimes are cached for the life of the server process, so "two organisations starting at
+# the same instant" is a state that exists exactly once, before anything else has triaged anything.
+# **It runs first because of its NAME, not because of this list**, and that is the whole of the
+# guarantee: the runner sorts the files, and `test_APP_composition_root...` sorts before every other
+# name in this directory today. A test file added tomorrow whose name sorts before it would take that
+# state away, silently, and the composition-root suite would start measuring a process that had
+# already built a runtime. Nothing checks this. It is written here because the day it breaks, this
+# comment is the only place that says what broke.
+#
+# **This list does NOT decide the order the files run in, and a run of the gap-cycle card proved it.**
+# The runner sorts them: passed in the order below, the suites came back alphabetically, every time.
+# So the list is a reconciliation — a file that exists and is not named here fails the build — and
+# nothing more. The one claim above that survives is accidental: `test_APP_composition_root...`
+# happens to sort first as well.
+#
+# What that costs, and how it is paid: the files that admit material move the snapshot pointer, and
+# four files that sort after them read the corpus under the label the seed wrote. Ordering cannot fix
+# it because ordering is not ours to set, so **every file that moves the pointer puts it back**, in an
+# `after` hook, through `restoreCorpusHead` — which moves the pointer in the DATABASE only. It cannot
+# flush the server's cached label: that lives in another process. What it does instead is arm the
+# product's own staleness guard, and every cycle-driving helper absorbs the one refusal that follows.
+#
+# Each of those files also holds a beat of its own — an enquiry lexically disjoint from every other
+# beat's document — so that admitting one answer does not make another file's question answerable.
+# test_KB_cycle_chains_two_runs_with_the_admission_between_them measures that disjointness with the
+# database's own analyser.
+TESTS="tests/app/test_APP_composition_root_serves_two_orgs.mjs tests/app/test_US01_ticket_created_and_acknowledged.mjs tests/app/test_APP_state_machine_enforced_server_side.mjs tests/app/test_APP_intake_dedupe_collapses_to_incumbent.mjs tests/app/test_APP_recordstage_escalates_without_model.mjs tests/app/test_APP_escalation_atomic_with_triage.mjs tests/app/test_APP_retry_seed_from_persisted_counter.mjs tests/app/test_INT_triage_ticket_to_chain.mjs tests/app/test_KB_seeded_articles_survive_redaction.mjs tests/app/test_KB_retrieval_order_is_total.mjs tests/app/test_SEC_retrieval_is_tenant_isolated.mjs tests/app/test_US03_draft_generated_with_grounded_context.mjs tests/app/test_APP_draft_atomic_with_validation.mjs tests/app/test_SEC_draft_never_reaches_customer_without_approval.mjs tests/app/test_KB_gap_emitted_on_ground_escalation.mjs tests/app/test_KB_gap_record_refused_without_evidence_owner_or_date.mjs tests/app/test_KB_admission_advances_snapshot_and_links_ledger.mjs tests/app/test_KB_gap_closes_only_by_verification.mjs tests/app/test_SEC_admitted_body_is_clean_before_it_enters_the_corpus.mjs tests/app/test_SEC_non_citable_material_is_never_retrieved.mjs tests/app/test_KB_gap_commitment_names_live_users_of_its_organisation.mjs tests/app/test_KB_gap_reasked_under_a_moved_corpus_reuses_the_standing_record.mjs tests/app/test_KB_cycle_chains_two_runs_with_the_admission_between_them.mjs"
 
 maint() { psql -X -v ON_ERROR_STOP=1 -q -d "$MAINT_DB" -c "$1" >/dev/null; }
 run_sql() { psql -X -v ON_ERROR_STOP=1 -q -d "$1" -f "$2"; }

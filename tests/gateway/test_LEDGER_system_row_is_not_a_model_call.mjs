@@ -32,9 +32,23 @@ test.after(async () => {
 const STATE = { schema_version: '1.0', ruleset_hash: 'r'.repeat(64), kb_snapshot: 'kb-2026-08-22' };
 const TOOLCHAIN = { app: '0.1.0', node: '22', model_sdk: 'none', ruleset: 'ruleset-1' };
 
+/**
+ * How many admission identities this file has minted.
+ *
+ * **Each call gets its own, and that is now a rule of the schema rather than tidiness.** The ledger
+ * carries a unique index over `output->>'admission_id'` for this class: one chain row per admission,
+ * so that a retry of a writer that crashed between its two transactions collides and is recognised
+ * instead of writing a second row for one fact. A fixture that reused one identity across two rows
+ * was asking the database to accept exactly what that index exists to refuse — and it did refuse,
+ * as `E_LEDGER_WRITE_FAILED` after the writer had exhausted its retries on what it took for
+ * contention.
+ */
+let minted = 0;
+
 function admission(overrides = {}) {
+  minted += 1;
   return {
-    admission_id: 'ad000001-0000-4000-8000-000000000001',
+    admission_id: `ad000001-0000-4000-8000-${String(minted).padStart(12, '0')}`,
     gap_id: '9a000001-0000-4000-8000-000000000001',
     approved_by: '1a000000-0000-4000-8000-000000000002',
     snapshot_from: 'kb-2026-08-01',

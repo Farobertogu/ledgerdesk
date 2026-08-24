@@ -81,11 +81,18 @@ import {
 } from '@/alg/escalation';
 import { featuresFromTicket } from '@/alg/features';
 import { matchPolicyFlags, policyInput } from '@/alg/policy';
-import type { RetrievalOutcome, RetrievedSource } from '@/alg/retrieval';
-import { DRAFT_SAMPLING, VALIDATE_SAMPLING, runtimeFor, type OrgRuntime } from '@/server/agents';
+import { NULL_RULE, type RetrievalOutcome, type RetrievedSource } from '@/alg/retrieval';
+import {
+  DRAFT_SAMPLING,
+  VALIDATE_SAMPLING,
+  refuseIfRuntimeIsStale,
+  runtimeFor,
+  type OrgRuntime,
+} from '@/server/agents';
 import { withAppSession } from '@/server/db';
 import { recordDecision, type DecisionAction } from '@/server/decisions';
 import { AppError } from '@/server/errors';
+import { emitGapRecord, type EmittedGap, type GapEvidence } from '@/server/kb/gap';
 import { requireSnapshotHead, retrieve } from '@/server/kb/retrieval';
 import { applyComponentTransitionOn, componentClaims } from '@/server/pipeline';
 import { onRun } from '@/server/run_queue';
@@ -251,7 +258,13 @@ async function draftCycle(
   };
 
   // --- 2 · retrieve, with no model in the path --------------------------------------------------
+  //
+  // The head is read fresh, and the runtime is holding the label it was built with. After an
+  // admission that did not evict, those two disagree and every row this cycle writes would name a
+  // corpus the retrieval did not read. Compared here, before anything is searched or spent.
   const snapshot = await requireSnapshotHead(orgId);
+  refuseIfRuntimeIsStale(runtime, snapshot);
+
   const found = await retrieve({
     orgId,
     subject: ticket.subject,
@@ -271,6 +284,16 @@ async function draftCycle(
       policyFlags,
       now,
       retrieval: { resultCount: 0 },
+      // `zero_match` is true here only when the outcome was the empty one. This branch is also
+      // reached by a retrieval that matched documents and cleared no floor, and recording that as
+      // "nothing matched" would be a record overstating the evidence a later re-run is checked
+      // against. The guard covers both; the field distinguishes them.
+      gap: {
+        terms: found.terms,
+        snapshot: found.snapshot,
+        zeroMatch: found.kind === 'zero_match',
+        divergent: [],
+      },
       outcome: (reason, clause) => ({
         outcome: 'ESCALATED_NO_SOURCES',
         reason,
@@ -404,6 +427,12 @@ async function draftCycle(
       policyFlags,
       now,
       retrieval: { resultCount: found.resultCount },
+      // **No record.** Sources were found and no usable draft came back after every attempt: that is
+      // a provider that could not answer, not a corpus that could not. The clause fires because the
+      // cycle reports `grounded: false` unconditionally on this path, and filing a knowledge gap on
+      // it would put a permanent record about the CORPUS into the chain every time a model timed
+      // out — and the re-run that is supposed to close it would have nothing to close against.
+      gap: null,
       outcome: (reason, clause) => ({ outcome: 'FAILED', reason, clause, code: lastCode }),
       detail: {
         retrieval_kind: found.kind,
@@ -446,6 +475,9 @@ async function draftCycle(
       policyFlags,
       now,
       retrieval: { resultCount: found.resultCount },
+      // No record, for the reason the branch above gives: the validation never answered, so nothing
+      // was learned about whether the corpus can support the draft.
+      gap: null,
       outcome: (reason, clause) => ({ outcome: 'FAILED', reason, clause, code: error.code }),
       detail: { stage: 'validate', failure_code: error.code, kb_snapshot: snapshot },
     });
@@ -500,6 +532,21 @@ async function draftCycle(
   // --- 7 · one transaction ----------------------------------------------------------------------
   const citedArticles = sources.filter((source) => produced.citations.includes(source.kb_id));
 
+  /**
+   * The sources a conflict named, as identities.
+   *
+   * The predicate groups by canonical key and the record references articles, so the keys are
+   * resolved back through what the retrieval returned. It stays empty in every ordinary case: the
+   * predicate is computed and recorded and does nothing else, and a gap born of a conflict is the
+   * reserved ninth escalation index, which this card does not take.
+   */
+  const divergentArticles = sources
+    .filter((source) => grounding.conflicting_keys.includes(source.canonical_key))
+    .map((source) => source.article_id);
+
+  let gapId: string | null = null;
+  let gapRefused: string | null = null;
+
   await inTransaction(orgId, async (client) => {
     await insertResponse(client, {
       responseId,
@@ -542,6 +589,24 @@ async function draftCycle(
           escalation_clause: verdict.clause,
         },
       });
+
+      // The second of the two emission sites. A draft exists and it is not anchored, so the corpus
+      // did not answer the question — and it answered with something, which is why this record does
+      // not claim that nothing matched. Same transaction as the transition, for the same reason.
+      const gap = await emitGapRecord(client, {
+        orgId,
+        ticketId: ticket.id,
+        evidence: {
+          terms: found.terms,
+          snapshot,
+          zeroMatch: false,
+          divergent: divergentArticles,
+        },
+        nullRule: NULL_RULE,
+        now,
+      });
+      gapId = gap.gap_id;
+      gapRefused = gap.refused;
     }
 
     await fileDecision(client, {
@@ -564,6 +629,8 @@ async function draftCycle(
         conflicting_keys: [...grounding.conflicting_keys],
         draft_ledger_row_hash: produced.draft.ledger.row_hash,
         validate_ledger_row_hash: verdictResult.ledger.row_hash,
+        gap_id: gapId,
+        gap_refused: gapRefused,
       },
     });
 
@@ -640,6 +707,20 @@ type EscalateInput = {
   policyFlags: ReturnType<typeof matchPolicyFlags>;
   now: number;
   retrieval: { resultCount: number };
+  /**
+   * What the record of the unanswered question stands on, or `null` when there is no gap to record.
+   *
+   * **The domain of the emission is narrower than the domain of the clause, and the difference is
+   * the whole of this field.** All three entries into this funnel fire `draft_not_grounded`, because
+   * all three report `grounded: false`. Only one kind of them is a statement about the CORPUS: the
+   * retrieval that found nothing usable. The other two are a provider that could not answer, and
+   * filing a knowledge gap on those would fill the record with permanent claims about the corpus
+   * every time a model timed out — claims a re-run could never close, because nothing about the
+   * corpus was ever established.
+   *
+   * The caller supplies it because only the caller knows which of the three ways in it took.
+   */
+  gap: GapEvidence | null;
   outcome: (reason: EscalationReason, clause: string) => DraftOutcome;
   detail: Json;
 };
@@ -698,6 +779,25 @@ async function escalateWithoutGrounding(input: EscalateInput): Promise<DraftOutc
       owner: 'escalation-rule',
       assign: { escalation_reason: reason, escalation_clause: clause },
     });
+
+    // The record of the unanswered question, in the same transaction as the transition and the
+    // decision. It is emitted because the clause FIRED, which is read above from every clause
+    // evaluated rather than from the reason that survived the precedence — a knowledge gap does not
+    // stop being one because an SLA expired in the same second and won the column.
+    //
+    // The emission cannot fail this transaction: it runs inside a savepoint of its own, and a
+    // refusal comes back as a code to be filed rather than as an exception that would roll the
+    // escalation back and leave the ticket in a state nothing would ever move it out of.
+    const gap: EmittedGap = input.gap
+      ? await emitGapRecord(client, {
+          orgId: input.orgId,
+          ticketId: input.ticket.id,
+          evidence: input.gap,
+          nullRule: NULL_RULE,
+          now: input.now,
+        })
+      : { gap_id: null, refused: null };
+
     await fileDecision(client, {
       orgId: input.orgId,
       ticketId: input.ticket.id,
@@ -708,7 +808,15 @@ async function escalateWithoutGrounding(input: EscalateInput): Promise<DraftOutc
       reason,
       clause,
       stage: 'draft',
-      detail: input.detail,
+      // The escalation's own row names the record it rests on, which is what makes "one record per
+      // escalation" a countable fact of an append-only chain rather than a sentence somebody has to
+      // trust. A refusal is named for the same reason: an escalation that produced no record says so
+      // and says why, instead of looking like one that never needed one.
+      detail: {
+        ...(input.detail as Record<string, Json>),
+        gap_id: gap.gap_id,
+        gap_refused: gap.refused,
+      },
     });
   });
 

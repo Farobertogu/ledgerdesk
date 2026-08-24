@@ -114,7 +114,53 @@ deterministic, so a replay of a fixture run reproduces perfectly — but what it
 of fixture answers. Whichever provider is chosen, a chain has to exist before it can be replayed.
 
 `node seed/demo_load.mjs --status` reports where each demonstration ticket stands, what the corpus
-holds, and which snapshot each organisation reads under.
+holds, which snapshot each organisation reads under, and **how much SLA margin is left on the
+tightest beat**.
+
+### The clock, and it is not a recommendation
+
+**Load the dataset within twenty minutes of the first beat.** `created_at` is stamped at load time
+and the escalation rule reads the clock: the shortest first-response policy a demonstration ticket
+can land on is thirty minutes, so a dataset loaded an hour early has already breached, and the beat
+written to show a knowledge gap shows an SLA breach instead — correctly, and for a reason that has
+nothing to do with what is being demonstrated.
+
+**No test can catch this and none pretends to.** The dataset test freezes the instant to one minute
+after creation, which is the right thing for it to do and makes it structurally incapable of seeing
+an aged dataset. **The defence is the procedure, and `--status` measures the one thing that decides
+whether the procedure was followed: the AGE of the dataset**, alarming past twenty minutes — the same
+twenty this section is about. It reports an age rather than a margin for any beat that has not been
+triaged, because until triage assigns a policy there is no margin to report: an earlier version
+computed one against the tightest policy the tier could land on, which on the premium tier is
+fifteen minutes against an alarm floor of fifteen, so the alarm sat at its own threshold from the
+moment of a correct load and could never warn. Once a beat is triaged the policy is real and the
+column shows the margin against it, with the fifteen-minute floor doing what a floor is for.
+
+### A rehearsal spends a variant
+
+An admission cannot be repeated — the advance refuses a snapshot that already exists — and a gap
+record cannot be reopened, because its uniqueness is over the ticket, the query and the corpus, and
+a re-run asks the same question. Each beat has two variants and a rehearsal spends one. A third
+rehearsal of the same beat needs new data, with its own row in the dataset and its own passage
+through the dataset test.
+
+```sh
+# the documents the gap beat admits, ready to paste into the form (no database needed)
+node seed/demo_load.mjs --material
+
+# put every pointer back to the seeded corpus. It DELETES NOTHING: the gap records and the
+# admissions of the previous rehearsal are the evidence of the cycle and they stay.
+node seed/demo_load.mjs --rewind
+
+# a dry run over a corpus that already exists — walk the act without spending a variant
+node seed/demo_load.mjs --stage kb-2026-08-01
+```
+
+The admission itself is **not** a script and there is no mode that performs one. The database ties
+the approver to the session that executed it, so a component — which carries an organisation, a role
+and no subject — cannot admit anything at all. Somebody signed in as a supervisor presses the
+control on the ticket screen, which is what makes the approver on the panel afterwards mean
+something.
 
 ## Conventions
 

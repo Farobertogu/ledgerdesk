@@ -1,13 +1,14 @@
 // ci/seam_check.mjs — test_ARCH_seam_holds
 //
 // The module boundary is one of this project's titled promises, and until now it was held by
-// reading the code rather than by a check. Four assertions, all static: no database, no install,
+// reading the code rather than by a check. Five assertions, all static: no database, no install,
 // no build. It runs in the same job as every other repository check, on every pull request.
 //
 //   test_ARCH_app_cannot_import_quality          · the application never reaches into the quality layer
 //   test_ARCH_quality_cannot_import_app          · and the quality layer never reaches back
 //   test_SEC_no_direct_sdk_import                · a model SDK may be imported where it is declared and nowhere else
 //   test_SEC_providers_only_from_composition_root · and a provider may be reached only by the wiring
+//   test_SEAM_channels_declared                  · the set of typed channels crossing the boundary is closed
 //
 // Relative paths are RESOLVED, not pattern-matched. It matters: the application's tsconfig maps
 // `@/*` to `./src/*` and nothing else, so a violation could not arrive as a bare `quality/...`
@@ -170,6 +171,116 @@ for (const directory of ['src', 'agents']) {
   }
 }
 
+/**
+ * test_SEAM_channels_declared — the bandwidth of the boundary, checked rather than read.
+ *
+ * The boundary publishes a closed set of typed channels, each with a declared cap. Three of them
+ * have crossed it since the seam was written; the increment that emits knowledge-gap records adds
+ * the fourth, and the count moves the day the channel lands rather than the day it was authorised —
+ * a check expecting four against code that exposes three fails a build for a reason that is not its
+ * own.
+ *
+ * The declaration is `src/alg/channels.ts` and this is what measures the tree against it:
+ *
+ *   · exactly four channels are declared, with exactly the four published slugs and no duplicate;
+ *   · the two caps the declaration cannot import — one lives in the agent layer, one is not yet
+ *     instantiated — are compared against the file that owns them, so a transcription cannot drift;
+ *   · the two it can import are asserted to BE imports rather than copied numbers;
+ *   · the denial alphabet's width is derived from the alphabet rather than written down, so the
+ *     reserved ninth index moves the bound on the day it is taken.
+ *
+ * **What it does not buy, stated rather than implied.** There is no directory of channels to walk,
+ * so this cannot discover a channel nobody declared; what it holds is that the declared set is
+ * closed, that each member is pinned to the code that enforces it, and that a fifth row or a missing
+ * fourth fails here. Reading a diff is what catches an undeclared one, and that is the same standing
+ * every closed alphabet in this repository has.
+ */
+const CHANNEL_DECLARATION = 'src/alg/channels.ts';
+const PUBLISHED_CHANNEL_SLUGS = ['result', 'denial-telemetry', 'promotion-gate', 'gap-record'];
+
+function sourceOf(relative) {
+  const full = path.join(ROOT, relative);
+  if (!existsSync(full)) {
+    violations.push(`test_SEAM_channels_declared: ${relative} is missing`);
+    return null;
+  }
+  return readFileSync(full, 'utf8');
+}
+
+function numberOf(source, relative, symbol) {
+  const found = source.match(new RegExp(`export const ${symbol} = (\\d+)`));
+  if (!found) {
+    violations.push(`test_SEAM_channels_declared: ${relative} does not export ${symbol} as a number`);
+    return null;
+  }
+  return Number(found[1]);
+}
+
+const declaration = sourceOf(CHANNEL_DECLARATION);
+if (declaration !== null) {
+  const declared = [...declaration.matchAll(/slug:\s*'([a-z-]+)'/g)].map((match) => match[1]);
+
+  if (declared.length !== PUBLISHED_CHANNEL_SLUGS.length) {
+    violations.push(
+      `test_SEAM_channels_declared: ${CHANNEL_DECLARATION} declares ${declared.length} channels and the boundary publishes ${PUBLISHED_CHANNEL_SLUGS.length}`,
+    );
+  }
+  for (const slug of declared) {
+    if (!PUBLISHED_CHANNEL_SLUGS.includes(slug)) {
+      violations.push(`test_SEAM_channels_declared: '${slug}' is not one of the published channels`);
+    }
+  }
+  for (const slug of PUBLISHED_CHANNEL_SLUGS) {
+    if (declared.filter((entry) => entry === slug).length !== 1) {
+      violations.push(`test_SEAM_channels_declared: '${slug}' is declared ${declared.filter((e) => e === slug).length} times`);
+    }
+  }
+
+  // The answer's cap lives in the agent layer, which the declaration cannot reach. Compared here so
+  // that moving one of the two without the other fails rather than drifts.
+  const agentContract = sourceOf('agents/triage/schema.ts');
+  if (agentContract !== null) {
+    const published = numberOf(agentContract, 'agents/triage/schema.ts', 'DRAFT_TEXT_MAX');
+    const transcribed = numberOf(declaration, CHANNEL_DECLARATION, 'RESULT_CHANNEL_MAX_BYTES');
+    if (published !== null && transcribed !== null && published !== transcribed) {
+      violations.push(
+        `test_SEAM_channels_declared: the result channel is capped at ${transcribed} in ${CHANNEL_DECLARATION} and at ${published} in agents/triage/schema.ts`,
+      );
+    }
+  }
+
+  // The gap record's cap is imported, not copied. Asserted as an import so that a later edit cannot
+  // replace it with a literal that agrees today and stops agreeing later.
+  if (!/import \{ GAP_CHANNEL_RECORD_MAX_BYTES \}/.test(declaration)) {
+    violations.push(
+      `test_SEAM_channels_declared: ${CHANNEL_DECLARATION} must import the gap record's cap rather than restate it`,
+    );
+  }
+  if (!/DENIAL_ALPHABET_SIZE = ESCALATION_REASONS\.length/.test(declaration)) {
+    violations.push(
+      `test_SEAM_channels_declared: ${CHANNEL_DECLARATION} must derive the denial alphabet's width from the alphabet`,
+    );
+  }
+
+  // And the alphabet is still the width the boundary published. A ninth index is reserved; taking it
+  // is a decision with a record, and this is where taking it quietly stops being possible.
+  const rule = sourceOf('src/alg/escalation.ts');
+  if (rule !== null) {
+    const alphabet = rule.match(/export const ESCALATION_REASONS = \[([\s\S]*?)\] as const;/);
+    if (!alphabet) {
+      violations.push('test_SEAM_channels_declared: src/alg/escalation.ts does not publish a closed alphabet');
+    } else {
+      const members = [...alphabet[1].matchAll(/'[A-Z]+'/g)].length;
+      const bits = Math.ceil(Math.log2(members));
+      if (bits !== 3) {
+        violations.push(
+          `test_SEAM_channels_declared: the denial channel now carries ${members} indices (${bits} bits); the boundary publishes 3 bits and moving it is a decision with a record`,
+        );
+      }
+    }
+  }
+}
+
 // A declared dependency with no chokepoint to hold it is the plan's ordering rule broken — the
 // gateway comes before any agent — so it is caught here rather than at the first call site. Once
 // the gateway exists the dependency is legitimate and the import rule above does the real work.
@@ -195,4 +306,7 @@ console.log('test_ARCH_quality_cannot_import_app OK');
 console.log(`test_SEC_no_direct_sdk_import OK (a model SDK is named only in ${GATEWAY} and ${PROVIDERS}/)`);
 console.log(
   `test_SEC_providers_only_from_composition_root OK (${PROVIDERS}/ is reached only from ${COMPOSITION_ROOT})`,
+);
+console.log(
+  `test_SEAM_channels_declared OK (${PUBLISHED_CHANNEL_SLUGS.length} typed channels, bounded and declared in ${CHANNEL_DECLARATION}: ${PUBLISHED_CHANNEL_SLUGS.join(', ')})`,
 );

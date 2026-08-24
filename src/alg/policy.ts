@@ -109,15 +109,89 @@ export function policyPatternSources(): { flag: string; name: string; source: st
 }
 
 /**
+ * Characters that occupy no space and therefore cannot be part of a word.
+ *
+ * **This table exists because the matcher was evaded.** A single zero-width space inside a word —
+ * `ig<U+200B>nore the previous instructions` — walks past all five injection patterns and every
+ * other rule here, because each of them is anchored on word boundaries and a zero-width space makes
+ * two words out of one. It renders identically. Nobody reading the ticket would see anything.
+ *
+ * Compatibility normalisation does not remove them, and the whitespace collapse reaches only part of
+ * the table. `\s` covers `U+2000`–`U+200A` and stops one code point short of `U+200B`, where the
+ * useful ones begin — but it does NOT stop there for the whole list: **`U+FEFF` is in `\s`**, and it
+ * is the last entry below. Measured, not assumed: `/\s/.test('﻿')` is `true` while
+ * `/\s/.test('​')` is `false`.
+ *
+ * So the sweep and the collapse OVERLAP at one code point, and the order is doing more work than an
+ * earlier version of this comment admitted. The sweep runs first and removes the whole table; if the
+ * collapse ran first it would turn a byte order mark inside a word into a space, which splits the
+ * word and hands the evasion back — the exact failure the table exists to close, arriving through
+ * the one entry the language would have handled.
+ *
+ * The list is closed and each entry is named, because a rule of the form "strip anything that looks
+ * invisible" is a rule nobody can predict. Format characters and the deprecated tag block are here
+ * for the same reason: they carry no glyph, so removing them cannot change what a person reads,
+ * and leaving them in lets somebody write one word that matches nothing.
+ */
+export const INVISIBLE_CODE_POINTS: readonly { name: string; pattern: string }[] = [
+  { name: 'SOFT HYPHEN', pattern: '\\u00AD' },
+  { name: 'MONGOLIAN VOWEL SEPARATOR', pattern: '\\u180E' },
+  { name: 'ZERO WIDTH SPACE, NON-JOINER, JOINER and the two directional marks', pattern: '\\u200B-\\u200F' },
+  { name: 'bidirectional embedding, override and pop', pattern: '\\u202A-\\u202E' },
+  { name: 'WORD JOINER and the invisible operators', pattern: '\\u2060-\\u2064' },
+  { name: 'bidirectional isolates', pattern: '\\u2066-\\u2069' },
+  { name: 'variation selectors', pattern: '\\uFE00-\\uFE0F' },
+  { name: 'ZERO WIDTH NO-BREAK SPACE, which is also the byte order mark', pattern: '\\uFEFF' },
+  { name: 'the deprecated tag block, which renders as nothing at all', pattern: '\\u{E0000}-\\u{E007F}' },
+];
+
+const INVISIBLE = new RegExp(
+  `[${INVISIBLE_CODE_POINTS.map((entry) => entry.pattern).join('')}]`,
+  'gu',
+);
+
+/**
+ * The same text with every character that has no width removed.
+ *
+ * **Removed and not replaced.** A zero-width space substituted with a real one would leave two words
+ * where the writer put one, and the pattern that was being evaded would go on not matching. Deleting
+ * it rejoins the word, which is what the writer's own reader does when it renders the string.
+ *
+ * A helper of its own rather than four lines inside the normaliser, because the property it holds is
+ * worth naming and worth testing on its own: what a person sees is what the matcher sees.
+ */
+export function stripInvisible(text: string): string {
+  return text.replace(INVISIBLE, '');
+}
+
+/**
+ * The normalisation in force, as a name a digest can carry.
+ *
+ * The matcher's verdict depends on this as much as it depends on the table of patterns, and the
+ * ruleset digest exists to keep two runs under two rules from pooling. Changing what the normaliser
+ * does without moving this string would let a ticket that raised a flag yesterday raise none today
+ * while both rows claimed to have run under the same rules.
+ */
+export const POLICY_NORMALISATION = 'nfkc+invisible-removed+lowercase+whitespace-collapsed@1';
+
+/**
  * The text the patterns are matched against, from the two fields a ticket carries.
  *
- * Compatibility-normalised, lower-cased, and with every run of whitespace — including the newline
- * this function itself inserts — collapsed to one space. The collapse is what makes a phrase match
- * when a customer wrapped it across two lines, and the lower-casing is why no pattern in the table
- * needs a case flag.
+ * Compatibility-normalised, stripped of characters that have no width, lower-cased, and with every
+ * run of whitespace — including the newline this function itself inserts — collapsed to one space.
+ * The collapse is what makes a phrase match when a customer wrapped it across two lines, and the
+ * lower-casing is why no pattern in the table needs a case flag.
+ *
+ * The order is not arbitrary: compatibility forms first, so that what is removed next is decided
+ * against a settled spelling; then the widthless characters, so a word split by one becomes a word
+ * again; and only then the case folding and the collapse, which both operate on characters that are
+ * really there.
  */
 export function policyInput(subject: string, body: string): string {
-  return `${subject}\n${body}`.normalize('NFKC').toLowerCase().replace(/\s+/g, ' ').trim();
+  return stripInvisible(`${subject}\n${body}`.normalize('NFKC'))
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 /**

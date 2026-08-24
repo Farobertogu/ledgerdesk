@@ -51,6 +51,14 @@
  * invisible to a run pinned to an earlier one, which is what makes the replay of that run mean
  * anything.
  *
+ * **`citable` is a filter too, and it was not one until material could be admitted.** The column has
+ * been in the schema since the first migration and nothing read it: with a corpus that only a seed
+ * wrote, every row was citable and the omission cost nothing. An admission is where the flag becomes
+ * a decision somebody takes — a supervisor is asked, in as many words, whether the document may be
+ * quoted to a customer — and a retrieval that ignored the answer would hand a model an excerpt of a
+ * document whose author said no, and the reply would cite it. Filtering at the query is the only
+ * place that holds: everything downstream is entitled to quote what it was given.
+ *
  * **It runs under `{org_id}` with no role.** The precedent is the ledger store's: what it cannot
  * see, it cannot leak. A reader that also asserted `role` would hold the claims that open the
  * ticket write path — standing it does not need for a select, and standing that would let a defect
@@ -119,6 +127,7 @@ function searchSql(): string {
       from kb_article a
      cross join q
      where a.kb_snapshot = $2
+       and a.citable
        and ${document} @@ q.query
      order by ${rank} desc, a.canonical_key collate "C" asc, a.id asc
      limit ${TOP_K}`;
@@ -179,7 +188,35 @@ export type RetrieveInput = {
  * travelled. A body inside the bound — which every seeded article is — travels whole.
  */
 export async function retrieve(input: RetrieveInput): Promise<RetrievalOutcome> {
-  const terms = queryTermsFor(input.subject, input.body);
+  return retrieveTerms({
+    orgId: input.orgId,
+    terms: queryTermsFor(input.subject, input.body),
+    snapshot: input.snapshot,
+    excerptMax: input.excerptMax,
+  });
+}
+
+export type RetrieveTermsInput = {
+  orgId: string;
+  /** The query text, already composed. */
+  terms: string;
+  snapshot: string;
+  excerptMax: number;
+};
+
+/**
+ * The same search, driven by terms that were composed earlier.
+ *
+ * This is what a verification re-runs against. The point of a gap record storing `query_terms` is
+ * that the re-run is the SAME question rather than a similar one: recomposing it from the ticket
+ * would be a second producer of the query, and a ticket whose subject was edited in between would
+ * quietly turn the closure into a different search that happened to succeed.
+ *
+ * `retrieve` is this function with the composition in front of it, so there is one query builder and
+ * one place the ordering, the floor and the configuration are decided.
+ */
+export async function retrieveTerms(input: RetrieveTermsInput): Promise<RetrievalOutcome> {
+  const terms = input.terms;
 
   const rows = await withAppSession(retrievalClaims(input.orgId), async (client) => {
     const result = await client.query<ArticleRow>(searchSql(), [terms, input.snapshot]);

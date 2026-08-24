@@ -44,7 +44,18 @@ MIGRATIONS="$(ls migrations/[0-9][0-9][0-9][0-9]_*.sql | sort)"
 
 # The test list stays explicit because the order is part of it; the reconciliation at the end
 # fails the build if a test file exists and is not named here.
-TESTS="test_MIGRATIONS_schema_matches_spec test_ARCH_quality_role_is_readonly test_RLS_ticket_org_isolation test_RLS_customer_cannot_read_other_customer test_SEED_one_account_per_org test_LEDGER_append_only test_LEDGER_class_payload test_SQL_escalated_requires_reason test_SEC_kb_admission_requires_a_human_approver_of_the_same_org test_GEN_corpus_loads_into_eval_item_with_labels"
+# The three gap-cycle files come after the admission schema test, and the order matters for one of
+# them: it advances a snapshot and puts the pointer back, so anything that reads the corpus under the
+# snapshot the seed wrote reads it first.
+#
+# **And the rule that follows from the order, for anybody adding a test here: snapshot labels are a
+# SHARED NAMESPACE across these files.** They all run against one database, in this order, and
+# `kb_article` is append-only — so a label another file has already stood articles under is a label
+# that is taken for good, and the advance refuses it with `E_KB_SNAPSHOT_YA_EXISTE`. That refusal is
+# correct and it arrives in the wrong test: the file that reached for a label that reads free gets an
+# error about a corpus it never touched. A label used by a case belongs to that case, and saying so
+# in its name costs nothing. `grep -rn 'kb-20' ci/sql/` is the whole check.
+TESTS="test_MIGRATIONS_schema_matches_spec test_ARCH_quality_role_is_readonly test_RLS_ticket_org_isolation test_RLS_customer_cannot_read_other_customer test_SEED_one_account_per_org test_LEDGER_append_only test_LEDGER_class_payload test_SQL_escalated_requires_reason test_SEC_kb_admission_requires_a_human_approver_of_the_same_org test_SEC_kb_definer_functions_are_not_public test_SEC_gap_closure_refuses_a_ledger_row_that_proves_nothing test_SEC_snapshot_advance_refuses_a_foreign_organisation test_KB_gap_closed_question_reopens_as_a_new_record test_GEN_corpus_loads_into_eval_item_with_labels"
 
 # -X: a developer's ~/.psqlrc is read after -v and could reopen ON_ERROR_STOP. It is the one
 # place where the user's environment could change the verdict.

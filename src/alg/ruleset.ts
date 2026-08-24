@@ -19,7 +19,7 @@
  */
 
 import { DEFAULT_ESCALATION_THRESHOLDS, type EscalationThresholds } from './escalation.ts';
-import { policyPatternSources } from './policy.ts';
+import { POLICY_NORMALISATION, policyPatternSources } from './policy.ts';
 import { DEFAULT_PRIORITY_WEIGHTS, PRIORITY_DECIMALS, type PriorityWeights } from './priority.ts';
 import { retrievalDescription, type RetrievalDescription } from './retrieval.ts';
 
@@ -34,6 +34,15 @@ export type RulesetDescription = {
   };
   weights: PriorityWeights;
   policyPatterns: { flag: string; name: string; source: string }[];
+  /**
+   * How the text the patterns run against is normalised.
+   *
+   * The table decides what a match is; this decides what is being matched. A normaliser that started
+   * removing characters it used to keep would change every verdict the matcher produces, and without
+   * this field two runs under two normalisers would share a cache while disagreeing about which
+   * tickets carry a flag.
+   */
+  policyNormalisation: string;
   priorityDecimals: number;
   /**
    * The retrieval's parameters.
@@ -75,6 +84,7 @@ export function rulesetDescription(
       tier: weights.tier,
     },
     policyPatterns: policyPatternSources(),
+    policyNormalisation: POLICY_NORMALISATION,
     priorityDecimals: PRIORITY_DECIMALS,
     retrieval: retrievalDescription(),
   };

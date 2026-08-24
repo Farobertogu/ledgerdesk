@@ -182,7 +182,24 @@ export type RetrievalDescription = {
   rank: string;
   minRank: number;
   nullRule: string;
+  /**
+   * Whether the search is restricted to material that may be quoted.
+   *
+   * It is in the digest because it decides which documents can reach a draft, which is the same kind
+   * of parameter `k` and the floor are. Two runs on either side of it are two experiments: the same
+   * question, the same corpus, and a different set of admissible answers.
+   */
+  citableOnly: boolean;
 };
+
+/**
+ * Whether a retrieval may return material whose author said it must not be quoted.
+ *
+ * `false` is not an option this system offers. It is written as a constant rather than inlined so
+ * that it appears in the digest above and so that turning it off would be a visible edit with a
+ * recalibration attached, rather than a `where` clause somebody deleted.
+ */
+export const CITABLE_ONLY = true;
 
 export function retrievalDescription(): RetrievalDescription {
   return {
@@ -191,5 +208,6 @@ export function retrievalDescription(): RetrievalDescription {
     rank: RANK_FUNCTION,
     minRank: MIN_RANK,
     nullRule: NULL_RULE,
+    citableOnly: CITABLE_ONLY,
   };
 }

@@ -41,8 +41,11 @@ ROLES="app_rw quality_ro quality_gen quality_eval anon authenticated service_rol
 MIGRATIONS="$(ls migrations/[0-9][0-9][0-9][0-9]_*.sql | sort)"
 [ -n "$MIGRATIONS" ] || fail "no numbered migrations in migrations/"
 
-# Explicit, because the order is part of it. The reconciliation after the run fails the build if a
-# test file exists in tests/gateway/ and is not named here.
+# Explicit, so that the reconciliation after the run fails the build if a test file exists in
+# tests/gateway/ and is not named here. The ORDER of the list buys nothing: `node --test` sorts the
+# files it is given, whatever order they arrive in — measured, not assumed. These files share a
+# database and a seeded tenant, so what keeps them from interfering is that each one writes into a
+# run of its own, not that they are listed in some sequence.
 TESTS="tests/gateway/test_SEC_pii_never_leaves.mjs tests/gateway/test_SEC_cache_is_tenant_isolated.mjs tests/gateway/test_SEC_security_events_are_recorded.mjs tests/gateway/test_SEC_kb_injection_cannot_forge_a_citation.mjs tests/gateway/test_GW_budget_cuts_off.mjs tests/gateway/test_GW_cache_hit_skips_call.mjs tests/gateway/test_GW_provider_faults_are_typed.mjs tests/gateway/test_GW_ledger_row_satisfies_contract.mjs tests/gateway/test_GW_replay_never_calls_provider.mjs tests/gateway/test_GW_state_hash_differs_across_rulesets.mjs tests/gateway/test_GW_state_hash_tracks_the_snapshot_in_force.mjs tests/gateway/test_LEDGER_system_row_is_not_a_model_call.mjs"
 
 maint() { psql -X -v ON_ERROR_STOP=1 -q -d "$MAINT_DB" -c "$1" >/dev/null; }

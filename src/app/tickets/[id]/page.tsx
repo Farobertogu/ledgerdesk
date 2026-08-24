@@ -3,11 +3,13 @@ import { notFound } from 'next/navigation';
 
 import { DraftButton } from '@/components/DraftButton';
 import { formatInstant } from '@/components/format';
+import { GapControls } from '@/components/GapControls';
 import { Notice, PageHeading, Panel } from '@/components/Panel';
 import { StatusPill } from '@/components/StatusPill';
 import { TriageButton } from '@/components/TriageButton';
 import { NO_MATCH_STATEMENT } from '@/alg/retrieval';
 import { evidenceFor } from '@/server/evidence';
+import { GAP_COMMITMENTS } from '@/server/kb/commitment';
 import { claimsFor, currentIdentity } from '@/server/session';
 import { getTicket } from '@/server/tickets';
 
@@ -16,7 +18,13 @@ export const dynamic = 'force-dynamic';
 /**
  * One ticket, and the evidence of what was done to it.
  *
- * **Read-only, and the missing controls are the point.** There is no edit, no approve, no send.
+ * **Read-only ABOUT THE ANSWER, and the missing controls are the point.** There is no edit, no
+ * approve and no send **of an answer** — the qualifier is load-bearing rather than pedantic, because
+ * this screen does mount two controls: on an open knowledge gap a supervisor admits a document and
+ * anybody on staff re-runs its question. Both act on the CORPUS and neither touches the reply that
+ * goes to a customer, which is the distinction the sentence is making. It read "there is no edit, no
+ * approve, no send" while the admit control sat below it, and the page's own lead said the same to
+ * the reader.
  * Their absence is safe because `0009` made those states unreachable from here — a trigger refuses
  * `SENT` without an approver and a sent instant, and a restrictive policy refuses any update of
  * `response` from a session with no subject — and not because the buttons have not been drawn yet.
@@ -68,12 +76,16 @@ export default async function TicketPage({ params }: { params: Promise<{ id: str
   const emptyRetrieval = evidence.retrievals.find(
     (entry) => entry.retrieval_kind !== null && entry.result_count === 0,
   );
+  // The standing commitment, shown beneath the two fields the record stores. It is looked up rather
+  // than stored on the row on purpose: the record keeps the owner and the date it was opened under,
+  // and the sentence is the artefact's — one copy, in the place it is authored.
+  const commitment = GAP_COMMITMENTS.find((entry) => entry.org_id === identity.org_id) ?? null;
 
   return (
     <>
       <PageHeading
         title={ticket.subject}
-        lead="Everything below is read from the database under this session's own claims. Nothing on this screen edits, approves or sends."
+        lead="Everything below is read from the database under this session's own claims. No answer is edited, approved or sent from here; the two controls on an open knowledge gap admit a document and re-run its question."
       />
 
       <div className="space-y-6">
@@ -198,7 +210,7 @@ export default async function TicketPage({ params }: { params: Promise<{ id: str
             title="Knowledge gaps"
             hint="Recorded against this ticket, and shown here rather than on a screen of their own: the gap and the escalation it produced are one story."
           >
-            <ul className="space-y-3">
+            <ul className="space-y-5">
               {evidence.gaps.map((gap) => (
                 <li key={gap.id} className="text-sm">
                   <span className="font-mono text-[11px]">{gap.state}</span>
@@ -206,10 +218,75 @@ export default async function TicketPage({ params }: { params: Promise<{ id: str
                     snapshot {gap.kb_snapshot} · zero match {String(gap.zero_match)}
                     {gap.closed_by_check_at ? ` · closed ${formatInstant(gap.closed_by_check_at)}` : ''}
                   </span>
-                  <p className="mt-1 text-xs text-muted">{gap.null_rule}</p>
+
+                  {/* The commitment, which is what turns a record of a failure into a piece of work
+                      somebody agreed to do. Both fields are the record's own; the sentence beneath
+                      them is the standing commitment they were read from. */}
+                  <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 font-mono text-[11px] text-muted">
+                    <dt>owner</dt>
+                    <dd>
+                      {gap.owner_id}
+                      <span className="ml-1">· {gap.owner_role}</span>
+                    </dd>
+                    <dt>committed</dt>
+                    <dd>{gap.committed_date}</dd>
+                  </dl>
+                  {commitment ? (
+                    <>
+                      <p className="mt-1 text-xs text-muted">{commitment.statement}</p>
+                      {/* Who decided that, and when. An owner assigned by a document nobody signed
+                          is an owner assigned by nobody, which is the failure the commitment exists
+                          to prevent moved one level up. */}
+                      <p className="mt-0.5 font-mono text-[11px] text-muted">
+                        declared by {commitment.declared_by} on {commitment.declared_on} ·{' '}
+                        {commitment.ref}
+                      </p>
+                    </>
+                  ) : null}
+
+                  <p className="mt-2 text-xs text-muted">{gap.null_rule}</p>
                   {gap.not_documentable_reason ? (
                     <p className="mt-1 text-xs text-muted">{gap.not_documentable_reason}</p>
                   ) : null}
+
+                  <GapControls
+                    gapId={gap.id}
+                    state={gap.state}
+                    role={identity.role}
+                    admitted={evidence.admissions.some((entry) => entry.gap_id === gap.id)}
+                  />
+                </li>
+              ))}
+            </ul>
+          </Panel>
+        ) : null}
+
+        {evidence.admissions.length > 0 ? (
+          <Panel
+            title="Admissions"
+            hint="What was let into the corpus to answer a gap above, who let it in, and which snapshot the corpus moved from and to."
+          >
+            <ul className="space-y-3">
+              {evidence.admissions.map((admission) => (
+                <li key={admission.id} className="text-sm">
+                  <span className="font-medium">{admission.title ?? admission.canonical_key ?? 'admitted document'}</span>
+                  <dl className="mt-1 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 font-mono text-[11px] text-muted">
+                    <dt>approved by</dt>
+                    <dd>
+                      {admission.approved_by}
+                      <span className="ml-1">· {admission.approver_role}</span>
+                    </dd>
+                    <dt>snapshot</dt>
+                    <dd>
+                      {admission.snapshot_from} → {admission.snapshot_to}
+                    </dd>
+                    <dt>content</dt>
+                    <dd title={admission.content_hash}>{admission.content_hash.slice(0, 12)}</dd>
+                    <dt>source</dt>
+                    <dd>{admission.provenance_source}</dd>
+                    <dt>admitted</dt>
+                    <dd>{formatInstant(admission.admitted_at)}</dd>
+                  </dl>
                 </li>
               ))}
             </ul>
@@ -231,6 +308,7 @@ export default async function TicketPage({ params }: { params: Promise<{ id: str
                 <thead>
                   <tr className="border-b border-line uppercase tracking-wide text-muted">
                     <th className="py-2 pr-4 font-medium">seq</th>
+                    <th className="py-2 pr-4 font-medium">class</th>
                     <th className="py-2 pr-4 font-medium">agent</th>
                     <th className="py-2 pr-4 font-medium">model</th>
                     <th className="py-2 pr-4 font-medium">cost (AUD)</th>
@@ -243,6 +321,10 @@ export default async function TicketPage({ params }: { params: Promise<{ id: str
                   {evidence.ledger.map((row) => (
                     <tr key={row.seq} className="border-b border-line last:border-0">
                       <td className="py-2 pr-4 tabular-nums">{row.seq}</td>
+                      {/* The class is on screen because the admission row is what makes the two
+                          halves of a corrected cycle legible: the same question before and after,
+                          in one chain, with the row that changed the corpus between them. */}
+                      <td className="py-2 pr-4">{row.class}</td>
                       <td className="py-2 pr-4">{row.agent}</td>
                       <td className="py-2 pr-4">{row.model_requested ?? '—'}</td>
                       <td className="py-2 pr-4 tabular-nums">{row.cost_aud}</td>

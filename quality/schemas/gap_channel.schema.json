@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ledgerdesk/quality/schemas/gap_channel.schema.json",
+  "title": "Knowledge-gap channel record",
+  "description": "The fourth declared channel. It carries the commitment a human made in advance, two digests that only tie, and the sources that diverged. It never carries a term of the enquiry in clear: the receiver mediated the query and supplies those fields itself.",
+  "type": "object",
+  "required": [
+    "gap_id",
+    "canonical_key_sha256",
+    "query_sha256",
+    "kb_snapshot",
+    "owner_id",
+    "committed_date",
+    "state",
+    "divergent_kb_ids",
+    "note"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "gap_id": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "maxLength": 36,
+      "description": "The identity the record is minted under, so a retry names the same gap."
+    },
+    "canonical_key_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "maxLength": 64,
+      "description": "The canonical key of the question, hashed. It ties: the receiver recomputes it from the terms it searched with and compares."
+    },
+    "query_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "maxLength": 64,
+      "description": "sha256(query_terms || kb_snapshot). It ties, and it is what makes the re-run identical by construction."
+    },
+    "kb_snapshot": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9:._-]{1,64}$",
+      "maxLength": 64,
+      "description": "Repeated by the channel only so that the digest above can be tied to it."
+    },
+    "owner_id": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "maxLength": 36,
+      "description": "Carried by the channel. The receiver validates that it resolves to a live user of the same organisation, and never invents one."
+    },
+    "committed_date": {
+      "type": "string",
+      "format": "date",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+      "maxLength": 10,
+      "description": "The commitment half: by when. Carried, validated, never supplied."
+    },
+    "state": {
+      "enum": [
+        "OPEN",
+        "NOT_DOCUMENTABLE",
+        "CLOSED"
+      ],
+      "maxLength": 16,
+      "description": "On emission the receiver accepts only OPEN. The other two exist because the field mirrors the record column."
+    },
+    "divergent_kb_ids": {
+      "type": "array",
+      "maxItems": 4,
+      "items": {
+        "type": "string",
+        "format": "uuid",
+        "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+      },
+      "description": "Empty unless the gap was born of two sources that disagree."
+    },
+    "note": {
+      "type": "string",
+      "maxLength": 512,
+      "description": "The only open content of the record. Its cap is what separates a typed channel with bounded open content from a text channel."
+    }
+  }
+}

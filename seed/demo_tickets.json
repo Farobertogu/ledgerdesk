@@ -221,7 +221,18 @@
     "satisfying those would fail the cycle rather than quietly pass it.",
     "",
     "No entry is authored for the knowledge-gap beat, and that is the beat: the retrieval returns",
-    "nothing, so the drafting agent is never asked."
+    "nothing, so the drafting agent is never asked. After material is admitted the re-run DOES reach",
+    "it, and deliberately has no authored entry either: the derived answer cites every source it was",
+    "given and borrows enough of each one's wording to be grounded by construction, which is exactly",
+    "what a verification should have to earn rather than be handed.",
+    "",
+    "CITATIONS NAME A KEY AND NEVER AN IDENTITY. `<key:...>` is resolved against the sources the call",
+    "was actually handed. A literal identity would be correct today and wrong the moment the corpus",
+    "advances: an advance mints a new identity for every row it copies, the authored citation would",
+    "name a document that no longer exists, and the anchored beat would escalate for lack of grounding",
+    "in the middle of the demonstration. The key survives an advance verbatim; the identity does not.",
+    "test_TRIAGE_demo_dataset_is_authored_for_its_beats fails the build on any thirty-two-character",
+    "hexadecimal run anywhere in these tables, which is what a literal identity looks like."
   ],
   "draft_fixtures": [
     {
@@ -230,7 +241,7 @@
       "answer": {
         "draft": {
           "text": "Thanks for getting in touch. A plan covers a fixed number of export destinations, so adding a further destination for a second team is a plan change and it alters the monthly total. We confirm the new figure in writing before it takes effect. If you would also like the run itself to move, the nightly export window can be moved by an account owner from the scheduling screen.",
-          "kb_ids": ["exports/destinations:c0de0003000040008000000000000001", "exports/schedule:c0de0004000040008000000000000001"],
+          "kb_ids": ["<key:exports/destinations>", "<key:exports/schedule>"],
           "confidence": 0.92
         }
       }
@@ -241,10 +252,62 @@
       "answer": {
         "draft": {
           "text": "Thanks for getting in touch. The nightly export window can be moved by an account owner from the scheduling screen, so this is a change you can make yourselves. Moving it later avoids an overlap with a batch that starts at midnight, and the new time applies from the following night.",
-          "kb_ids": ["exports/schedule:c0de0004000040008000000000000001"],
+          "kb_ids": ["<key:exports/schedule>"],
           "confidence": 0.93
         }
       }
+    }
+  ],
+  "$admissible_comment": [
+    "The material a supervisor admits during the gap beat, one document per variant.",
+    "",
+    "It is NOT part of seed/orgs.sql and must not become part of it. The beat opens with a retrieval",
+    "that matches nothing, so a corpus that already held the answer would have no gap to record; the",
+    "whole act is that the document is not there and then is. What lives here is what a person pastes",
+    "into the admission form on the day, and what the tests measure the properties of.",
+    "",
+    "Each one is written to be admissible under the writer's own rules, and the test checks all of",
+    "them rather than trusting the wording: it survives the redactor unchanged, so no citation of it",
+    "would quote a marker where a fact used to be; it raises no policy flag, least of all injection;",
+    "its key matches the published alphabet; and it fits whole inside one excerpt, so nothing of it is",
+    "lost on the way to a model.",
+    "",
+    "expected_rank_floor is the assertion that separates 'the re-run found something' from 'the re-run",
+    "found the right thing'. Before the admission the question returns nothing at all; after it, the",
+    "admitted key must come back AND come back first by rank. A closure conditioned merely on finding",
+    "something would pass on a corpus where an unrelated article happens to clear the floor, which is",
+    "the one failure mode nobody watching could distinguish from success."
+  ],
+  "admissible_material": [
+    {
+      "for_ticket": "d0000043-000a-4000-8000-000000000001",
+      "beat": "escalation-on-a-knowledge-gap",
+      "variant": "A",
+      "canonical_key": "ops/audit-trail-visibility",
+      "title": "Who can view the audit trail of a shipment",
+      "body": "The audit trail attached to a shipment is visible to every member of the workspace who is able to view the shipment itself. A supervisor can restrict the trail so that it is visible only to whoever raised it and to other supervisors, and the visibility rule takes effect from the moment it is changed rather than retrospectively.",
+      "citable": true,
+      "provenance": {
+        "source": "Northwind Freight operations handbook, shipment records",
+        "obtained_at": "2026-08-24",
+        "citability": "cleared for customer replies by operations"
+      },
+      "expected_rank_floor": 0.01
+    },
+    {
+      "for_ticket": "d0000043-000b-4000-8000-000000000001",
+      "beat": "escalation-on-a-knowledge-gap",
+      "variant": "B",
+      "canonical_key": "ops/archived-shipment-retention",
+      "title": "How long an archived shipment stays visible",
+      "body": "An archived shipment stays visible for ninety days from the day it was archived, and a supervisor can restore it at any point inside that window. After ninety days the archived record is retained for audit and no longer appears anywhere a person can search.",
+      "citable": true,
+      "provenance": {
+        "source": "Northwind Freight operations handbook, retention",
+        "obtained_at": "2026-08-24",
+        "citability": "cleared for customer replies by operations"
+      },
+      "expected_rank_floor": 0.01
     }
   ]
 }
