@@ -24,6 +24,14 @@ So: **every migration that creates a `security definer` function revokes EXECUTE
 
 Trigger functions are outside the rule and outside the sweep, and the exclusion is written here rather than left to be inferred: a trigger function is not callable — invoking one directly raises *trigger functions can only be called as triggers* — so its EXECUTE privilege grants nobody anything, while revoking it would change the conditions under which every existing trigger was created.
 
+## Files before `0011` name error codes the system no longer raises
+
+Open `0010` and you will find `raise exception 'E_KB_HUECO_SIN_DUENO'`. That code does not exist. Nothing raises it, no test names it, and it is absent from `ci/expected/schema.sql`, which is what a database actually contains once every file here has been applied. `0011` replaced the nine functions that raised codes in Spanish, and `adr/ADR-027-error-codes-in-english.md` is the dated decision that authorised it.
+
+**Those old spellings stay because of the first line of this file.** An applied migration is not edited, and the reason is not tidiness: two people applying the same numbered file must get the same function, or the schema of record stops being a fact about the set and becomes a fact about *when* you ran it. Editing a string inside `0010` would leave no visible trace and would break that property for a cosmetic gain.
+
+So they are not stale text that somebody forgot. **They are the record**, and reading them in order is how the change is auditable: the old name in the file it was born in, the new name beside it in `0011`'s table, and a dated decision saying who changed it and why. That is the same property this schema's ledger is built on — history is appended to, never rewritten — applied to the schema that carries it. A set of migrations edited until it looked like it had always been right would be easier to read and worth less.
+
 ## Applying them
 
 `ci/db_check.sh` applies every file above, in order, to a clean database and runs the named database tests; the `db` job of CI runs it against a PostgreSQL 16 service container. The list it applies is derived from disk rather than kept by hand — a migration nobody adds to an array is a migration that never runs. Two details are not optional:
