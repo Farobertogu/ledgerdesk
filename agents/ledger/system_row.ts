@@ -36,7 +36,7 @@
  *
  * `ledger_link()` already refuses a row whose class-required keys are absent or carry JSON null.
  * Doing it again here is not redundancy for its own sake: a violation caught by the trigger arrives
- * as `E_LEDGER_FILA_INCOMPLETA` from inside a transaction, eight frames from the caller, naming
+ * as `E_LEDGER_ROW_INCOMPLETE` from inside a transaction, eight frames from the caller, naming
  * nothing about which key was missing. Caught here it names the key. The table below is transcribed
  * from `migrations/0002_ledger.sql` §3 and the transcription is what the test checks.
  */

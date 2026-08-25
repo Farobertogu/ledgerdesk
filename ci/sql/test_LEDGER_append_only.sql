@@ -162,7 +162,7 @@ end $$;
 select pg_temp.expect_reject(
   $stmt$update prompt_version set text = 'edited after the run'
           where id = '9d000000-0000-4000-8000-000000000001'$stmt$,
-  'E_PROMPT_VERSION_INMUTABLE',
+  'E_PROMPT_VERSION_IMMUTABLE',
   'test_LEDGER_append_only/prompt_version_text');
 
 do $$

@@ -6,7 +6,7 @@
  * **It is a row before it is a string.** `ledger_entry.prompt_version_id` is NOT NULL and
  * references `prompt_version`, so nothing this prompt produces can be recorded until the prompt is
  * registered. The registration happens while an organisation's runtime is being built, after the
- * privilege preflight and before any gateway exists, and its failure is `E_PROMPT_NO_REGISTRADO` —
+ * privilege preflight and before any gateway exists, and its failure is `E_PROMPT_NOT_REGISTERED` —
  * a refusal to build that runtime at all, not a warning, because a process that cannot record what
  * it spends has no business spending it. The refusal is not cached, so a database corrected a
  * minute later is not reported as broken until somebody restarts the server.

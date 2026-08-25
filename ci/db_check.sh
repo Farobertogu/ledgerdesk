@@ -51,7 +51,7 @@ MIGRATIONS="$(ls migrations/[0-9][0-9][0-9][0-9]_*.sql | sort)"
 # **And the rule that follows from the order, for anybody adding a test here: snapshot labels are a
 # SHARED NAMESPACE across these files.** They all run against one database, in this order, and
 # `kb_article` is append-only — so a label another file has already stood articles under is a label
-# that is taken for good, and the advance refuses it with `E_KB_SNAPSHOT_YA_EXISTE`. That refusal is
+# that is taken for good, and the advance refuses it with `E_KB_SNAPSHOT_ALREADY_EXISTS`. That refusal is
 # correct and it arrives in the wrong test: the file that reached for a label that reads free gets an
 # error about a corpus it never touched. A label used by a case belongs to that case, and saying so
 # in its name costs nothing. `grep -rn 'kb-20' ci/sql/` is the whole check.

@@ -131,7 +131,7 @@ describe('test_KB_gap_record_refused_without_evidence_owner_or_date', () => {
       assert.equal(result.ok, false, `a record with ${what} was accepted`);
       assert.match(
         result.message,
-        /E_KB_HUECO_SIN_EVIDENCIA/,
+        /E_KB_GAP_EVIDENCE_MISSING/,
         `a record with ${what} was refused by something other than the writer: ${result.message}`,
       );
     }
@@ -140,11 +140,11 @@ describe('test_KB_gap_record_refused_without_evidence_owner_or_date', () => {
   it('refuses a record with no owner and one with no date', async () => {
     const noOwner = await open(agentClaims(), completeArguments({ owner: null }));
     assert.equal(noOwner.ok, false, 'a record with no owner was accepted');
-    assert.match(noOwner.message, /E_KB_HUECO_SIN_DUENO/, noOwner.message);
+    assert.match(noOwner.message, /E_KB_GAP_OWNER_MISSING/, noOwner.message);
 
     const noDate = await open(agentClaims(), completeArguments({ committed: null }));
     assert.equal(noDate.ok, false, 'a record with no committed date was accepted');
-    assert.match(noDate.message, /E_KB_HUECO_SIN_FECHA/, noDate.message);
+    assert.match(noDate.message, /E_KB_GAP_DATE_MISSING/, noDate.message);
   });
 
   it('refuses a record whose rule for the null is blank', async () => {
@@ -157,7 +157,7 @@ describe('test_KB_gap_record_refused_without_evidence_owner_or_date', () => {
         false,
         `a record declaring nothing about the null was accepted (${JSON.stringify(blank)})`,
       );
-      assert.match(result.message, /E_KB_HUECO_SIN_REGLA_DE_NULO/, result.message);
+      assert.match(result.message, /E_KB_GAP_NULL_RULE_MISSING/, result.message);
     }
   });
 
@@ -182,7 +182,7 @@ describe('test_KB_gap_record_refused_without_evidence_owner_or_date', () => {
       completeArguments(),
     );
     assert.equal(result.ok, false, 'a session wrote a record into another organisation');
-    assert.match(result.message, /E_KB_HUECO_ORG_AJENA/, result.message);
+    assert.match(result.message, /E_KB_GAP_FOREIGN_ORG/, result.message);
   });
 
   it('accepts the complete record, so the refusals above are not a broken table', async () => {

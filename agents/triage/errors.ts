@@ -35,16 +35,17 @@
  */
 
 /**
- * `E_PROMPT_NO_REGISTRADO` keeps the spelling the agent contract fixes, for the same reason
- * `E_MODELO_INESPERADO` does in the chokepoint's register: the code is the specification's, not
- * this file's, and an English synonym would have to be reconciled with the source it came from
- * every time either one moved.
+ * `E_PROMPT_NOT_REGISTERED` names a condition the agent contract fixes, exactly as
+ * `E_MODEL_UNEXPECTED` does in the chokepoint's register: the meaning belongs to the specification
+ * and not to this file, so the entry below is the one that has to be reconciled with that contract
+ * whenever either of them moves. The spelling belongs here, and it is English because every code
+ * a reader of this tree meets is.
  */
 export const AGENT_ERROR_CODES = [
   /** The response text is not an envelope this agent's contract admits. */
   'E_SCHEMA',
   /** No prompt version is registered for this agent, so no call it made could be recorded. */
-  'E_PROMPT_NO_REGISTRADO',
+  'E_PROMPT_NOT_REGISTERED',
   /**
    * The draft stands on something it was not given: a source that was never handed over, or a
    * passage lifted out of one it did not cite. Added by ADR-024. Not retryable.

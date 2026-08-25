@@ -14,6 +14,7 @@ Forward-only. One numbered file per change; no destructive edits to an applied m
 | `0008_triage_columns.sql` | the priority, escalation reason and clause with their one-directional invariant, the body digest and its index, and the triage writer's prompt grant |
 | `0009_kb_retrieval.sql` | the snapshot pointer, an immutable knowledge base, the answer's evidence columns and its citations as composite references, the application role's knowledge-base grants and the staff-only write policies, the gap's closure and its unreachable state, `kb_snapshot_advance`, the two ticket-state triggers, and the cross-tenant approver made unrepresentable |
 | `0010_kb_gap_cycle.sql` | the gap-record writer, the advance re-signed to derive everything from the row of the chain and to write the admission with it, the closure by verification, the revocation of every callable definer function from PUBLIC, `select` on `kb_admission`, the staff-only read policy on `kb_gap`, the admission's reference to the article it admitted, four bounds that were prose, and one ledger row per admission by index |
+| `0011_error_codes_in_english.sql` | every error code the schema raises, restated in English. Nine functions are replaced with `create or replace` because a raised code lives inside a function body and a body cannot be edited in place; nothing else changes — no table, column, index, policy, trigger or privilege — and the claim is checked rather than asserted, by comparing the regenerated schema against the previous one with the identifiers substituted |
 
 ## Every `security definer` function carries its own revocation
 
@@ -22,6 +23,14 @@ Forward-only. One numbered file per change; no destructive edits to an applied m
 So: **every migration that creates a `security definer` function revokes EXECUTE from `public` in the same file**, and grants it to the role that needs it — by name, one grant per caller, or to nobody at all when the function exists for the owner and the tests. `test_SEC_kb_definer_functions_are_not_public` sweeps `pg_proc` rather than a list, so a function added without its revocation fails the build instead of waiting to be noticed.
 
 Trigger functions are outside the rule and outside the sweep, and the exclusion is written here rather than left to be inferred: a trigger function is not callable — invoking one directly raises *trigger functions can only be called as triggers* — so its EXECUTE privilege grants nobody anything, while revoking it would change the conditions under which every existing trigger was created.
+
+## Files before `0011` name error codes the system no longer raises
+
+Open `0010` and you will find `raise exception 'E_KB_HUECO_SIN_DUENO'`. That code does not exist. Nothing raises it, no test names it, and it is absent from `ci/expected/schema.sql`, which is what a database actually contains once every file here has been applied. `0011` replaced the nine functions that raised codes in Spanish, and `adr/ADR-027-error-codes-in-english.md` is the dated decision that authorised it.
+
+**Those old spellings stay because of the first line of this file.** An applied migration is not edited, and the reason is not tidiness: two people applying the same numbered file must get the same function, or the schema of record stops being a fact about the set and becomes a fact about *when* you ran it. Editing a string inside `0010` would leave no visible trace and would break that property for a cosmetic gain.
+
+So they are not stale text that somebody forgot. **They are the record**, and reading them in order is how the change is auditable: the old name in the file it was born in, the new name beside it in `0011`'s table, and a dated decision saying who changed it and why. That is the same property this schema's ledger is built on — history is appended to, never rewritten — applied to the schema that carries it. A set of migrations edited until it looked like it had always been right would be easier to read and worth less.
 
 ## Applying them
 
@@ -36,7 +45,7 @@ The applied schema is then diffed, in both directions and with no exception list
 
 ## Carrying a database forward across the envelope contract change
 
-`0009` lands together with a correction to the published agent output contract, and that correction moves `AGENT_IO_SCHEMA_SHA256`. `prompt_version.schema_hash` holds that digest and the row is immutable by trigger, so a database that already carries the triage prompt would otherwise refuse to start: the standing registration describes a contract this build no longer publishes, and the process raises `E_PROMPT_NO_REGISTRADO`.
+`0009` lands together with a correction to the published agent output contract, and that correction moves `AGENT_IO_SCHEMA_SHA256`. `prompt_version.schema_hash` holds that digest and the row is immutable by trigger, so a database that already carries the triage prompt would otherwise refuse to start: the standing registration describes a contract this build no longer publishes, and the process raises `E_PROMPT_NOT_REGISTERED`.
 
 **Nothing has to be done by hand, and two things must not be done at all.**
 

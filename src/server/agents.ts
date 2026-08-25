@@ -531,21 +531,21 @@ async function ensurePromptLineage(generations: readonly PromptRegistration[]): 
       if (row) {
         if (row.id !== generation.id) {
           throw new AgentError(
-            'E_PROMPT_NO_REGISTRADO',
+            'E_PROMPT_NOT_REGISTERED',
             `generation ${generation.generation} of the ${agent} prompt is registered under a different identifier than this build carries`,
             { registered: row.id, published: generation.id },
           );
         }
         if (row.text !== generation.text) {
           throw new AgentError(
-            'E_PROMPT_NO_REGISTRADO',
+            'E_PROMPT_NOT_REGISTERED',
             `generation ${generation.generation} of the ${agent} prompt is registered under different words than this build carries`,
             { prompt_version_id: row.id, generation: generation.generation },
           );
         }
         if (row.schema_hash !== generation.schema_hash) {
           throw new AgentError(
-            'E_PROMPT_NO_REGISTRADO',
+            'E_PROMPT_NOT_REGISTERED',
             `generation ${generation.generation} of the ${agent} prompt demands a different output schema than this build publishes for it`,
             {
               prompt_version_id: row.id,
@@ -583,7 +583,7 @@ async function ensurePromptLineage(generations: readonly PromptRegistration[]): 
     const current = registered.rows.find((row) => row.schema_hash === AGENT_IO_SCHEMA_SHA256);
     if (!current) {
       throw new AgentError(
-        'E_PROMPT_NO_REGISTRADO',
+        'E_PROMPT_NOT_REGISTERED',
         `no registered generation of the ${agent} prompt demands the contract this build publishes`,
         { agent, published_schema_hash: AGENT_IO_SCHEMA_SHA256, generations: registered.rowCount },
       );

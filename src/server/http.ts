@@ -70,7 +70,7 @@ export async function readBoundedJsonBody(
   const text = await request.text();
   const bytes = Buffer.byteLength(text, 'utf8');
   if (bytes > maxBytes) {
-    throw new AppError('E_CONTRATO', 413, 'the request body is above the declared ceiling', {
+    throw new AppError('E_CONTRACT_VIOLATION', 413, 'the request body is above the declared ceiling', {
       bytes,
       max_bytes: maxBytes,
     });

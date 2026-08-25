@@ -818,7 +818,7 @@ export function createGateway(config: GatewayConfig): Gateway {
     // event the pin exists to make visible.
     if (request.pin_model && response.model !== request.model_requested) {
       throw new GatewayError(
-        'E_MODELO_INESPERADO',
+        'E_MODEL_UNEXPECTED',
         'the response carried a model other than the one pinned; the row is written',
         {
           model_requested: request.model_requested,

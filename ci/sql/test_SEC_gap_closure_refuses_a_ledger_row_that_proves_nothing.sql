@@ -148,7 +148,7 @@ begin
     perform kb_gap_close_by_verification(v_gap, v_r_good);
     raise exception 'test_SEC_gap_closure_refuses_a_ledger_row_that_proves_nothing: a session of another organisation closed this gap, so the closure undoes the policy that hides it';
   exception when raise_exception then
-    if sqlerrm not like '%E_KB_CIERRE_SIN_HUECO%' then raise; end if;
+    if sqlerrm not like '%E_KB_CLOSURE_GAP_NOT_VISIBLE%' then raise; end if;
   end;
 
   if (select state::text from kb_gap where id = v_gap) <> 'OPEN' then
@@ -163,7 +163,7 @@ begin
     perform kb_gap_close_by_verification(v_gap, v_r_unanchored);
     raise exception 'test_SEC_gap_closure_refuses_a_ledger_row_that_proves_nothing: a gap closed on an answer that is not grounded';
   exception when raise_exception then
-    if sqlerrm not like '%E_KB_CIERRE_SIN_ANCLAJE%' then raise; end if;
+    if sqlerrm not like '%E_KB_CLOSURE_NOT_GROUNDED%' then raise; end if;
   end;
 
   -- --- 2 · an anchored answer with no row of the chain behind the verdict --------------------------
@@ -171,7 +171,7 @@ begin
     perform kb_gap_close_by_verification(v_gap, v_r_nowitness);
     raise exception 'test_SEC_gap_closure_refuses_a_ledger_row_that_proves_nothing: a gap closed with no witness at all';
   exception when raise_exception then
-    if sqlerrm not like '%E_KB_CIERRE_SIN_TESTIGO%' then raise; end if;
+    if sqlerrm not like '%E_KB_CLOSURE_WITNESS_MISSING%' then raise; end if;
   end;
 
   -- --- 3 · another organisation's answer ----------------------------------------------------------
@@ -179,7 +179,7 @@ begin
     perform kb_gap_close_by_verification(v_gap, v_r_foreign);
     raise exception 'test_SEC_gap_closure_refuses_a_ledger_row_that_proves_nothing: a gap closed on another organisation''s answer';
   exception when raise_exception then
-    if sqlerrm not like '%E_KB_CIERRE_ORG_AJENA%' then raise; end if;
+    if sqlerrm not like '%E_KB_CLOSURE_FOREIGN_ORG%' then raise; end if;
   end;
 
   -- --- 4 · an answer produced under a corpus that is no longer in force ---------------------------
@@ -190,7 +190,7 @@ begin
     perform kb_gap_close_by_verification(v_gap, v_r_oldsnap);
     raise exception 'test_SEC_gap_closure_refuses_a_ledger_row_that_proves_nothing: a gap closed on an answer from a corpus that is not in force';
   exception when raise_exception then
-    if sqlerrm not like '%E_KB_CIERRE_SNAPSHOT_NO_VIGENTE%' then raise; end if;
+    if sqlerrm not like '%E_KB_CLOSURE_SNAPSHOT_NOT_CURRENT%' then raise; end if;
   end;
 
   -- --- 5 · an anchored answer that cites something else -------------------------------------------
@@ -202,7 +202,7 @@ begin
     perform kb_gap_close_by_verification(v_gap, v_r_wrongkey);
     raise exception 'test_SEC_gap_closure_refuses_a_ledger_row_that_proves_nothing: a gap closed on an answer that cites the wrong document';
   exception when raise_exception then
-    if sqlerrm not like '%E_KB_CIERRE_SIN_CITA_ADMITIDA%' then raise; end if;
+    if sqlerrm not like '%E_KB_CLOSURE_ADMISSION_NOT_CITED%' then raise; end if;
   end;
 
   -- The other direction, and the one a caller-supplied key used to leave open. The SAME answer:
@@ -213,7 +213,7 @@ begin
     perform kb_gap_close_by_verification(v_gap_bare, v_r_good);
     raise exception 'test_SEC_gap_closure_refuses_a_ledger_row_that_proves_nothing: a gap with nothing admitted against it closed on another gap''s admission';
   exception when raise_exception then
-    if sqlerrm not like '%E_KB_CIERRE_SIN_CITA_ADMITIDA%' then raise; end if;
+    if sqlerrm not like '%E_KB_CLOSURE_ADMISSION_NOT_CITED%' then raise; end if;
   end;
 
   -- --- 6 · the closure that is earned, with both witnesses left behind -----------------------------
@@ -235,7 +235,7 @@ begin
     perform kb_gap_close_by_verification(v_gap, v_r_good);
     raise exception 'test_SEC_gap_closure_refuses_a_ledger_row_that_proves_nothing: a closed gap was closed a second time';
   exception when raise_exception then
-    if sqlerrm not like '%E_KB_CIERRE_HUECO_NO_ABIERTO%' then raise; end if;
+    if sqlerrm not like '%E_KB_CLOSURE_GAP_NOT_OPEN%' then raise; end if;
   end;
 
   -- The claims go with the cases that needed them, so nothing after this file inherits a session.

@@ -100,7 +100,7 @@ describe('test_SEC_admitted_body_is_clean_before_it_enters_the_corpus', () => {
       ),
     );
     assert.equal(response.status, 422, `an admissible-looking body with an address was accepted`);
-    assert.equal(response.body.error.code, 'E_CONTRATO');
+    assert.equal(response.body.error.code, 'E_CONTRACT_VIOLATION');
     assert.match(String(response.body.error.message), /redactor removes/);
   });
 
@@ -114,7 +114,7 @@ describe('test_SEC_admitted_body_is_clean_before_it_enters_the_corpus', () => {
       ),
     );
     assert.equal(response.status, 422, 'a body carrying an instruction to a model was accepted');
-    assert.equal(response.body.error.code, 'E_CONTRATO');
+    assert.equal(response.body.error.code, 'E_CONTRACT_VIOLATION');
   });
 
   it('refuses the same instruction with a zero-width character hidden inside it', async () => {
@@ -138,7 +138,7 @@ describe('test_SEC_admitted_body_is_clean_before_it_enters_the_corpus', () => {
       422,
       'a zero-width space was enough to hide an instruction from the matcher',
     );
-    assert.equal(response.body.error.code, 'E_CONTRATO');
+    assert.equal(response.body.error.code, 'E_CONTRACT_VIOLATION');
   });
 
   it('refuses a body that does not fit whole into one excerpt', async () => {
@@ -159,7 +159,7 @@ describe('test_SEC_admitted_body_is_clean_before_it_enters_the_corpus', () => {
 
     const response = await admit(supervisor, gap.id, withBody(long));
     assert.equal(response.status, 422, 'a body longer than an excerpt was accepted');
-    assert.equal(response.body.error.code, 'E_CONTRATO');
+    assert.equal(response.body.error.code, 'E_CONTRACT_VIOLATION');
     assert.match(String(response.body.error.message), /excerpt/);
   });
 
@@ -173,7 +173,7 @@ describe('test_SEC_admitted_body_is_clean_before_it_enters_the_corpus', () => {
 
     const response = await admit(supervisor, gap.id, withBody(enormous));
     assert.equal(response.status, 413, 'a request over the declared ceiling was read anyway');
-    assert.equal(response.body.error.code, 'E_CONTRATO');
+    assert.equal(response.body.error.code, 'E_CONTRACT_VIOLATION');
     assert.equal(response.body.error.max_bytes, REQUEST_BODY_CEILING);
   });
 
@@ -183,7 +183,7 @@ describe('test_SEC_admitted_body_is_clean_before_it_enters_the_corpus', () => {
       canonical_key: 'ops/forklift battery bay',
     });
     assert.equal(response.status, 422, 'a key carrying a space was accepted');
-    assert.equal(response.body.error.code, 'E_CONTRATO');
+    assert.equal(response.body.error.code, 'E_CONTRACT_VIOLATION');
   });
 
   it('refuses a document that does not say whether it may be quoted', async () => {

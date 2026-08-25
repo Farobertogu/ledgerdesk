@@ -98,7 +98,7 @@ describe('test_KB_gap_closes_only_by_verification', () => {
       }
     });
     assert.ok(guarded, 'a state change with no marker was accepted');
-    assert.match(guarded, /E_KB_GAP_CIERRE_NO_VERIFICADO/, guarded);
+    assert.match(guarded, /E_KB_GAP_CLOSURE_NOT_VERIFIED/, guarded);
 
     const still = await gapsFor(gap.ticket_id);
     assert.equal(still[0].state, 'OPEN', 'the gap moved after two refusals');
