@@ -1,12 +1,18 @@
 /**
  * The published constants of the retrieval, and the shape of what it answers.
  *
- * Everything here is a **parameter of the verdict**, which is why it lives in the algorithm layer
- * and travels into `ruleset_hash`. A draft is grounded in what the retrieval returned; the
+ * Almost everything here is a **parameter of the verdict**, which is why it lives in the algorithm
+ * layer and travels into `ruleset_hash`. A draft is grounded in what the retrieval returned; the
  * retrieval returns what these constants select; so two runs under a different `k`, a different
  * ranking function or a different floor are two experiments and must not pool in one cache. Moving
  * any value below changes `ruleset_hash` once, at deploy, and is declared like any other
  * recalibration.
+ *
+ * The exception is declared rather than discovered: the **stage sentences** — `NO_MATCH_STATEMENT`
+ * and `PROVENANCE_STATEMENT` — are published text, not parameters. Nothing computes with them, so
+ * they are shown and never hashed, and editing one is wording, not a recalibration. They live in
+ * this file anyway because each must have exactly one author and be readable by a test with no
+ * database, which is this module's whole property.
  *
  * This module imports nothing outside `src/alg/`, so the constants are readable by a test with no
  * database. The SQL that uses them lives in `src/server/kb/retrieval.ts`, and it is the only place
@@ -82,15 +88,37 @@ export const NULL_RULE =
 /**
  * The sentence a console shows when the retrieval returned nothing.
  *
- * Published as a constant because the two places that say it — the panel and the record of the
- * decision — must say the same thing, and because the thing they must not say is anywhere near as
- * easy to write. "We have no information about that" is a claim about the world. What actually
- * happened is that a search of a named corpus at a named version matched nothing, which is a claim
- * about the search.
+ * Published as a constant so it has exactly one author — today one place says it, the panel, and
+ * any place added later inherits this text instead of paraphrasing it — and because the thing it
+ * must not say is nowhere near as easy to write. "We have no information about that" is a claim
+ * about the world. What actually happened is that a search of a named corpus at a named version
+ * matched nothing, which is a claim about the search.
+ *
+ * The closing clause carries the second half of that honesty: a zero-match result cannot tell an
+ * absent fact from a fact that was simply not retrieved — those are different failures with
+ * different owners, and a sentence that stays silent about the pair leaves "the corpus does not
+ * have it" as the default reading, which is the one claim this system refuses to make.
  */
 export const NO_MATCH_STATEMENT =
   'No lexical match was found in the knowledge base at this snapshot. That is a result about this ' +
-  'corpus at this version, not a statement that no answer exists.';
+  'corpus at this version, not a statement that no answer exists — and it does not determine ' +
+  'whether the information is absent or simply was not retrieved.';
+
+/**
+ * The sentence painted under a draft's citations, and only when there are citations.
+ *
+ * What a citation proves is provenance — which article, which corpus version this reply drew on —
+ * and the screen that shows citations is exactly where a reader upgrades that to correctness
+ * without noticing. The sentence draws the line at the moment the question arises: the system
+ * checks that the reply is anchored to its cited sources, never that the sources themselves are
+ * right. Painted only beside real citations, because under "this draft cites nothing" it would be
+ * a disclaimer for evidence that is not on screen.
+ */
+export const PROVENANCE_STATEMENT =
+  'Each citation names the article and the corpus snapshot this reply was drawn from. That is ' +
+  'evidence of provenance, not of correctness: the system checks that the reply is anchored to ' +
+  'its cited sources — four arithmetic conditions and a model veto — never that the sources ' +
+  'themselves are right.';
 
 /**
  * The identifier that travels to a model and comes back as a citation.

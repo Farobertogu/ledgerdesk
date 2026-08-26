@@ -206,3 +206,15 @@ Written down because each is a thing a reader will look for.
 **Harder.** A schema change to the published envelope is now a generation, with a lineage to register and a digest to pin. Every organisation needs a snapshot in force before anything can be retrieved for it. Every writer that moves a ticket into `AWAITING_AGENT` or `SENT` must have produced the evidence first — including fixtures, which is a real cost paid once and the point of the triggers.
 
 **Now mandatory.** A new decision action is an amendment of §13. A change to the retrieval's constants changes `ruleset_hash` and is declared as a recalibration. `?? 0` on `kbResultCount` and `?? false` on `grounded` are forbidden by name: an absent step is not a step that found nothing, and conflating them escalates every ticket in the system. The measured consequence of this increment is that a ticket now costs up to **three** model calls where it cost one, against a ceiling divided by the number of tenants.
+
+---
+
+## Dated amendment · 2026-08-26 — the empty-result sentence gains its second half, and "the two places" is corrected to what is true
+
+Two sentences of §6 are superseded by card I19; the published lines above are not edited.
+
+**The sentence itself.** The published wording — *"a result about this corpus at this version, not a statement that no answer exists"* — said less than the record it answers to: it denied the world-claim and stayed silent on whether the information is **absent or simply was not retrieved**. Silence there leaves "the corpus does not have it" as the default reading, which is the one claim the system refuses to make. The constant now closes with that pair, and the sentence on stage is the constant.
+
+**"The two places that say it must say the same thing."** Measured: today **one** place says it — the panel. The reason the constant exists survives unchanged (one author, no paraphrase, any future sayer inherits the text), so the constant stays; the counted claim goes. A second sentence joins it under the same rule: `PROVENANCE_STATEMENT`, painted under a draft's citations and only when there are citations — what a citation proves is provenance, never correctness.
+
+**Neither sentence travels in `ruleset_hash`.** Both are published text, not parameters of the verdict: nothing computes with them, so editing one is wording, not a recalibration. The module header now declares this exception class instead of letting each sentence be a silent one.

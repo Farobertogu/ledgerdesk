@@ -7,7 +7,7 @@ import { GapControls } from '@/components/GapControls';
 import { Notice, PageHeading, Panel } from '@/components/Panel';
 import { StatusPill } from '@/components/StatusPill';
 import { TriageButton } from '@/components/TriageButton';
-import { NO_MATCH_STATEMENT } from '@/alg/retrieval';
+import { NO_MATCH_STATEMENT, PROVENANCE_STATEMENT } from '@/alg/retrieval';
 import { evidenceFor } from '@/server/evidence';
 import { GAP_COMMITMENTS } from '@/server/kb/commitment';
 import { claimsFor, currentIdentity } from '@/server/session';
@@ -149,6 +149,7 @@ export default async function TicketPage({ params }: { params: Promise<{ id: str
             {current.citations.length === 0 ? (
               <p className="mt-1 text-sm text-muted">This draft cites nothing.</p>
             ) : (
+              <>
               <ul className="mt-2 space-y-1.5">
                 {current.citations.map((citation) => (
                   <li key={citation.kb_id} className="text-sm">
@@ -159,6 +160,8 @@ export default async function TicketPage({ params }: { params: Promise<{ id: str
                   </li>
                 ))}
               </ul>
+              <p className="mt-2 text-[13px] leading-relaxed text-muted">{PROVENANCE_STATEMENT}</p>
+              </>
             )}
 
             {current.unsupported_claims.length > 0 ? (
