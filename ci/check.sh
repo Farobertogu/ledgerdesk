@@ -82,7 +82,14 @@ done
 # --- the drafting cycle's contracts: two more strict envelopes, and the conjunction that decides
 #     whether an answer may be shown to anybody. All pure functions of text, so they belong in the
 #     fastest job: no database, no model, no server.
-AGENT_TESTS="tests/agents/test_AGENT_envelopes_share_a_root_contract.mjs tests/agents/test_SEC_identifiers_survive_the_redactor.mjs tests/agents/test_DRAFT_envelope_refuses_ungrounded_citations.mjs tests/agents/test_VALIDATE_envelope_rejects_a_policy_judgement.mjs tests/agents/test_ALG_grounding_is_a_conjunction.mjs tests/agents/test_SEC_admission_channel_refuses_out_of_contract.mjs"
+#     The nine promotion files join them for the same reason and pay a second one: the writer of a
+#     promotion attempt is dependency-free above the seam and its view model imports nothing outside
+#     src/alg/, so both load under a bare `node --experimental-strip-types`. Their halves that DO need
+#     a database — the writer against a live schema, and the rendered page — run in the app job, and
+#     the SQL invariant runs in the db job. Three jobs, and the split is declared rather than
+#     discovered: this job installs nothing and builds no database, which is exactly what makes it
+#     the right home for a contract.
+AGENT_TESTS="tests/agents/test_AGENT_envelopes_share_a_root_contract.mjs tests/agents/test_SEC_identifiers_survive_the_redactor.mjs tests/agents/test_DRAFT_envelope_refuses_ungrounded_citations.mjs tests/agents/test_VALIDATE_envelope_rejects_a_policy_judgement.mjs tests/agents/test_ALG_grounding_is_a_conjunction.mjs tests/agents/test_SEC_admission_channel_refuses_out_of_contract.mjs tests/agents/test_PROMO_writer_refuses_out_of_alphabet.mjs tests/agents/test_PROMO_row_is_internally_coherent.mjs tests/agents/test_PROMO_capsule_is_the_signed_combination.mjs tests/agents/test_PROMO_attempt_id_is_derived_and_org_qualified.mjs tests/agents/test_PROMO_state_and_toolchain_are_transcribed_not_invented.mjs tests/agents/test_PROMO_reconciliation_is_set_equality.mjs tests/agents/test_PROMO_panel_states_only_what_it_can_name.mjs tests/agents/test_PROMO_panel_makes_no_prohibited_claim.mjs tests/agents/test_PROMO_pending_milestones_are_real_and_dated.mjs"
 # shellcheck disable=SC2086
 node --experimental-strip-types --test $AGENT_TESTS || fail "the drafting contract tests did not pass"
 
@@ -142,6 +149,144 @@ node --experimental-strip-types -e '
 ' || fail "test_GAP_channel_published_schema_is_current"
 
 echo "agent contract OK (three strict envelope validators agreeing on one root contract, the grounding conjunction, the injection corpus, the two published schemas diffed, and the demonstration dataset checked against the complete rule of eight clauses)"
+
+# --- the promotion surface: four static rules, each printing its own name.
+#
+#     test_ARCH_no_route_writes_a_promotion_attempt
+#
+#     `ledger_writer_insert` reads ONLY `org_id` — no `role`, no `sub`, and there is no analogue of
+#     `ticket_write_is_staff` for the ledger. So an HTTP route that filed a promotion attempt would
+#     let ANY app_rw session whose organisation claim matched write one: a customer's cookie would be
+#     enough. The row is filed by an operator mandate against the rehearsal database, once, by hand.
+#     `src/server/` is included as well as `src/app/`: a route reaches the writer just as easily
+#     through a server module as directly.
+#
+#     The pattern matches a quoted module SPECIFIER after from/import/require, not a mention: the
+#     composition root explains in prose why `derivedUuid` moved and names the writer while doing it,
+#     and a rule that fired on prose would be a rule people delete.
+PROMO_IMPORT='(from|import|require)[[:space:]]*\(?[[:space:]]*["'"'"'][^"'"'"']*ledger/promotion_row'
+if grep -REn "$PROMO_IMPORT" src/app src/server 2>/dev/null | grep -q .; then
+  grep -REn "$PROMO_IMPORT" src/app src/server 2>/dev/null || true
+  fail "test_ARCH_no_route_writes_a_promotion_attempt: the application imports the promotion writer"
+fi
+echo "test_ARCH_no_route_writes_a_promotion_attempt OK (the writer is reached only by seed/promotion_capsule.mjs)"
+
+#     test_ARCH_promotion_panel_is_read_only
+#
+#     A control that opened, retried or promoted anything would invite an examiner to ask for it to
+#     be pressed, and what would answer is not built — worse, the presenter says out loud in the same
+#     ten minutes that the evolution loop running live is one of three declared omissions.
+if [ -d src/app/promotion ]; then
+  if grep -REn "use client|<form|action=|method=|onClick" src/app/promotion 2>/dev/null | grep -q .; then
+    grep -REn "use client|<form|action=|method=|onClick" src/app/promotion 2>/dev/null || true
+    fail "test_ARCH_promotion_panel_is_read_only: the promotion screen carries a control"
+  fi
+  echo "test_ARCH_promotion_panel_is_read_only OK"
+else
+  fail "test_ARCH_promotion_panel_is_read_only: src/app/promotion/ does not exist"
+fi
+
+#     test_ARCH_promotion_panel_reads_as_the_tenant
+#
+#     `ledger_quality_select` is `using (true)` and sees the chain of every organisation in the
+#     cluster. A screen that reached for `quality_ro` would put every tenant's rows in front of an
+#     examiner, live, in the beat whose whole argument is discipline.
+#
+#     `src/server/db.ts` is exempt BY NAME and this is the reason, written beside the exemption in the
+#     same style the branch_name exemptions are: it is the one legitimate `new Pool` in `src/`, it is
+#     the module every console statement goes through, and a literal grep with no exemption would fail
+#     the build against the tree's own composition root. Named exemptions are safe because adding one
+#     is a visible decision in a diff.
+#
+#     Like the rule above, it matches USE and not mention: the reader's header names `quality_ro` in
+#     order to refuse it, in backticks, and a rule that fired on the sentence explaining a refusal
+#     would be a rule that punishes the documentation of a decision. What it looks for is the role
+#     being switched to, quoted as a value, or put in a connection string — and any second pool.
+PROMO_ROLE_USE='(role[[:space:]]+quality_ro|["'"'"']quality_ro["'"'"']|user=quality_ro|new[[:space:]]+Pool)'
+PROMO_OFFENDERS="$(grep -REln "$PROMO_ROLE_USE" src/app src/server 2>/dev/null | grep -v '^src/server/db\.ts$' || true)"
+if [ -n "$PROMO_OFFENDERS" ]; then
+  echo "$PROMO_OFFENDERS"
+  fail "test_ARCH_promotion_panel_reads_as_the_tenant: a module names quality_ro or opens a pool of its own"
+fi
+echo "test_ARCH_promotion_panel_reads_as_the_tenant OK (one pool, in src/server/db.ts, and quality_ro nowhere in src/)"
+
+#     test_PROMO_panel_type_scale_is_projectable
+#
+#     The chain table's scale is built for somebody half a metre from a laptop. On a projector,
+#     `precondition_underpowered` at eleven monospaced pixels stops being evidence and becomes a
+#     smudge the presenter has to read aloud — which is a rescue. The three strings the outcome, the
+#     failing conjunct and the four verdicts are rendered with are named constants, and this is what
+#     inspects them.
+node -e '
+  const { readFileSync } = require("node:fs");
+  const page = "src/app/promotion/page.tsx";
+  const source = readFileSync(page, "utf8");
+  const forbidden = ["text-[11px]", "text-xs"];
+  const scales = ["OUTCOME_SCALE", "FAILING_CONJUNCT_SCALE", "VERDICT_SCALE"];
+  for (const name of scales) {
+    const found = source.match(new RegExp("const " + name + " = \x27([^\x27]*)\x27"));
+    if (!found) { console.error(page + " does not declare " + name + " as a string constant"); process.exit(1); }
+    for (const scale of forbidden) {
+      if (found[1].includes(scale)) {
+        console.error(name + " renders at " + scale + ", which is not readable in projection");
+        process.exit(1);
+      }
+    }
+  }
+  console.log("test_PROMO_panel_type_scale_is_projectable OK (" + scales.join(", ") + " declared and inspected)");
+' || fail "test_PROMO_panel_type_scale_is_projectable"
+
+#     test_PROMO_published_payload_schema_is_current_or_declared_absent
+#
+#     The trigger's own comment points a reader at quality/schemas/ledger_class/<class>.schema.json,
+#     and that comment travels into the committed dump. Neither file is written by this card:
+#     quality/schemas/ is a frozen path and paying it costs an accepted, dated ADR in the same pull
+#     request plus a row-validation test in the db job. What IS built is the contract as data and its
+#     serialiser, so the day somebody pays it the check is already here — and until then the deferral
+#     has to be written in the writer's own header, where a reader of that file will find it. A
+#     hand-edited file and a stale one fail identically.
+node --experimental-strip-types -e '
+  import("./agents/ledger/promotion_row.ts").then(async (writer) => {
+    const { readFileSync } = await import("node:fs");
+    const contracts = [writer.PROMOTION_ATTEMPT_PAYLOAD_CONTRACT, writer.START_PAYLOAD_CONTRACT];
+    // The deferral has to be declared in the writer HEADER, so the header is what is searched.
+    // Reading the whole file made this a tautology: PAYLOAD_SCHEMA_DEFERRAL is defined further down
+    // in that same file, so the literal was present however the header was edited, and the check
+    // passed with the declaration deleted. Sliced at the first close of a block comment.
+    const source = readFileSync("agents/ledger/promotion_row.ts", "utf8");
+    const header = source.slice(0, source.indexOf("*/") + 2);
+    let written = 0;
+    for (const contract of contracts) {
+      const at = writer.schemaPathFor(contract);
+      let onDisk = null;
+      try { onDisk = readFileSync(at, "utf8"); } catch { onDisk = null; }
+      if (onDisk === null) continue;
+      written += 1;
+      if (onDisk !== writer.contractAsJsonSchemaText(contract)) {
+        console.error(at + " differs from the contract in agents/ledger/promotion_row.ts; regenerate it instead of editing it");
+        process.exit(1);
+      }
+    }
+    if (written === 0 && !header.includes(writer.PAYLOAD_SCHEMA_DEFERRAL)) {
+      console.error("neither class schema is written and agents/ledger/promotion_row.ts no longer declares the deferral");
+      process.exit(1);
+    }
+    console.log("test_PROMO_published_payload_schema_is_current_or_declared_absent OK (" +
+      (written === 0 ? "deferred, and the deferral is declared in the writer" : written + " schema file(s) diffed") +
+      ", contract " + writer.promotionRulesetHash().slice(0, 12) + ")");
+  }).catch((error) => { console.error(error); process.exit(1); });
+' || fail "test_PROMO_published_payload_schema_is_current_or_declared_absent"
+
+#     One module owns the reconciliation, and the Decision Audit Log card CONSUMES it rather than
+#     writing a second one. Two implementations of "starts == terminals" is two answers to a
+#     conservation law, and the one on screen would be whichever module the page happened to import.
+RECONCILERS="$(grep -REln "export function reconcileAttempts" src agents quality 2>/dev/null | wc -l | tr -d ' ')"
+[ "$RECONCILERS" = "1" ] \
+  || { grep -REln "export function reconcileAttempts" src agents quality 2>/dev/null || true; \
+       fail "test_PROMO_one_reconciler: reconcileAttempts is declared in $RECONCILERS modules, and it owes exactly one"; }
+echo "test_PROMO_one_reconciler OK (set equality by attempt is declared once, in src/alg/promotion_panel.ts)"
+
+echo "promotion surface OK (no route writes an attempt, the panel is read-only and reads as the tenant, and the payload contract is either published and diffed or deferred in writing)"
 
 # --- branch_name: every branch except main must match card/<ID>-<slug>, ID from BOARD.md.
 #     Named exemptions, literal and enumerated:

@@ -10,14 +10,12 @@ Source of truth for build order: the specification's build plan, as amended — 
 
 | Card | Increment | Branch | Closing evidence |
 |---|---|---|---|
-
-*(nothing in progress — the next cards open in board order)*
+| I20 | Promotion capsule: fail-closed writer of `promotion_attempt` (+ its `start` row) + panel-lite with the four-conjunct checklist, the `starts == terminals` line and "pending … with a date" | `card/I20-promotion-capsule` | the REJECTED row with `failing_conjunct = precondition_underpowered` + its `start` row, inserted by the writer; panel-lite green in `check`+`db` |
 
 ## Backlog (plan order)
 
 | Card | Increment | Depends on | Closing evidence |
 |---|---|---|---|
-| I20 | Promotion capsule: fail-closed writer of `promotion_attempt` (+ its `start` row) + panel-lite with the four-conjunct checklist, the `starts == terminals` line and "pending … with a date" | I2b | the REJECTED row with `failing_conjunct = precondition_underpowered` + its `start` row, inserted by the writer; panel-lite green in `check`+`db` |
 | I26 | AI disclosure + human route: visible AI-assistance notice on the customer screen + a "talk to a person" control creating an escalation | I3 | US-09 + `test_US09_ai_disclosure_and_human_route` green |
 | I8 | Agent console: edit/approve/send + `human_edit` capture | I7 | US-05 + `approved_by` as a DB constraint |
 | I25 | Instrument scaffolding: the pre-registration derivator (exit 0 = 17 fields) + the blind-sheet generator (exit 0/1/2) + the sentinel mechanism as a `corpus.ts` input | I2, I2b | both generators' named tests green + the `PREREGISTRATION.md` draft with its seven declared blocks |

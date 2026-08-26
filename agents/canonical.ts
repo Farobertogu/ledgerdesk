@@ -68,6 +68,37 @@ export function isHex64(value: string): boolean {
 }
 
 /**
+ * A version-4-shaped identifier that is a function of a written seed rather than of a coin toss.
+ *
+ * Callers want this for one reason: an identifier that survives a retry. A run derived from its
+ * organisation keeps one chain across restarts; an admission derived from the gap it answers and the
+ * body it admits proposes the SAME identity on a second attempt, so the unique index on the chain
+ * recognises the retry instead of letting it write a second row for one fact; a promotion attempt
+ * derived from its organisation cannot be filed twice by an operator who ran the mandate twice. A
+ * random identifier would make all three of those "usually fine".
+ *
+ * **It lives here rather than beside its first caller.** This module is canonical serialisation and
+ * the digests taken over it, and this is a derivation of a digest — it is built out of `sha256Hex`
+ * two lines above. It was declared in the application's composition root while the application was
+ * its only caller; the ledger's promotion writer is the second, and that writer has to load under a
+ * bare `node --experimental-strip-types` with no bundler and no `node_modules`, which the composition
+ * root cannot do — it imports through the `@agents/` alias that only `tsconfig.app.json` resolves.
+ * Two copies of a derivation that mints identities is two answers to "what is this attempt called",
+ * so the function moved and the composition root imports it back.
+ */
+export function derivedUuid(seed: string): string {
+  const digest = sha256Hex(seed);
+  const variant = ((parseInt(digest[16] as string, 16) & 0x3) | 0x8).toString(16);
+  return [
+    digest.slice(0, 8),
+    digest.slice(8, 12),
+    `4${digest.slice(13, 16)}`,
+    `${variant}${digest.slice(17, 20)}`,
+    digest.slice(20, 32),
+  ].join('-');
+}
+
+/**
  * Money, held as an integer number of millionths of a dollar for the whole of its life inside this
  * tree, and turned into text exactly once — at the edge where it becomes a `numeric(12,6)`.
  *

@@ -38,6 +38,7 @@ import type { AuditEventContent, AuditSink, ChainedAuditEvent } from '../audit.t
 import { canonicalJson } from '../canonical.ts';
 import type { Json } from '../canonical.ts';
 import { GatewayError } from '../errors.ts';
+import type { FiledAttempt, FiledRow, PromotionLedgerReader } from './promotion_row.ts';
 import { linkRow } from './row.ts';
 import type { ChainedRow, LedgerRowContent } from './row.ts';
 import type {
@@ -92,6 +93,26 @@ const SPENT = `
   select coalesce(sum(cost_aud), 0)::text as total
     from ledger_entry
    where ($1::uuid is null or run_id = $1::uuid)`;
+
+/**
+ * The two rows of one promotion attempt, if they are there.
+ *
+ * No `org_id` predicate, for the reason the cache lookup below carries: the statement runs under
+ * `ledger_tenant_select`, so the rows it can see are already this organisation's, and a predicate
+ * here would make the policy untestable.
+ *
+ * **The asymmetry this cannot fix, named where it bites.** The two unique indexes on an attempt are
+ * global to the cluster and the SELECT is not, so a "no row" from this query is a statement about
+ * what THIS tenant can see and not about what the index will accept. What closes the gap is that the
+ * attempt identifier carries the organisation inside it (`attemptIdFor`), so a collision across
+ * tenants would need a sha256 collision first.
+ */
+const ATTEMPT = `
+  select class::text as class, run_id::text as run_id, seq, prev_hash, row_hash, ts
+    from ledger_entry
+   where class in ('start', 'promotion_attempt')
+     and output ->> 'attempt_id' = $1
+   order by seq asc`;
 
 /**
  * The cache lookup. Ordered by `id`, which is the order the rows were written in across every run
@@ -215,7 +236,7 @@ export type PgLedgerStoreOptions = {
  * lives in the interfaces, which is where a caller sees it: a consumer that only files events
  * depends on `AuditSink` and can reach nothing else.
  */
-export class PgLedgerStore implements LedgerStore, AuditSink {
+export class PgLedgerStore implements LedgerStore, AuditSink, PromotionLedgerReader {
   readonly #pool: PgPool;
 
   constructor(options: PgLedgerStoreOptions) {
@@ -350,6 +371,43 @@ export class PgLedgerStore implements LedgerStore, AuditSink {
     return this.#withTenant(orgId, async (client) => {
       const result = await client.query<{ total: string }>(SPENT, [scope.run_id]);
       return microFromNumericText(result.rows[0]?.total ?? '0');
+    });
+  }
+
+  /**
+   * The `start` and the terminal already filed for one attempt, as far as this tenant may see.
+   *
+   * It is the one thing the promotion writer needs that `LedgerStore` does not offer, and it is a
+   * separate port — `PromotionLedgerReader`, declared beside that writer — rather than a fifth
+   * operation on an interface that publishes the reason there are exactly four. This class
+   * implements both because both are answered by the same pool, the same transaction helper and the
+   * same tenant claims; a second class would open a second pool to express a distinction that lives
+   * in the interfaces.
+   */
+  async findAttempt(orgId: string, attemptId: string): Promise<FiledAttempt> {
+    return this.#withTenant(orgId, async (client) => {
+      const result = await client.query<{
+        class: string;
+        run_id: string;
+        seq: string;
+        prev_hash: string;
+        row_hash: string;
+        ts: string | Date;
+      }>(ATTEMPT, [attemptId]);
+
+      const found: FiledAttempt = { start: null, terminal: null };
+      for (const row of result.rows) {
+        const filed: FiledRow = {
+          run_id: row.run_id,
+          seq: Number(row.seq),
+          prev_hash: row.prev_hash,
+          row_hash: row.row_hash,
+          ts: new Date(row.ts).toISOString(),
+        };
+        if (row.class === 'start') found.start = filed;
+        if (row.class === 'promotion_attempt') found.terminal = filed;
+      }
+      return found;
     });
   }
 
