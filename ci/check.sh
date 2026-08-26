@@ -157,6 +157,10 @@ echo "agent contract OK (three strict envelope validators agreeing on one root c
 #                                 — the board and README brought up to date with the plan of record:
 #                                   done cards moved, five cells re-transcribed, six new cards listed.
 #                                   Synchronisation of what is projected, not work on any one card.
+#       housekeeping/weekly-status-w35
+#                                 — the weekly status of the formal channel: overdue gates recorded
+#                                   with dates, the evidence gap declared, the expected cost of the
+#                                   networked run stated in advance. A record, not work on a card.
 #     These stay literal and enumerated rather than becoming a `housekeeping/*` pattern: a pattern
 #     would let any branch opt out of naming its card, and what makes an exemption safe is that
 #     adding one is a visible decision in a diff.
@@ -165,7 +169,8 @@ if [ -n "$BRANCH" ] && [ "$BRANCH" != "main" ] && [ "$BRANCH" != "HEAD" ] \
    && [ "$BRANCH" != "i1-documentary-baseline" ] && [ "$BRANCH" != "housekeeping/license" ] \
    && [ "$BRANCH" != "housekeeping/error-codes" ] \
    && [ "$BRANCH" != "housekeeping/tanda-a-ratifications" ] \
-   && [ "$BRANCH" != "housekeeping/board-sync-plan" ]; then
+   && [ "$BRANCH" != "housekeeping/board-sync-plan" ] \
+   && [ "$BRANCH" != "housekeeping/weekly-status-w35" ]; then
   echo "$BRANCH" | grep -Eq '^card/[A-Za-z0-9][A-Za-z0-9-]*$' || fail "branch '$BRANCH' does not match card/<ID>-<slug>"
   REST="${BRANCH#card/}"
   C1="${REST%%-*}"
