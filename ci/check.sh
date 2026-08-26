@@ -178,36 +178,81 @@ if [ -n "$BRANCH" ] && [ "$BRANCH" != "main" ] && [ "$BRANCH" != "HEAD" ] \
 fi
 
 # --- adr_gate: a PR that touches frozen scope must add or reference an accepted ADR.
-#     Runs only in PR context (GITHUB_BASE_REF set); locally it is skipped.
+#     The evaluation is a FUNCTION, so the exact code path that guards PRs is the one the
+#     self-test below proves able to turn red. Every line read from a file is stripped of a
+#     trailing CR first: on a Windows checkout FROZEN_PATHS can arrive with CRLF endings, and
+#     an unstripped pattern like "migrations/<CR>" matches no changed path — the gate then
+#     said "no frozen path touched" on a PR that touched one. A gate that cannot fire on the
+#     machine where the work is written protects nothing. (Card I22.)
+adr_gate_eval() {
+  # $1 = file listing the changed paths, one per line · $2 = the frozen-paths file
+  # $3 = base dir the ADR paths resolve against · $4 = ADR number from the PR body, or empty
+  ag_changed="$(tr -d '\r' < "$1")"
+  [ -n "$ag_changed" ] || { echo "adr_gate: empty change list (fail-closed)"; return 1; }
+  ag_hit=""
+  while IFS= read -r p || [ -n "$p" ]; do
+    p="${p%$'\r'}"
+    case "$p" in ''|\#*) continue;; esac
+    if printf '%s\n' "$ag_changed" | grep -q "^$p"; then ag_hit="$p"; break; fi
+  done < "$2"
+  if [ -z "$ag_hit" ]; then echo "adr_gate OK (no frozen path touched)"; return 0; fi
+  ag_ok=""
+  for f in $(printf '%s\n' "$ag_changed" | grep -E '^adr/ADR-[0-9]{3}-.*\.md$' || true); do
+    if [ -f "$3/$f" ] && grep -q '^\*\*Status:\*\* accepted' "$3/$f" \
+       && grep -Eq '\*\*Decision date:\*\* [0-9]{4}-[0-9]{2}-[0-9]{2}' "$3/$f"; then ag_ok=yes; fi
+  done
+  if [ -z "$ag_ok" ] && [ -n "$4" ]; then
+    f="$(ls "$3"/adr/ADR-"$4"-*.md 2>/dev/null | head -1 || true)"
+    if [ -n "$f" ] && grep -q '^\*\*Status:\*\* accepted' "$f" \
+       && grep -Eq '\*\*Decision date:\*\* [0-9]{4}-[0-9]{2}-[0-9]{2}' "$f"; then ag_ok=yes; fi
+  fi
+  if [ -z "$ag_ok" ]; then
+    echo "adr_gate: PR touches frozen path '$ag_hit' without an accepted ADR (add adr/ADR-NNN-<slug>.md with Status accepted, or an 'ADR: NNN' line in the PR body)"
+    return 1
+  fi
+  echo "adr_gate OK (frozen path '$ag_hit' covered by ADR)"
+  return 0
+}
+
+# --- adr_gate self-test: prove the gate can turn RED before trusting any of its greens.
+#     The fixtures are written with CRLF endings ON PURPOSE — the exact corruption a Windows
+#     checkout produces, and the one that used to make the gate pass silently. Three cases:
+#     a frozen hit with no ADR must go red; the same hit with an accepted ADR must pass; an
+#     untouched frozen set must pass. This step runs EVERYWHERE — locally on Windows and in
+#     the CI job — so the red case is reproduced on both by every single build.
+AG_TMP="$(mktemp -d)"
+printf 'migrations/\r\nquality/schemas/\r\n'                          > "$AG_TMP/frozen"
+printf 'migrations/0099_selftest.sql\r\nREADME.md\r\n'                > "$AG_TMP/changed_hit"
+printf 'README.md\r\n'                                                > "$AG_TMP/changed_miss"
+printf 'migrations/0099_selftest.sql\nadr/ADR-099-selftest.md\n'      > "$AG_TMP/changed_covered"
+mkdir -p "$AG_TMP/adr"
+printf '**Status:** accepted\n**Decision date:** 2026-01-01\n'        > "$AG_TMP/adr/ADR-099-selftest.md"
+if adr_gate_eval "$AG_TMP/changed_hit" "$AG_TMP/frozen" "$AG_TMP" "" >/dev/null; then
+  rm -rf "$AG_TMP"
+  fail "adr_gate selftest: a frozen hit with no ADR did NOT turn red — the gate cannot fire"
+fi
+adr_gate_eval "$AG_TMP/changed_covered" "$AG_TMP/frozen" "$AG_TMP" "" >/dev/null \
+  || { rm -rf "$AG_TMP"; fail "adr_gate selftest: a covered frozen hit was refused"; }
+adr_gate_eval "$AG_TMP/changed_miss" "$AG_TMP/frozen" "$AG_TMP" "" >/dev/null \
+  || { rm -rf "$AG_TMP"; fail "adr_gate selftest: an untouched frozen set was refused"; }
+rm -rf "$AG_TMP"
+echo "adr_gate selftest OK (the red case fires on a missing ADR; CRLF-proof on both sides)"
+
+#     The live gate runs only in PR context (GITHUB_BASE_REF set); the self-test above always ran.
 if [ -n "${GITHUB_BASE_REF:-}" ]; then
   git fetch -q origin "$GITHUB_BASE_REF" --depth=1 2>/dev/null || git fetch -q origin "$GITHUB_BASE_REF" || true
   # Endpoint diff: works on shallow clones (no merge-base needed). An empty diff in PR context is an error, never a pass.
-  CHANGED="$(git diff --name-only "origin/${GITHUB_BASE_REF}" HEAD 2>/dev/null || true)"
-  [ -n "$CHANGED" ] || fail "adr_gate: could not compute the PR diff against ${GITHUB_BASE_REF} (fail-closed)"
-  FROZEN_HIT=""
-  while IFS= read -r p; do
-    case "$p" in ''|\#*) continue;; esac
-    if printf '%s\n' "$CHANGED" | grep -q "^$p"; then FROZEN_HIT="$p"; break; fi
-  done < FROZEN_PATHS
-  if [ -n "$FROZEN_HIT" ]; then
-    OK=""
-    for f in $(printf '%s\n' "$CHANGED" | grep -E '^adr/ADR-[0-9]{3}-.*\.md$' || true); do
-      if [ -f "$f" ] && grep -q '^\*\*Status:\*\* accepted' "$f" && grep -Eq '\*\*Decision date:\*\* [0-9]{4}-[0-9]{2}-[0-9]{2}' "$f"; then OK=yes; fi
-    done
-    if [ -z "$OK" ] && [ -n "${GITHUB_EVENT_PATH:-}" ] && [ -f "${GITHUB_EVENT_PATH}" ] && command -v jq >/dev/null 2>&1; then
-      NNN="$(jq -r '.pull_request.body // ""' "$GITHUB_EVENT_PATH" | grep -oE 'ADR: [0-9]{3}' | head -1 | grep -oE '[0-9]{3}' || true)"
-      if [ -n "$NNN" ]; then
-        f="$(ls adr/ADR-${NNN}-*.md 2>/dev/null | head -1 || true)"
-        if [ -n "$f" ] && grep -q '^\*\*Status:\*\* accepted' "$f" && grep -Eq '\*\*Decision date:\*\* [0-9]{4}-[0-9]{2}-[0-9]{2}' "$f"; then OK=yes; fi
-      fi
-    fi
-    [ -n "$OK" ] || fail "adr_gate: PR touches frozen path '$FROZEN_HIT' without an accepted ADR (add adr/ADR-NNN-<slug>.md with Status accepted, or an 'ADR: NNN' line in the PR body)"
-    echo "adr_gate OK (frozen path '$FROZEN_HIT' covered by ADR)"
-  else
-    echo "adr_gate OK (no frozen path touched)"
+  AG_CHANGED_FILE="$(mktemp)"
+  git diff --name-only "origin/${GITHUB_BASE_REF}" HEAD 2>/dev/null > "$AG_CHANGED_FILE" || true
+  [ -s "$AG_CHANGED_FILE" ] || { rm -f "$AG_CHANGED_FILE"; fail "adr_gate: could not compute the PR diff against ${GITHUB_BASE_REF} (fail-closed)"; }
+  NNN=""
+  if [ -n "${GITHUB_EVENT_PATH:-}" ] && [ -f "${GITHUB_EVENT_PATH}" ] && command -v jq >/dev/null 2>&1; then
+    NNN="$(jq -r '.pull_request.body // ""' "$GITHUB_EVENT_PATH" | grep -oE 'ADR: [0-9]{3}' | head -1 | grep -oE '[0-9]{3}' || true)"
   fi
+  adr_gate_eval "$AG_CHANGED_FILE" FROZEN_PATHS "." "$NNN" || { rm -f "$AG_CHANGED_FILE"; fail "adr_gate red — see the line above"; }
+  rm -f "$AG_CHANGED_FILE"
 else
-  echo "adr_gate skipped (not a PR context)"
+  echo "adr_gate skipped (not a PR context; the selftest above still ran)"
 fi
 
 echo "repo checks OK"
