@@ -169,7 +169,7 @@ something.
 
 ## Status
 
-Build order: **25 verifiable increments** on `BOARD.md`. I0 and I1 are done; the documentary baseline is sealed with the immutable tag `baseline-v1.0`. The process gate (I0b) is in review; first code card is I2 (data spine).
+Build order: **31 verifiable increments** on `BOARD.md`. Eleven cards are merged: the repo spine and process gate, the documentary baseline (sealed with the immutable tag `baseline-v1.0`), the data spine with its append-only ledger, the app skeleton, the LLM gateway, the pure algorithm, the triage agent, retrieval and drafting, and the complete knowledge-gap cycle — rehearsed end to end. Every error code the system raises is spelled in English (ADR-027). Next on the board: the `adr_gate` hardening, the Act-1 stage lines and the promotion capsule.
 
 ## License
 
