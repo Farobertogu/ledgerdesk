@@ -176,12 +176,24 @@ echo "test_ARCH_no_route_writes_a_promotion_attempt OK (the writer is reached on
 #     A control that opened, retried or promoted anything would invite an examiner to ask for it to
 #     be pressed, and what would answer is not built — worse, the presenter says out loud in the same
 #     ten minutes that the evolution loop running live is one of three declared omissions.
+#     One narrow exemption, literal and reasoned: `error.tsx` must carry `use client` because the
+#     framework only accepts an error boundary as a client component. A boundary is not a control —
+#     it renders a refusal, it does not offer an action — and this panel's boundary deliberately has
+#     no reset button, which is the one control that would matter here. The MARKUP patterns below
+#     still fire inside `error.tsx`, so a button smuggled into it fails this check exactly as it
+#     would anywhere else in the segment.
 if [ -d src/app/promotion ]; then
-  if grep -REn "use client|<form|action=|method=|onClick" src/app/promotion 2>/dev/null | grep -q .; then
-    grep -REn "use client|<form|action=|method=|onClick" src/app/promotion 2>/dev/null || true
+  if grep -REn --exclude=error.tsx "use client" src/app/promotion 2>/dev/null | grep -q .; then
+    grep -REn --exclude=error.tsx "use client" src/app/promotion 2>/dev/null || true
+    fail "test_ARCH_promotion_panel_is_read_only: a component outside the error boundary is interactive"
+  fi
+  if grep -REn "<form|action=|method=|onClick" src/app/promotion 2>/dev/null | grep -q .; then
+    grep -REn "<form|action=|method=|onClick" src/app/promotion 2>/dev/null || true
     fail "test_ARCH_promotion_panel_is_read_only: the promotion screen carries a control"
   fi
-  echo "test_ARCH_promotion_panel_is_read_only OK"
+  [ -f src/app/promotion/error.tsx ] \
+    || fail "test_ARCH_promotion_panel_is_read_only: the refusal to render has no named screen (src/app/promotion/error.tsx)"
+  echo "test_ARCH_promotion_panel_is_read_only OK (no controls; the refusal has its own screen)"
 else
   fail "test_ARCH_promotion_panel_is_read_only: src/app/promotion/ does not exist"
 fi

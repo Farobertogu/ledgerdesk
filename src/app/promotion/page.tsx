@@ -73,7 +73,11 @@ export default async function PromotionPage() {
     <>
       <PageHeading
         title="Promotion gate"
-        lead={`${identity.org_name}: the four-conjunct checklist, read from the attempt row itself. ${view.scope}`}
+        lead={
+          view.kind === 'not_filed'
+            ? `${identity.org_name}: the four-conjunct checklist. No attempt has been filed, so there is no row to read one from yet — what follows is the contract that a filed attempt has to satisfy.`
+            : `${identity.org_name}: the four-conjunct checklist, read from the attempt row itself. ${view.scope}`
+        }
       />
 
       {view.kind === 'not_filed' ? (
