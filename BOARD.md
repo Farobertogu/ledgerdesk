@@ -11,13 +11,10 @@ Source of truth for build order: the specification's build plan, as amended — 
 | Card | Increment | Branch | Closing evidence |
 |---|---|---|---|
 
-*(nothing in progress — the next cards open in board order)*
-
 ## Backlog (plan order)
 
 | Card | Increment | Depends on | Closing evidence |
 |---|---|---|---|
-| I20 | Promotion capsule: fail-closed writer of `promotion_attempt` (+ its `start` row) + panel-lite with the four-conjunct checklist, the `starts == terminals` line and "pending … with a date" | I2b | the REJECTED row with `failing_conjunct = precondition_underpowered` + its `start` row, inserted by the writer; panel-lite green in `check`+`db` |
 | I26 | AI disclosure + human route: visible AI-assistance notice on the customer screen + a "talk to a person" control creating an escalation | I3 | US-09 + `test_US09_ai_disclosure_and_human_route` green |
 | I8 | Agent console: edit/approve/send + `human_edit` capture | I7 | US-05 + `approved_by` as a DB constraint |
 | I25 | Instrument scaffolding: the pre-registration derivator (exit 0 = 17 fields) + the blind-sheet generator (exit 0/1/2) + the sentinel mechanism as a `corpus.ts` input | I2, I2b | both generators' named tests green + the `PREREGISTRATION.md` draft with its seven declared blocks |
@@ -82,3 +79,4 @@ it for a row that used to be there.
 | I7-bis | The complete gap cycle: typed gap record on GROUND escalation → versioned admission with provenance and human approver → re-run → closure by verification | PR #11 merged `--no-ff` (`d0f582b`) after a two-front adversarial review — a refuter before construction, a record-falsifier after, and the closure tied to the caller's organisation; the first end-to-end rehearsal passed its three verifications (one chain, two `state_hash` values, the `kb_admission` row between them by `seq`), all three jobs green. Every error code the schema raises was then restated in English under ADR-027 (migration 0011, checked equality against the previous schema) |
 | I22 | `adr_gate` hardening: the gate evaluation as a function + a permanent self-test whose fixtures carry CRLF endings on purpose | PR #15 merged `--no-ff`; the red case (a frozen hit with no ADR) fires in the self-test on every build — reproduced locally on Windows and in the `check` CI job — and the old logic's false green was demonstrated against CRLF fixtures before the fix |
 | I19 | Act-1 stage lines: the empty-result sentence closes with the absent/not-retrieved pair, and the provenance sentence is painted under a draft's citations, only when citations exist; the opening line is spoken, never painted | PR #17 merged `--no-ff`; both texts byte-exact against the signed wordings, neither travels in `ruleset_hash` (the description's six fields inspected), the spoken lines carried by the demonstration script, `check` green |
+| I20 | Promotion capsule: fail-closed writer of `promotion_attempt` (+ its `start` row) + read-only panel with the four-conjunct checklist, the reconciliation between starts and terminals, and the deliverable and published date that will make each unevaluable conjunct evaluable | PR #18 merged `--no-ff` after a full adversarial cycle (three lenses, a refuter that struck eleven directives before they cost code, and two reviewers); the REJECTED row with `failing_conjunct = precondition_underpowered` and its `start` row filed by the writer and read back from the chain, thirteen named tests green across `check`, `gateway` and `app`

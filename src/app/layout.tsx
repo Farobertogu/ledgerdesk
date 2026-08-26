@@ -13,6 +13,10 @@ const CONSOLES = [
   { href: '/portal', label: 'Customer portal' },
   { href: '/queue', label: 'Agent queue' },
   { href: '/supervisor', label: 'Supervisor' },
+  // A first-level route with an entry of its own, because the second act arrives here from a ticket
+  // screen and a nested route would cost a live rescue. Named for what it shows and not for the
+  // quality surface it does not stand in for.
+  { href: '/promotion', label: 'Promotion gate' },
 ];
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {

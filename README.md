@@ -169,7 +169,7 @@ something.
 
 ## Status
 
-Build order: **31 verifiable increments** on `BOARD.md`. Eleven cards are merged: the repo spine and process gate, the documentary baseline (sealed with the immutable tag `baseline-v1.0`), the data spine with its append-only ledger, the app skeleton, the LLM gateway, the pure algorithm, the triage agent, retrieval and drafting, and the complete knowledge-gap cycle — rehearsed end to end. Every error code the system raises is spelled in English (ADR-027). Next on the board: the `adr_gate` hardening, the Act-1 stage lines and the promotion capsule.
+Build order: **31 verifiable increments** on `BOARD.md`. Thirteen cards are merged: the repo spine and process gate, the documentary baseline (sealed with the immutable tag `baseline-v1.0`), the data spine with its append-only ledger, the app skeleton, the LLM gateway, the pure algorithm, the triage agent, retrieval and drafting, the complete knowledge-gap cycle — rehearsed end to end — the `adr_gate` hardening whose red case fires on every build, and the Act-1 stage lines. Every error code the system raises is spelled in English (ADR-027). In progress: the promotion capsule, which files a rejected promotion attempt with its failing conjunct named and renders it read-only at `/promotion`. Next on the board: the AI-disclosure notice with its human route, the agent console and the instrument scaffolding.
 
 ## License
 

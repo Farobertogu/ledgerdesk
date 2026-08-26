@@ -46,7 +46,18 @@ MIGRATIONS="$(ls migrations/[0-9][0-9][0-9][0-9]_*.sql | sort)"
 # files it is given, whatever order they arrive in — measured, not assumed. These files share a
 # database and a seeded tenant, so what keeps them from interfering is that each one writes into a
 # run of its own, not that they are listed in some sequence.
-TESTS="tests/gateway/test_SEC_pii_never_leaves.mjs tests/gateway/test_SEC_cache_is_tenant_isolated.mjs tests/gateway/test_SEC_security_events_are_recorded.mjs tests/gateway/test_SEC_kb_injection_cannot_forge_a_citation.mjs tests/gateway/test_GW_budget_cuts_off.mjs tests/gateway/test_GW_cache_hit_skips_call.mjs tests/gateway/test_GW_provider_faults_are_typed.mjs tests/gateway/test_GW_ledger_row_satisfies_contract.mjs tests/gateway/test_GW_replay_never_calls_provider.mjs tests/gateway/test_GW_state_hash_differs_across_rulesets.mjs tests/gateway/test_GW_state_hash_tracks_the_snapshot_in_force.mjs tests/gateway/test_LEDGER_system_row_is_not_a_model_call.mjs"
+#
+# The three promotion files join them for the reason the workflow already states about this job: the
+# writer of a promotion attempt has to be measured against the real constraints — two agent
+# identities, five cost sentinels, two unique indexes that are GLOBAL to the cluster and a tenant
+# policy that clips a SELECT but not an index — and no fake reproduces those without becoming a
+# second implementation of them. Its CONTRACT is measured in the check job, with no database at all.
+#
+# **One organisation per file, and it is a rule rather than tidiness.** An attempt identifier is a
+# function of its organisation and the two indexes over `output->>'attempt_id'` are global, so two
+# files filing a capsule for the same organisation would be asking the database to accept exactly
+# what those indexes exist to refuse. The third file seeds an organisation of its own.
+TESTS="tests/gateway/test_SEC_pii_never_leaves.mjs tests/gateway/test_SEC_cache_is_tenant_isolated.mjs tests/gateway/test_SEC_security_events_are_recorded.mjs tests/gateway/test_SEC_kb_injection_cannot_forge_a_citation.mjs tests/gateway/test_GW_budget_cuts_off.mjs tests/gateway/test_GW_cache_hit_skips_call.mjs tests/gateway/test_GW_provider_faults_are_typed.mjs tests/gateway/test_GW_ledger_row_satisfies_contract.mjs tests/gateway/test_GW_replay_never_calls_provider.mjs tests/gateway/test_GW_state_hash_differs_across_rulesets.mjs tests/gateway/test_GW_state_hash_tracks_the_snapshot_in_force.mjs tests/gateway/test_LEDGER_system_row_is_not_a_model_call.mjs tests/gateway/test_PROMO_pair_is_written_with_two_identities.mjs tests/gateway/test_PROMO_writer_is_idempotent_and_tenant_bound.mjs tests/gateway/test_PROMO_writes_its_own_run.mjs"
 
 maint() { psql -X -v ON_ERROR_STOP=1 -q -d "$MAINT_DB" -c "$1" >/dev/null; }
 run_sql() { psql -X -v ON_ERROR_STOP=1 -q -d "$1" -f "$2"; }

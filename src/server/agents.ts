@@ -84,7 +84,7 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
-import { canonicalJson, sha256Hex } from '@agents/canonical.ts';
+import { canonicalJson, derivedUuid, sha256Hex } from '@agents/canonical.ts';
 import type { Json } from '@agents/canonical.ts';
 import { createGateway, type Gateway, type GatewayConfig, type ModelPrice, type ModelProvider } from '@agents/gateway.ts';
 import { PgLedgerStore } from '@agents/ledger/pg.ts';
@@ -300,25 +300,17 @@ export function runIdFor(orgId: string, label: string): string {
 }
 
 /**
- * A version-4-shaped identifier that is a function of a written seed rather than of a coin toss.
+ * The derivation of an identifier from a written seed now lives in `@agents/canonical.ts`, and is
+ * re-exported here so that the callers who reach for it through this module keep working.
  *
- * Two callers want this and they want it for the same reason: an identifier that survives a retry.
- * A run derived from its organisation keeps one chain across restarts; an admission derived from the
- * gap it answers and the body it admits proposes the SAME identity on a second attempt, so the
- * unique index on the chain recognises the retry instead of letting it write a second row for one
- * fact. A random identifier would make both of those "usually fine".
+ * It moved because it gained a second caller below the seam — the promotion writer of
+ * `agents/ledger/promotion_row.ts`, which mints the identity of an attempt from its organisation and
+ * has to load under a bare `node --experimental-strip-types` with no bundler. This file cannot be
+ * loaded that way: every import above goes through the `@agents/` and `@/` aliases that only
+ * `tsconfig.app.json` resolves. Copying twenty lines across the seam would have been two producers of
+ * one identity, so the function went to the module that owns digests and both sides import it.
  */
-export function derivedUuid(seed: string): string {
-  const digest = sha256Hex(seed);
-  const variant = ((parseInt(digest[16] as string, 16) & 0x3) | 0x8).toString(16);
-  return [
-    digest.slice(0, 8),
-    digest.slice(8, 12),
-    `4${digest.slice(13, 16)}`,
-    `${variant}${digest.slice(17, 20)}`,
-    digest.slice(20, 32),
-  ].join('-');
-}
+export { derivedUuid };
 
 /**
  * The `kb_snapshot` component of `state_hash`, qualified by organisation.
