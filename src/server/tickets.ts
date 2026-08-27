@@ -250,8 +250,25 @@ export async function createTicket(
 
       // The instant comes from the database and not from this process: it is what `created_at`
       // will hold, and the key has to name that instant and no other.
+      //
+      // **`clock_timestamp()`, never `now()`, and the difference is the whole of a real defect.**
+      // `now()` is frozen at the start of the transaction, so it does not order two writers by the
+      // order in which they actually wrote: a transaction that BEGAN first and took the lock second
+      // reads an instant EARLIER than the row it is about to find. `dedupeDecision` is then handed a
+      // submission that claims to predate its own incumbent, refuses to collapse into something it
+      // was told came later — correctly, given those inputs — and files a second ticket. Measured:
+      // two calls to `now()` four hundred milliseconds apart return the same value, and the decision
+      // function returns `collapse: false` for a gap of -50 ms. That is the intermittent second
+      // ticket under a burst, and it is a product defect and not a flaky test: two people pressing
+      // send together could both be given a number.
+      //
+      // `clock_timestamp()` is read AFTER the lock is held, so it is monotonic with the order the
+      // lock imposes: whoever writes second reads a later instant, the gap is positive, and the
+      // collapse happens. Evaluated once and shared, because two calls in one statement are two
+      // instants and the key must name the one `created_at` holds.
       const clock = await client.query<{ ts: Date; ms: string }>(
-        `select now() as ts, (floor(extract(epoch from now()) * 1000))::bigint as ms`,
+        `with instant as materialized (select clock_timestamp() as ts)
+         select ts, (floor(extract(epoch from ts) * 1000))::bigint as ms from instant`,
       );
       const createdAt = clock.rows[0].ts;
       const createdMs = Number(clock.rows[0].ms);

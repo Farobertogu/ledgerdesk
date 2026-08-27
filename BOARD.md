@@ -15,6 +15,7 @@ Source of truth for build order: the specification's build plan, as amended — 
 
 | Card | Increment | Depends on | Closing evidence |
 |---|---|---|---|
+| I24 | Intake dedupe: the collapse decision reads its instant after the advisory lock rather than at the start of the transaction | I3, I5 | both halves of the mechanism measured and recorded, the instant read once and shared so the key names what the row holds, and the signed pure decision function untouched |
 | I26 | AI disclosure + human route: visible AI-assistance notice on the customer screen + a "talk to a person" control creating an escalation | I3 | US-09 + `test_US09_ai_disclosure_and_human_route` green |
 | I8 | Agent console: edit/approve/send + `human_edit` capture | I7 | US-05 + `approved_by` as a DB constraint |
 | I25 | Instrument scaffolding: the pre-registration derivator (exit 0 = 17 fields) + the blind-sheet generator (exit 0/1/2) + the sentinel mechanism as a `corpus.ts` input | I2, I2b | both generators' named tests green + the `PREREGISTRATION.md` draft with its seven declared blocks |
