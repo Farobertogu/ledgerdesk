@@ -1,5 +1,23 @@
 # LedgerDesk
 
+## New-system construction · INC-01
+
+This repository keeps its history while the newly defined system is implemented by increments.
+The description and commands below document the retained **legacy** system; they are not the
+requirements or safe trial setup for the new reading route. The active card is in [BOARD](BOARD.md).
+See [ADR-029](adr/ADR-029-isolated-reading-foundation.md) for T01/T02, scope, source contracts,
+safe verification and the remaining T03–T05 work. No historical database is needed for this delivery.
+
+The public [reading contract](docs/reading-contract.md) uses the English `reading/1` profile.
+Its source equivalence is tested without changing original document text or opaque identifiers.
+
+`/material` is a preparation surface, not yet the integrated viewer. The new reading endpoints
+fail closed: no trial context gives 403; valid trial context still gives 503 until T04 supplies
+the real service. They never substitute legacy or demo material. This increment makes no model
+calls and uses no real data.
+
+## Retained legacy system
+
 A grounded-answer platform over versioned knowledge corpora. Three commitments define the system:
 
 1. **Grounded answers only.** Draft answers are produced solely from admitted, versioned sources (`kb_snapshot`); when the corpus has no answer, the system files a typed gap instead of improvising one.

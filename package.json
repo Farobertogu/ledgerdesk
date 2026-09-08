@@ -15,6 +15,9 @@
     "build": "next build",
     "start": "next start --port 3000",
     "test:app": "node --test tests/app/",
+    "test:reading": "node --experimental-strip-types --test tests/contracts/test_material_reading.mjs tests/reading/test_T01_gate_http.mjs tests/reading/test_T01_boundaries.mjs tests/reading/test_T01_terminal_probe.mjs",
+    "test:reading:http": "node tests/reading/http_preparation.mjs",
+    "start:reading": "node ci/reading_start.mjs",
     "test:gateway": "node --experimental-strip-types --test --test-concurrency=1 tests/gateway/"
   },
   "devDependencies": {
@@ -28,6 +31,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.120.0",
+    "@next/env": "16.3.1",
     "next": "16.3.1",
     "pg": "8.23.0",
     "react": "19.2.8",

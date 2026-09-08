@@ -17,6 +17,27 @@ jobs:
           node-version: '22'
       - name: Repository structure check
         run: bash ci/check.sh
+  reading:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # T01/T02 have no PG service and never run the destructive legacy DB scripts.
+    # The boundary uses the installed TypeScript parser, not a second hand-written TSX parser.
+    env:
+      LEDGERDESK_READING_TRIAL: '0'
+      LEDGERDESK_DEV_IDENTITY: '0'
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: node ci/reading_boundary_check.mjs
+      - run: npm run test:reading
+      - run: npm run typecheck:app
+      - run: npm run build
+      - run: npm run test:reading:http
   db:
     runs-on: ubuntu-latest
     timeout-minutes: 20

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import LegacyShell from '@/components/legacy/LegacyShell';
 
 import { PageHeading, Panel } from '@/components/Panel';
 import { currentIdentity } from '@/server/session';
@@ -30,7 +31,7 @@ export default async function HomePage() {
   const identity = await currentIdentity();
 
   return (
-    <>
+    <LegacyShell>
       <PageHeading
         title="LedgerDesk consoles"
         lead="Three consoles over one tenanted database. Which rows a console shows is decided by the row-level policies in the schema, not by the queries on this side of the connection."
@@ -76,6 +77,6 @@ export default async function HomePage() {
           </Link>
         ))}
       </div>
-    </>
+    </LegacyShell>
   );
 }

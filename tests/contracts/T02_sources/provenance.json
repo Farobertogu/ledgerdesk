@@ -1,0 +1,24 @@
+{
+  "contract": "t02-lectura/1",
+  "implemented_profile": "reading/1",
+  "source_description": "Offline T02 synthetic reading specification, schema and authored examples retained as historical contract evidence.",
+  "public_contract": "docs/reading-contract.md",
+  "profile_mapping": "tests/contracts/reading_profile_mapping.mjs",
+  "copied_on": "2026-09-08",
+  "purpose": "Byte-identical source schema and examples for reproducible equivalence tests against the English reading/1 profile; never service data or runtime imports. The mapping is test-only and does not provide wire compatibility with t02-lectura/1.",
+  "sources": [
+    {
+      "file": "T02_LECTURA.schema.json",
+      "sha256": "f68276f2934dca0c34060935a334b7b1de53c826d4c2badb4a0df27481354a5c"
+    },
+    {
+      "file": "T02_LECTURA.ejemplos.json",
+      "sha256": "f202df8920c41899bc445458e5cf6f60e47ba6493bc6f605bf7919e63dd65622"
+    }
+  ],
+  "specification": {
+    "file": "T02_CONTRATO_LECTURA.md",
+    "sha256_at_read": "a5b6c6274a7f3bc8456020c3689a6661718591806976faa6c9a892ee69c65565"
+  },
+  "limits": "Hashes identify the read/copied source, not authority. These are authored expected examples, not observed service responses. Contract tests do not prove permissions, contextual fidelity, SQL, physical egress, timing, rendering or integrated LR-AC acceptance. A deliberate source update requires reviewing consumers, not editing a fixture to match a failing implementation."
+}
