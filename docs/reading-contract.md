@@ -194,4 +194,4 @@ only received titles and references. A manual retry performs a fresh authorized 
 The 24 LR-AC acceptance groups retain their original scopes. Contract shape and source-equivalence
 tests do not demonstrate policy execution, contextual fidelity, persistence, rendering, timing or
 the integrated T03–T05 path. Synthetic acceptance does not authorize real data, deployment or later
-increments. Adding the `reading` CI job to required `main` checks remains pending before merge.
+increments. Merging to `main` requires the `reading` CI job alongside `check`, `db` and `app`.

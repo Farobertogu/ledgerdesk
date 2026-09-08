@@ -109,8 +109,8 @@ old-cookie refusal, startup gate and retained unauthenticated pages; not authent
 It launches through `ci/reading_start.mjs`. `npm run test:reading` runs the four named suites;
 `npm run test:reading:http` requires the build. GitHub's `reading` job is configured to run both
 without PostgreSQL. Its remote result and branch protection are separate from local verification.
-The current `main` protection requires `check`, `db` and `app`; adding `reading` as a required
-check remains pending before merge. The branch protection settings are unchanged by this delivery.
+Before merging PR #20, `main` protection was updated to require `check`, `db`, `app` and `reading`
+from GitHub Actions. Strict checks and all other protection settings were preserved.
 
 The separate Node HTTP terminal probe uses synthetic in-memory control and causal pause points:
 stable reading; invalidation committed before admission; invalidation requested while admission
