@@ -17,7 +17,7 @@ Source of truth for build order: the specification's build plan, as amended — 
 
 | Card | Increment | Branch | Closing evidence |
 |---|---|---|---|
-| INC-01 | Synthetic integrated reading; first delivery T01/T02 only | card/INC-01-reading-foundation | T01 separation/gate/probe and T02 shared-contract tests; T03–T05 and full temporal conformity remain separate pending work |
+| INC-01 | Synthetic integrated reading; T03 material viewer | card/INC-01-material-viewer | T01/T02 merged in PR #20; T03 controller and browser checks; T04/T05 and full temporal conformity remain pending |
 
 ## Backlog (plan order)
 

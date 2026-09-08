@@ -1,10 +1,13 @@
 import { readTrialConfig } from '@/server/reading/config';
+import MaterialReader from '@/components/reading/MaterialReader';
+import { randomUUID } from 'node:crypto';
 
 export const dynamic = 'force-dynamic';
 
-// Preparation surface, not the T03 viewer and never a source of synthetic material.
-export default function MaterialPreparationPage() {
+export default function MaterialPage() {
   const enabled = readTrialConfig(process.env) !== null;
+  // A new server render resets ephemeral browser state without exposing server identity.
+  if (enabled) return <MaterialReader key={randomUUID()} />;
   return (
     <main className="mx-auto max-w-5xl px-6 py-10">
       <h1>Material reading · INC-01 trial</h1>

@@ -17,10 +17,14 @@
     "test:app": "node --test tests/app/",
     "test:reading": "node --experimental-strip-types --test tests/contracts/test_material_reading.mjs tests/reading/test_T01_gate_http.mjs tests/reading/test_T01_boundaries.mjs tests/reading/test_T01_terminal_probe.mjs",
     "test:reading:http": "node tests/reading/http_preparation.mjs",
+    "test:reading:viewer": "node --experimental-strip-types --test tests/reading/test_T03_reader.mjs",
+    "test:reading:harness": "node --test tests/reading/test_T03_harness_guards.mjs",
+    "test:reading:browser": "playwright test --config playwright.reading.config.ts",
     "start:reading": "node ci/reading_start.mjs",
     "test:gateway": "node --experimental-strip-types --test --test-concurrency=1 tests/gateway/"
   },
   "devDependencies": {
+    "@playwright/test": "1.63.0",
     "@tailwindcss/postcss": "4.3.3",
     "@types/node": "^22.7.0",
     "@types/pg": "8.23.1",
