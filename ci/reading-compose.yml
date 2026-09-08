@@ -1,0 +1,21 @@
+# Prepared environment for T04, NOT a cluster created or an isolation proof.
+# Use only a fresh project with synthetic data. No historical bind mount or network.
+name: ledgerdesk-inc01-synthetic
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: inc01_owner
+      POSTGRES_DB: inc01_synthetic
+      POSTGRES_PASSWORD: ${LEDGERDESK_READING_PG_PASSWORD:?Set a password for the synthetic cluster explicitly}
+    ports:
+      - "127.0.0.1:${LEDGERDESK_READING_PG_PORT:-55432}:5432"
+    volumes:
+      - reading_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U inc01_owner -d inc01_synthetic"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+volumes:
+  reading_pgdata:

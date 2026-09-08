@@ -1,0 +1,427 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ledgerdesk:t02:lectura:1",
+  "title": "T02 · Contrato mínimo de lectura de ensayo",
+  "description": "Perfil estructural cerrado y exclusivamente sintético t02-lectura/1. No acredita permisos, clasificación honesta, actos editoriales, fidelidad, integridad semántica, límites operativos ni habilitación productiva. Los límites 16 filas, 8 extractos, 100000 caracteres de texto, 256 caracteres de título/condición y 128 caracteres por ID pertenecen sólo a este ensayo. La lectura íntegra de este perfil debe caber en esos límites: no autorizan truncar. maxLength cuenta caracteres según JSON Schema, no bytes HTTP.",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/ListRequest"
+    },
+    {
+      "$ref": "#/$defs/ExactRequest"
+    },
+    {
+      "$ref": "#/$defs/ListResponse"
+    },
+    {
+      "$ref": "#/$defs/DetailResponse"
+    },
+    {
+      "$ref": "#/$defs/Problema"
+    }
+  ],
+  "$defs": {
+    "IdOpaco": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "description": "Identificador opaco del ensayo. No codifica persona, permiso, orden global o significado editorial; la forma no prueba existencia ni autorización."
+    },
+    "TextoPlano": {
+      "type": "string",
+      "maxLength": 100000,
+      "description": "Texto plano exacto; sin normalización, traducción, ejecución de HTML/Markdown ni recorte por el consumidor. Este límite de caracteres es sólo sintético."
+    },
+    "Titulo": {
+      "type": "string",
+      "maxLength": 256
+    },
+    "CondicionLectura": {
+      "type": "string",
+      "maxLength": 256,
+      "description": "Condición declarada de lectura, en texto plano autorizado. No contiene un permiso que el cliente pueda concederse."
+    },
+    "IdiomaOriginal": {
+      "type": "string",
+      "enum": [
+        "es",
+        "en"
+      ],
+      "description": "Lengua del original en este perfil de ensayo; no es idioma de interfaz ni límite lingüístico productivo adoptado."
+    },
+    "EstadoEditorial": {
+      "type": "string",
+      "enum": [
+        "CANDIDATA",
+        "RECHAZADA",
+        "APROBADA_NO_PUBLICADA",
+        "PUBLICADA",
+        "SUSPENDIDA",
+        "SUPERSEDIDA",
+        "RETIRADA"
+      ],
+      "description": "Siete estados K12 de una versión exacta. EN_REVISION es trámite y RESTRINGIDA es visibilidad; ninguno pertenece a este alfabeto. El valor de una fixture no constituye el acto."
+    },
+    "Clasificacion": {
+      "type": "object",
+      "properties": {
+        "funcion_sustantiva": {
+          "type": "string",
+          "enum": [
+            "DEFINICIONAL",
+            "NORMATIVA",
+            "OPERATIVA",
+            "FACTUAL"
+          ]
+        },
+        "base_de_validez": {
+          "type": "string",
+          "enum": [
+            "ADOPCION_DEL_AMBITO",
+            "AUTORIDAD_EXTERNA_APLICABLE",
+            "ATESTACION_VERIFICABLE",
+            "REFERENCIA_NO_AUTORITATIVA"
+          ]
+        },
+        "alcance_de_aplicacion": {
+          "type": "string",
+          "enum": [
+            "REUTILIZABLE_CON_CONDICIONES",
+            "SITUADA"
+          ]
+        }
+      },
+      "required": [
+        "funcion_sustantiva",
+        "base_de_validez",
+        "alcance_de_aplicacion"
+      ],
+      "additionalProperties": false,
+      "description": "Tres ejes exactos C1. Validar forma no declara compatible una combinación ni aprueba la clasificación. No se expone clasificación pendiente como ratificada."
+    },
+    "ListRequest": {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false,
+      "description": "Entrada lógica vacía del listado. El adaptador HTTP admite GET sin query ni body; este esquema del objeto vacío por sí solo no inspecciona URL o transporte."
+    },
+    "ExactRequest": {
+      "type": "object",
+      "properties": {
+        "unidad_id": {
+          "$ref": "#/$defs/IdOpaco"
+        },
+        "version_id": {
+          "$ref": "#/$defs/IdOpaco"
+        }
+      },
+      "required": [
+        "unidad_id",
+        "version_id"
+      ],
+      "additionalProperties": false,
+      "description": "Par exacto resuelto de los parámetros de ruta, no body de GET ni autoridad suministrada por el navegador."
+    },
+    "Reference": {
+      "type": "object",
+      "properties": {
+        "unidad_id": {
+          "$ref": "#/$defs/IdOpaco"
+        },
+        "version_id": {
+          "$ref": "#/$defs/IdOpaco"
+        }
+      },
+      "required": [
+        "unidad_id",
+        "version_id"
+      ],
+      "additionalProperties": false
+    },
+    "Metadata": {
+      "type": "object",
+      "properties": {
+        "titulo": {
+          "$ref": "#/$defs/Titulo"
+        },
+        "localizador": {
+          "$ref": "#/$defs/TextoPlano"
+        },
+        "estado_editorial": {
+          "$ref": "#/$defs/EstadoEditorial"
+        },
+        "clasificacion": {
+          "$ref": "#/$defs/Clasificacion"
+        },
+        "condiciones_lectura": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CondicionLectura"
+          }
+        }
+      },
+      "required": [],
+      "additionalProperties": false,
+      "description": "Sólo metadatos expresamente autorizados. Todos son opcionales en estructura; si uno es indispensable para entregar fielmente una fixture, debe estar declarado y autorizado o la entrega no procede. Su omisión no se interpreta como inexistencia del hecho. No admite sucesora, propietario, motivo de restricción, hash o grado interno."
+    },
+    "ReferenceView": {
+      "type": "object",
+      "properties": {
+        "tipo": {
+          "const": "REFERENCIA"
+        },
+        "referencia": {
+          "$ref": "#/$defs/Reference"
+        },
+        "metadatos": {
+          "$ref": "#/$defs/Metadata"
+        }
+      },
+      "required": [
+        "tipo",
+        "referencia",
+        "metadatos"
+      ],
+      "additionalProperties": false,
+      "description": "Identificación y metadatos autorizados, sin cuerpo, hash ni snippet. Única variante identificable del listado."
+    },
+    "Fragmento": {
+      "type": "object",
+      "properties": {
+        "fragmento_id": {
+          "$ref": "#/$defs/IdOpaco"
+        },
+        "texto": {
+          "$ref": "#/$defs/TextoPlano"
+        },
+        "localizador": {
+          "$ref": "#/$defs/TextoPlano"
+        }
+      },
+      "required": [
+        "fragmento_id",
+        "texto"
+      ],
+      "additionalProperties": false,
+      "description": "Fragmento delimitado sintéticamente y cotejable como subcadena exacta del original. El esquema no selecciona fronteras, evalúa condiciones inseparables ni ejecuta corte. Los identificadores y localizadores también requieren autorización."
+    },
+    "ExcerptView": {
+      "type": "object",
+      "properties": {
+        "tipo": {
+          "const": "EXTRACTO"
+        },
+        "referencia": {
+          "$ref": "#/$defs/Reference"
+        },
+        "metadatos": {
+          "$ref": "#/$defs/Metadata"
+        },
+        "idioma_original": {
+          "$ref": "#/$defs/IdiomaOriginal"
+        },
+        "fragmentos": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "items": {
+            "$ref": "#/$defs/Fragmento"
+          }
+        }
+      },
+      "required": [
+        "tipo",
+        "referencia",
+        "metadatos",
+        "idioma_original",
+        "fragmentos"
+      ],
+      "additionalProperties": false,
+      "description": "Sólo fragmentos y referencias autorizados; nunca transporte del original completo para ocultarlo en la UI. El límite de ocho es del ensayo."
+    },
+    "ContentView": {
+      "type": "object",
+      "properties": {
+        "tipo": {
+          "const": "CONTENIDO"
+        },
+        "referencia": {
+          "$ref": "#/$defs/Reference"
+        },
+        "metadatos": {
+          "$ref": "#/$defs/Metadata"
+        },
+        "idioma_original": {
+          "$ref": "#/$defs/IdiomaOriginal"
+        },
+        "texto_original": {
+          "$ref": "#/$defs/TextoPlano"
+        }
+      },
+      "required": [
+        "tipo",
+        "referencia",
+        "metadatos",
+        "idioma_original",
+        "texto_original"
+      ],
+      "additionalProperties": false,
+      "description": "Original textual completo y exacto de la versión pedida; es el original de texto del ensayo, no un binario PDF/Word reconstruido."
+    },
+    "ListResponse": {
+      "type": "object",
+      "properties": {
+        "contrato": {
+          "const": "t02-lectura/1"
+        },
+        "items": {
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "$ref": "#/$defs/ReferenceView"
+          }
+        },
+        "senal_existencia": {
+          "type": "boolean",
+          "description": "Señal genérica de existencia expresamente revelable: no añade fila, ID, título, versión ni conteo. NINGUNO no la altera. No es número de resultados ni permiso para solicitar acceso."
+        }
+      },
+      "required": [
+        "contrato",
+        "items",
+        "senal_existencia"
+      ],
+      "additionalProperties": false,
+      "description": "Listado íntegro de la población identificable autorizada que quepa en el perfil sintético. No declara totales, paginación o un recorte silencioso. Añadir elementos NINGUNO no altera cuerpo, orden, señal ni observables permitidos."
+    },
+    "DetailResponse": {
+      "type": "object",
+      "properties": {
+        "contrato": {
+          "const": "t02-lectura/1"
+        },
+        "proyeccion": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/ReferenceView"
+            },
+            {
+              "$ref": "#/$defs/ExcerptView"
+            },
+            {
+              "$ref": "#/$defs/ContentView"
+            }
+          ]
+        }
+      },
+      "required": [
+        "contrato",
+        "proyeccion"
+      ],
+      "additionalProperties": false,
+      "description": "Lectura de versión exacta. EXISTENCIA, NINGUNO, ausencia e indeterminación local producen el mismo 404 genérico: el detalle no confirma una identidad por devolver una señal EXISTENCIA."
+    },
+    "Problema": {
+      "description": "Perfil cerrado de EMISIÓN del productor. Parejas HTTP/código/título exactas. No admite detail, instance, recursos, claves de política, payload, stack, hashes ni causas internas. El consumidor mantiene el tratamiento de extensiones desconocidas de D08; este esquema no redefine esa regla. La coherencia con status y cabeceras HTTP exige cotejo del adaptador.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "about:blank"
+            },
+            "title": {
+              "const": "Solicitud inválida"
+            },
+            "status": {
+              "const": 400
+            },
+            "codigo": {
+              "const": "PETICION_NO_ADMITIDA"
+            }
+          },
+          "required": [
+            "type",
+            "title",
+            "status",
+            "codigo"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "about:blank"
+            },
+            "title": {
+              "const": "No autenticado"
+            },
+            "status": {
+              "const": 403
+            },
+            "codigo": {
+              "const": "NO_AUTENTICADO"
+            }
+          },
+          "required": [
+            "type",
+            "title",
+            "status",
+            "codigo"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "about:blank"
+            },
+            "title": {
+              "const": "No disponible"
+            },
+            "status": {
+              "const": 404
+            },
+            "codigo": {
+              "const": "NO_DISPONIBLE"
+            }
+          },
+          "required": [
+            "type",
+            "title",
+            "status",
+            "codigo"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "about:blank"
+            },
+            "title": {
+              "const": "Fallo técnico"
+            },
+            "status": {
+              "const": 503
+            },
+            "codigo": {
+              "const": "FALLO_TECNICO"
+            }
+          },
+          "required": [
+            "type",
+            "title",
+            "status",
+            "codigo"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    }
+  }
+}

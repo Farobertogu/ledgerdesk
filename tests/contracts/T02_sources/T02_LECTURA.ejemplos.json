@@ -1,0 +1,1473 @@
+{
+  "contrato": "t02-lectura/1",
+  "descripcion": "Ejemplos declarativos exclusivamente sintéticos. No son respuestas obtenidas de LedgerDesk ni ejecutan un proyector, validador, motor documental o política. Los paths HTTP son propuestas. contexto_sintetico, target_schema, input, schema_valid y comprobaciones_exactitud son anotaciones del artefacto, nunca campos enviados en la respuesta.",
+  "perfil_sintetico": {
+    "limites": {
+      "filas_lista": 16,
+      "fragmentos": 8,
+      "caracteres_texto": 100000,
+      "caracteres_titulo_o_condicion": 256,
+      "caracteres_id": 128
+    },
+    "significado": "Límites estructurales sólo de este ensayo; no límites productivos adoptados, no autorización para truncar y no equivalencia con bytes HTTP.",
+    "autoridad": "Sujetos, permisos, clasificación y estados son hechos declarados del ensayo suministrados por servidor. No equivalen a personas, actos o aprobaciones reales.",
+    "transporte": "GET sin body. En los casos válidos no hay query. request.input es la entrada lógica que el adaptador extrae, no un payload HTTP. El caso negativo P01 presenta query fuera del contrato.",
+    "fidelidad": "Metadatos indispensables de cada original están expresamente autorizados en las fixtures de EXTRACTO/CONTENIDO. El esquema valida estructura; no prueba esa autorización, fidelidad semántica ni compatibilidad C1.",
+    "observabilidad": "Las igualdades de response prueban lo especificado en HTTP/cabeceras/cuerpo del artefacto. No acreditan igualdad de tiempos, buffers, paquetes o efectos reales; T04 debe demostrar los observables exigidos.",
+    "campos_fuera_del_contrato": "No transportar el registro textos_originales, contexto_sintetico o comparaciones a la UI de servicio."
+  },
+  "textos_originales": [
+    {
+      "id": "ORIGINAL_ES_V2",
+      "referencia": {
+        "unidad_id": "u-a1",
+        "version_id": "v-b2"
+      },
+      "idioma_original": "es",
+      "texto_original": "Guía de ensayo — depósito\r\n\r\n  Ámbito: demostración sintética.\r\nRegla: conservar  dos espacios y la tilde de «depósito».\r\nExcepción: si falta autorización, no entregar el texto.\r\n",
+      "campos_metadatos_necesarios": [
+        "estado_editorial",
+        "condiciones_lectura"
+      ],
+      "campos_metadatos_autorizados": [
+        "titulo",
+        "localizador",
+        "estado_editorial",
+        "clasificacion",
+        "condiciones_lectura"
+      ],
+      "fragmentos_declarados": [
+        {
+          "fragmento_id": "f-regla-excepcion",
+          "texto": "Regla: conservar  dos espacios y la tilde de «depósito».\r\nExcepción: si falta autorización, no entregar el texto.",
+          "localizador": "Delimitación sintética declarada: regla y excepción consecutivas"
+        },
+        {
+          "fragmento_id": "f-ambito",
+          "texto": "  Ámbito: demostración sintética.",
+          "localizador": "Delimitación sintética declarada: línea de ámbito"
+        }
+      ],
+      "observacion": "Original textual sintético con CRLF y salto final. Los fragmentos se declararon literalmente para este ensayo; no existe algoritmo de corte."
+    },
+    {
+      "id": "ORIGINAL_ES_V1",
+      "referencia": {
+        "unidad_id": "u-a1",
+        "version_id": "v-b1"
+      },
+      "idioma_original": "es",
+      "texto_original": "Guía de ensayo — depósito (versión anterior)\r\n\r\n  Ámbito: demostración sintética histórica.\r\nRegla anterior: conservar exactamente este texto.\r\nExcepción anterior: no usarlo como orientación actual.\r\n",
+      "campos_metadatos_necesarios": [
+        "estado_editorial",
+        "condiciones_lectura"
+      ],
+      "campos_metadatos_autorizados": [
+        "titulo",
+        "localizador",
+        "estado_editorial",
+        "clasificacion",
+        "condiciones_lectura"
+      ],
+      "fragmentos_declarados": [],
+      "observacion": "Versión histórica distinta. El ejemplo conserva SUPERSEDIDA y su texto exacto; no sustituye referencia o contenido por v-b2."
+    },
+    {
+      "id": "ORIGINAL_EN_V1",
+      "referencia": {
+        "unidad_id": "u-c3",
+        "version_id": "v-d1"
+      },
+      "idioma_original": "en",
+      "texto_original": "Trial glossary\n\n  Scope: synthetic demonstration.\n“Sample” means an invented item in this trial.\nThe spelling café and  two spaces belong to this sample.\n",
+      "campos_metadatos_necesarios": [
+        "estado_editorial",
+        "condiciones_lectura"
+      ],
+      "campos_metadatos_autorizados": [
+        "titulo",
+        "localizador",
+        "estado_editorial",
+        "clasificacion",
+        "condiciones_lectura"
+      ],
+      "fragmentos_declarados": [],
+      "observacion": "Original inglés con LF. Cambiar idioma UI no selecciona una traducción del original."
+    }
+  ],
+  "casos": [
+    {
+      "id": "L01_AUSENCIA",
+      "descripcion": "Lista sin material existente o identificable.",
+      "contexto_sintetico": {
+        "escenario": "Sin material",
+        "principal": "sujeto_sintetico_servidor_a",
+        "idioma_ui": "es"
+      },
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/material",
+        "headers": {
+          "Accept": "application/json, application/problem+json"
+        },
+        "body": null,
+        "target_schema": "T02_LECTURA.schema.json#/$defs/ListRequest",
+        "input": {},
+        "schema_valid": true
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json",
+          "Cache-Control": "private, no-store"
+        },
+        "target_schema": "T02_LECTURA.schema.json#/$defs/ListResponse",
+        "body": {
+          "contrato": "t02-lectura/1",
+          "items": [],
+          "senal_existencia": false
+        },
+        "schema_valid": true
+      }
+    },
+    {
+      "id": "L02_NINGUNO",
+      "descripcion": "Añadir material NINGUNO no cambia lista, señal, orden o cabeceras.",
+      "contexto_sintetico": {
+        "escenario": "Material presente, grado NINGUNO",
+        "principal": "sujeto_sintetico_servidor_a",
+        "idioma_ui": "es"
+      },
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/material",
+        "headers": {
+          "Accept": "application/json, application/problem+json"
+        },
+        "body": null,
+        "target_schema": "T02_LECTURA.schema.json#/$defs/ListRequest",
+        "input": {},
+        "schema_valid": true
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json",
+          "Cache-Control": "private, no-store"
+        },
+        "target_schema": "T02_LECTURA.schema.json#/$defs/ListResponse",
+        "body": {
+          "contrato": "t02-lectura/1",
+          "items": [],
+          "senal_existencia": false
+        },
+        "schema_valid": true
+      }
+    },
+    {
+      "id": "L03_INDETERMINACION_LOCAL",
+      "descripcion": "Revelabilidad local no declarada: no cambia la proyección respecto a ausencia.",
+      "contexto_sintetico": {
+        "escenario": "Revelabilidad indeterminada de un objeto; infraestructura operativa",
+        "principal": "sujeto_sintetico_servidor_a",
+        "idioma_ui": "es"
+      },
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/material",
+        "headers": {
+          "Accept": "application/json, application/problem+json"
+        },
+        "body": null,
+        "target_schema": "T02_LECTURA.schema.json#/$defs/ListRequest",
+        "input": {},
+        "schema_valid": true
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json",
+          "Cache-Control": "private, no-store"
+        },
+        "target_schema": "T02_LECTURA.schema.json#/$defs/ListResponse",
+        "body": {
+          "contrato": "t02-lectura/1",
+          "items": [],
+          "senal_existencia": false
+        },
+        "schema_valid": true
+      }
+    },
+    {
+      "id": "L04_EXISTENCIA",
+      "descripcion": "EXISTENCIA permite sólo la señal genérica, sin fila ni identidad.",
+      "contexto_sintetico": {
+        "escenario": "Existencia expresamente revelable; no referencia",
+        "principal": "sujeto_sintetico_servidor_a",
+        "idioma_ui": "es"
+      },
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/material",
+        "headers": {
+          "Accept": "application/json, application/problem+json"
+        },
+        "body": null,
+        "target_schema": "T02_LECTURA.schema.json#/$defs/ListRequest",
+        "input": {},
+        "schema_valid": true
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json",
+          "Cache-Control": "private, no-store"
+        },
+        "target_schema": "T02_LECTURA.schema.json#/$defs/ListResponse",
+        "body": {
+          "contrato": "t02-lectura/1",
+          "items": [],
+          "senal_existencia": true
+        },
+        "schema_valid": true
+      }
+    },
+    {
+      "id": "L05_REFERENCIAS",
+      "descripcion": "Lista de dos referencias con todos sus metadatos de fixture autorizados; ningún cuerpo viaja.",
+      "contexto_sintetico": {
+        "escenario": "Dos unidades identificables autorizadas",
+        "principal": "sujeto_sintetico_servidor_a",
+        "idioma_ui": "es"
+      },
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/material",
+        "headers": {
+          "Accept": "application/json, application/problem+json"
+        },
+        "body": null,
+        "target_schema": "T02_LECTURA.schema.json#/$defs/ListRequest",
+        "input": {},
+        "schema_valid": true
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json",
+          "Cache-Control": "private, no-store"
+        },
+        "target_schema": "T02_LECTURA.schema.json#/$defs/ListResponse",
+        "body": {
+          "contrato": "t02-lectura/1",
+          "items": [
+            {
+              "tipo": "REFERENCIA",
+              "referencia": {
+                "unidad_id": "u-a1",
+                "version_id": "v-b2"
+              },
+              "metadatos": {
+                "titulo": "Depósito — ensayo",
+                "localizador": "Ensayo textual, unidad u-a1, versión v-b2",
+                "estado_editorial": "PUBLICADA",
+                "clasificacion": {
+                  "funcion_sustantiva": "NORMATIVA",
+                  "base_de_validez": "ADOPCION_DEL_AMBITO",
+                  "alcance_de_aplicacion": "REUTILIZABLE_CON_CONDICIONES"
+                },
+                "condiciones_lectura": [
+                  "Material exclusivamente sintético; no es orientación operativa.",
+                  "La regla y su excepción se leen juntas."
+                ]
+              }
+            },
+            {
+              "tipo": "REFERENCIA",
+              "referencia": {
+                "unidad_id": "u-c3",
+                "version_id": "v-d1"
+              },
+              "metadatos": {
+                "titulo": "Trial glossary",
+                "localizador": "Synthetic text, unit u-c3, version v-d1",
+                "estado_editorial": "PUBLICADA",
+                "clasificacion": {
+                  "funcion_sustantiva": "DEFINICIONAL",
+                  "base_de_validez": "REFERENCIA_NO_AUTORITATIVA",
+                  "alcance_de_aplicacion": "REUTILIZABLE_CON_CONDICIONES"
+                },
+                "condiciones_lectura": [
+                  "Synthetic glossary only; no authority for operational decisions."
+                ]
+              }
+            }
+          ],
+          "senal_existencia": false
+        },
+        "schema_valid": true
+      }
+    },
+    {
+      "id": "L06_REFERENCIAS_MAS_NINGUNO",
+      "descripcion": "Misma lista y mismo orden al añadir objetos no revelables.",
+      "contexto_sintetico": {
+        "escenario": "Las mismas unidades autorizadas y material adicional NINGUNO",
+        "principal": "sujeto_sintetico_servidor_a",
+        "idioma_ui": "es"
+      },
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/material",
+        "headers": {
+          "Accept": "application/json, application/problem+json"
+        },
+        "body": null,
+        "target_schema": "T02_LECTURA.schema.json#/$defs/ListRequest",
+        "input": {},
+        "schema_valid": true
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json",
+          "Cache-Control": "private, no-store"
+        },
+        "target_schema": "T02_LECTURA.schema.json#/$defs/ListResponse",
+        "body": {
+          "contrato": "t02-lectura/1",
+          "items": [
+            {
+              "tipo": "REFERENCIA",
+              "referencia": {
+                "unidad_id": "u-a1",
+                "version_id": "v-b2"
+              },
+              "metadatos": {
+                "titulo": "Depósito — ensayo",
+                "localizador": "Ensayo textual, unidad u-a1, versión v-b2",
+                "estado_editorial": "PUBLICADA",
+                "clasificacion": {
+                  "funcion_sustantiva": "NORMATIVA",
+                  "base_de_validez": "ADOPCION_DEL_AMBITO",
+                  "alcance_de_aplicacion": "REUTILIZABLE_CON_CONDICIONES"
+                },
+                "condiciones_lectura": [
+                  "Material exclusivamente sintético; no es orientación operativa.",
+                  "La regla y su excepción se leen juntas."
+                ]
+              }
+            },
+            {
+              "tipo": "REFERENCIA",
+              "referencia": {
+                "unidad_id": "u-c3",
+                "version_id": "v-d1"
+              },
+              "metadatos": {
+                "titulo": "Trial glossary",
+                "localizador": "Synthetic text, unit u-c3, version v-d1",
+                "estado_editorial": "PUBLICADA",
+                "clasificacion": {
+                  "funcion_sustantiva": "DEFINICIONAL",
+                  "base_de_validez": "REFERENCIA_NO_AUTORITATIVA",
+                  "alcance_de_aplicacion": "REUTILIZABLE_CON_CONDICIONES"
+                },
+                "condiciones_lectura": [
+                  "Synthetic glossary only; no authority for operational decisions."
+                ]
+              }
+            }
+          ],
+          "senal_existencia": false
+        },
+        "schema_valid": true
+      }
+    },
+    {
+      "id": "L07_REFERENCIAS_MAS_EXISTENCIA",
+      "descripcion": "Una referencia identificable convive con señal de existencia no identificable.",
+      "contexto_sintetico": {
+        "escenario": "Referencia autorizada y otra existencia revelable sin identidad",
+        "principal": "sujeto_sintetico_servidor_a",
+        "idioma_ui": "es"
+      },
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/material",
+        "headers": {
+          "Accept": "application/json, application/problem+json"
+        },
+        "body": null,
+        "target_schema": "T02_LECTURA.schema.json#/$defs/ListRequest",
+        "input": {},
+        "schema_valid": true
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json",
+          "Cache-Control": "private, no-store"
+        },
+        "target_schema": "T02_LECTURA.schema.json#/$defs/ListResponse",
+        "body": {
+          "contrato": "t02-lectura/1",
+          "items": [
+            {
+              "tipo": "REFERENCIA",
+              "referencia": {
+                "unidad_id": "u-a1",
+                "version_id": "v-b2"
+              },
+              "metadatos": {
+                "titulo": "Depósito — ensayo",
+                "localizador": "Ensayo textual, unidad u-a1, versión v-b2",
+                "estado_editorial": "PUBLICADA",
+                "clasificacion": {
+                  "funcion_sustantiva": "NORMATIVA",
+                  "base_de_validez": "ADOPCION_DEL_AMBITO",
+                  "alcance_de_aplicacion": "REUTILIZABLE_CON_CONDICIONES"
+                },
+                "condiciones_lectura": [
+                  "Material exclusivamente sintético; no es orientación operativa.",
+                  "La regla y su excepción se leen juntas."
+                ]
+              }
+            }
+          ],
+          "senal_existencia": true
+        },
+        "schema_valid": true
+      }
+    },
+    {
+      "id": "L08_SIETE_ESTADOS_K12",
+      "descripcion": "Rótulos de los siete estados editoriales en una lista sintética autorizada; no ejecuta transiciones.",
+      "contexto_sintetico": {
+        "escenario": "Metadatos editoriales sintéticos expresamente autorizados; no constituyen actos",
+        "principal": "sujeto_sintetico_servidor_a",
+        "idioma_ui": "es"
+      },
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/material",
+        "headers": {
+          "Accept": "application/json, application/problem+json"
+        },
+        "body": null,
+        "target_schema": "T02_LECTURA.schema.json#/$defs/ListRequest",
+        "input": {},
+        "schema_valid": true
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json",
+          "Cache-Control": "private, no-store"
+        },
+        "target_schema": "T02_LECTURA.schema.json#/$defs/ListResponse",
+        "body": {
+          "contrato": "t02-lectura/1",
+          "items": [
+            {
+              "tipo": "REFERENCIA",
+              "referencia": {
+                "unidad_id": "u-rotulo-1",
+                "version_id": "v-rotulo-a"
+              },
+              "metadatos": {
+                "titulo": "Rótulo sintético CANDIDATA",
+                "estado_editorial": "CANDIDATA"
+              }
+            },
+            {
+              "tipo": "REFERENCIA",
+              "referencia": {
+                "unidad_id": "u-rotulo-2",
+                "version_id": "v-rotulo-a"
+              },
+              "metadatos": {
+                "titulo": "Rótulo sintético RECHAZADA",
+                "estado_editorial": "RECHAZADA"
+              }
+            },
+            {
+              "tipo": "REFERENCIA",
+              "referencia": {
+                "unidad_id": "u-rotulo-3",
+                "version_id": "v-rotulo-a"
+              },
+              "metadatos": {
+                "titulo": "Rótulo sintético APROBADA_NO_PUBLICADA",
+                "estado_editorial": "APROBADA_NO_PUBLICADA"
+              }
+            },
+            {
+              "tipo": "REFERENCIA",
+              "referencia": {
+                "unidad_id": "u-rotulo-4",
+                "version_id": "v-rotulo-a"
+              },
+              "metadatos": {
+                "titulo": "Rótulo sintético PUBLICADA",
+                "estado_editorial": "PUBLICADA"
+              }
+            },
+            {
+              "tipo": "REFERENCIA",
+              "referencia": {
+                "unidad_id": "u-rotulo-5",
+                "version_id": "v-rotulo-a"
+              },
+              "metadatos": {
+                "titulo": "Rótulo sintético SUSPENDIDA",
+                "estado_editorial": "SUSPENDIDA"
+              }
+            },
+            {
+              "tipo": "REFERENCIA",
+              "referencia": {
+                "unidad_id": "u-rotulo-6",
+                "version_id": "v-rotulo-a"
+              },
+              "metadatos": {
+                "titulo": "Rótulo sintético SUPERSEDIDA",
+                "estado_editorial": "SUPERSEDIDA"
+              }
+            },
+            {
+              "tipo": "REFERENCIA",
+              "referencia": {
+                "unidad_id": "u-rotulo-7",
+                "version_id": "v-rotulo-a"
+              },
+              "metadatos": {
+                "titulo": "Rótulo sintético RETIRADA",
+                "estado_editorial": "RETIRADA"
+              }
+            }
+          ],
+          "senal_existencia": false
+        },
+        "schema_valid": true
+      }
+    },
+    {
+      "id": "D01_REFERENCIA_MINIMA",
+      "descripcion": "Detalle referencial sin metadatos adicionales ni cuerpo; estos metadatos no son necesarios para esta fixture referencial.",
+      "contexto_sintetico": {
+        "escenario": "Sólo identificación autorizada",
+        "principal": "sujeto_sintetico_servidor_a",
+        "idioma_ui": "es"
+      },
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/material/u-a1/versiones/v-b2",
+        "headers": {
+          "Accept": "application/json, application/problem+json"
+        },
+        "body": null,
+        "target_schema": "T02_LECTURA.schema.json#/$defs/ExactRequest",
+        "input": {
+          "unidad_id": "u-a1",
+          "version_id": "v-b2"
+        },
+        "schema_valid": true
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json",
+          "Cache-Control": "private, no-store"
+        },
+        "target_schema": "T02_LECTURA.schema.json#/$defs/DetailResponse",
+        "body": {
+          "contrato": "t02-lectura/1",
+          "proyeccion": {
+            "tipo": "REFERENCIA",
+            "referencia": {
+              "unidad_id": "u-a1",
+              "version_id": "v-b2"
+            },
+            "metadatos": {}
+          }
+        },
+        "schema_valid": true
+      }
+    },
+    {
+      "id": "D02_REFERENCIA_METADATOS",
+      "descripcion": "Detalle referencial con metadatos autorizados, sin original ni extractos.",
+      "contexto_sintetico": {
+        "escenario": "Referencia y metadatos autorizados",
+        "principal": "sujeto_sintetico_servidor_a",
+        "idioma_ui": "es"
+      },
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/material/u-a1/versiones/v-b2",
+        "headers": {
+          "Accept": "application/json, application/problem+json"
+        },
+        "body": null,
+        "target_schema": "T02_LECTURA.schema.json#/$defs/ExactRequest",
+        "input": {
+          "unidad_id": "u-a1",
+          "version_id": "v-b2"
+        },
+        "schema_valid": true
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json",
+          "Cache-Control": "private, no-store"
+        },
+        "target_schema": "T02_LECTURA.schema.json#/$defs/DetailResponse",
+        "body": {
+          "contrato": "t02-lectura/1",
+          "proyeccion": {
+            "tipo": "REFERENCIA",
+            "referencia": {
+              "unidad_id": "u-a1",
+              "version_id": "v-b2"
+            },
+            "metadatos": {
+              "titulo": "Depósito — ensayo",
+              "localizador": "Ensayo textual, unidad u-a1, versión v-b2",
+              "estado_editorial": "PUBLICADA",
+              "clasificacion": {
+                "funcion_sustantiva": "NORMATIVA",
+                "base_de_validez": "ADOPCION_DEL_AMBITO",
+                "alcance_de_aplicacion": "REUTILIZABLE_CON_CONDICIONES"
+              },
+              "condiciones_lectura": [
+                "Material exclusivamente sintético; no es orientación operativa.",
+                "La regla y su excepción se leen juntas."
+              ]
+            }
+          }
+        },
+        "schema_valid": true
+      }
+    },
+    {
+      "id": "D03_EXTRACTO_ES",
+      "descripcion": "Dos delimitaciones sintéticas exactas: regla y excepción permanecen juntas; no se envía el original restante.",
+      "contexto_sintetico": {
+        "escenario": "Fragmentos y metadatos necesarios expresamente autorizados",
+        "principal": "sujeto_sintetico_servidor_a",
+        "idioma_ui": "es"
+      },
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/material/u-a1/versiones/v-b2",
+        "headers": {
+          "Accept": "application/json, application/problem+json"
+        },
+        "body": null,
+        "target_schema": "T02_LECTURA.schema.json#/$defs/ExactRequest",
+        "input": {
+          "unidad_id": "u-a1",
+          "version_id": "v-b2"
+        },
+        "schema_valid": true
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json",
+          "Cache-Control": "private, no-store"
+        },
+        "target_schema": "T02_LECTURA.schema.json#/$defs/DetailResponse",
+        "body": {
+          "contrato": "t02-lectura/1",
+          "proyeccion": {
+            "tipo": "EXTRACTO",
+            "referencia": {
+              "unidad_id": "u-a1",
+              "version_id": "v-b2"
+            },
+            "metadatos": {
+              "titulo": "Depósito — ensayo",
+              "localizador": "Ensayo textual, unidad u-a1, versión v-b2",
+              "estado_editorial": "PUBLICADA",
+              "clasificacion": {
+                "funcion_sustantiva": "NORMATIVA",
+                "base_de_validez": "ADOPCION_DEL_AMBITO",
+                "alcance_de_aplicacion": "REUTILIZABLE_CON_CONDICIONES"
+              },
+              "condiciones_lectura": [
+                "Material exclusivamente sintético; no es orientación operativa.",
+                "La regla y su excepción se leen juntas."
+              ]
+            },
+            "idioma_original": "es",
+            "fragmentos": [
+              {
+                "fragmento_id": "f-regla-excepcion",
+                "texto": "Regla: conservar  dos espacios y la tilde de «depósito».\r\nExcepción: si falta autorización, no entregar el texto.",
+                "localizador": "Delimitación sintética declarada: regla y excepción consecutivas"
+              },
+              {
+                "fragmento_id": "f-ambito",
+                "texto": "  Ámbito: demostración sintética.",
+                "localizador": "Delimitación sintética declarada: línea de ámbito"
+              }
+            ]
+          }
+        },
+        "schema_valid": true
+      },
+      "comprobaciones_exactitud": [
+        {
+          "tipo": "FRAGMENTOS_DECLARADOS_IDENTICOS",
+          "original_id": "ORIGINAL_ES_V2",
+          "json_pointer": "/response/body/proyeccion/fragmentos"
+        },
+        {
+          "tipo": "FRAGMENTOS_SUBCADENAS_EXACTAS",
+          "original_id": "ORIGINAL_ES_V2",
+          "json_pointer": "/response/body/proyeccion/fragmentos",
+          "campo_texto": "texto",
+          "regla": "Cada texto es subcadena literal de texto_original, sin cambiar CRLF, espacios ni acentos."
+        }
+      ]
+    },
+    {
+      "id": "D04_CONTENIDO_ES_UI_ES",
+      "descripcion": "Original español exacto, CRLF, espacios iniciales/dobles, acentos y salto final; interfaz española.",
+      "contexto_sintetico": {
+        "escenario": "Contenido y metadatos necesarios autorizados",
+        "principal": "sujeto_sintetico_servidor_a",
+        "idioma_ui": "es"
+      },
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/material/u-a1/versiones/v-b2",
+        "headers": {
+          "Accept": "application/json, application/problem+json"
+        },
+        "body": null,
+        "target_schema": "T02_LECTURA.schema.json#/$defs/ExactRequest",
+        "input": {
+          "unidad_id": "u-a1",
+          "version_id": "v-b2"
+        },
+        "schema_valid": true
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json",
+          "Cache-Control": "private, no-store"
+        },
+        "target_schema": "T02_LECTURA.schema.json#/$defs/DetailResponse",
+        "body": {
+          "contrato": "t02-lectura/1",
+          "proyeccion": {
+            "tipo": "CONTENIDO",
+            "referencia": {
+              "unidad_id": "u-a1",
+              "version_id": "v-b2"
+            },
+            "metadatos": {
+              "titulo": "Depósito — ensayo",
+              "localizador": "Ensayo textual, unidad u-a1, versión v-b2",
+              "estado_editorial": "PUBLICADA",
+              "clasificacion": {
+                "funcion_sustantiva": "NORMATIVA",
+                "base_de_validez": "ADOPCION_DEL_AMBITO",
+                "alcance_de_aplicacion": "REUTILIZABLE_CON_CONDICIONES"
+              },
+              "condiciones_lectura": [
+                "Material exclusivamente sintético; no es orientación operativa.",
+                "La regla y su excepción se leen juntas."
+              ]
+            },
+            "idioma_original": "es",
+            "texto_original": "Guía de ensayo — depósito\r\n\r\n  Ámbito: demostración sintética.\r\nRegla: conservar  dos espacios y la tilde de «depósito».\r\nExcepción: si falta autorización, no entregar el texto.\r\n"
+          }
+        },
+        "schema_valid": true
+      },
+      "comprobaciones_exactitud": [
+        {
+          "tipo": "TEXTO_ORIGINAL_IDENTICO",
+          "original_id": "ORIGINAL_ES_V2",
+          "json_pointer": "/response/body/proyeccion/texto_original"
+        }
+      ]
+    },
+    {
+      "id": "D05_CONTENIDO_ES_UI_EN",
+      "descripcion": "Cambiar la interfaz a inglés no cambia respuesta, idioma original, título ni texto español.",
+      "contexto_sintetico": {
+        "escenario": "Mismos permisos y misma versión que D04; sólo cambia idioma UI",
+        "principal": "sujeto_sintetico_servidor_a",
+        "idioma_ui": "en"
+      },
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/material/u-a1/versiones/v-b2",
+        "headers": {
+          "Accept": "application/json, application/problem+json"
+        },
+        "body": null,
+        "target_schema": "T02_LECTURA.schema.json#/$defs/ExactRequest",
+        "input": {
+          "unidad_id": "u-a1",
+          "version_id": "v-b2"
+        },
+        "schema_valid": true
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json",
+          "Cache-Control": "private, no-store"
+        },
+        "target_schema": "T02_LECTURA.schema.json#/$defs/DetailResponse",
+        "body": {
+          "contrato": "t02-lectura/1",
+          "proyeccion": {
+            "tipo": "CONTENIDO",
+            "referencia": {
+              "unidad_id": "u-a1",
+              "version_id": "v-b2"
+            },
+            "metadatos": {
+              "titulo": "Depósito — ensayo",
+              "localizador": "Ensayo textual, unidad u-a1, versión v-b2",
+              "estado_editorial": "PUBLICADA",
+              "clasificacion": {
+                "funcion_sustantiva": "NORMATIVA",
+                "base_de_validez": "ADOPCION_DEL_AMBITO",
+                "alcance_de_aplicacion": "REUTILIZABLE_CON_CONDICIONES"
+              },
+              "condiciones_lectura": [
+                "Material exclusivamente sintético; no es orientación operativa.",
+                "La regla y su excepción se leen juntas."
+              ]
+            },
+            "idioma_original": "es",
+            "texto_original": "Guía de ensayo — depósito\r\n\r\n  Ámbito: demostración sintética.\r\nRegla: conservar  dos espacios y la tilde de «depósito».\r\nExcepción: si falta autorización, no entregar el texto.\r\n"
+          }
+        },
+        "schema_valid": true
+      },
+      "comprobaciones_exactitud": [
+        {
+          "tipo": "TEXTO_ORIGINAL_IDENTICO",
+          "original_id": "ORIGINAL_ES_V2",
+          "json_pointer": "/response/body/proyeccion/texto_original"
+        }
+      ]
+    },
+    {
+      "id": "D06_CONTENIDO_EN_UI_EN",
+      "descripcion": "Original inglés exacto con LF, espacios y café; interfaz inglesa.",
+      "contexto_sintetico": {
+        "escenario": "Contenido y metadatos necesarios autorizados",
+        "principal": "sujeto_sintetico_servidor_a",
+        "idioma_ui": "en"
+      },
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/material/u-c3/versiones/v-d1",
+        "headers": {
+          "Accept": "application/json, application/problem+json"
+        },
+        "body": null,
+        "target_schema": "T02_LECTURA.schema.json#/$defs/ExactRequest",
+        "input": {
+          "unidad_id": "u-c3",
+          "version_id": "v-d1"
+        },
+        "schema_valid": true
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json",
+          "Cache-Control": "private, no-store"
+        },
+        "target_schema": "T02_LECTURA.schema.json#/$defs/DetailResponse",
+        "body": {
+          "contrato": "t02-lectura/1",
+          "proyeccion": {
+            "tipo": "CONTENIDO",
+            "referencia": {
+              "unidad_id": "u-c3",
+              "version_id": "v-d1"
+            },
+            "metadatos": {
+              "titulo": "Trial glossary",
+              "localizador": "Synthetic text, unit u-c3, version v-d1",
+              "estado_editorial": "PUBLICADA",
+              "clasificacion": {
+                "funcion_sustantiva": "DEFINICIONAL",
+                "base_de_validez": "REFERENCIA_NO_AUTORITATIVA",
+                "alcance_de_aplicacion": "REUTILIZABLE_CON_CONDICIONES"
+              },
+              "condiciones_lectura": [
+                "Synthetic glossary only; no authority for operational decisions."
+              ]
+            },
+            "idioma_original": "en",
+            "texto_original": "Trial glossary\n\n  Scope: synthetic demonstration.\n“Sample” means an invented item in this trial.\nThe spelling café and  two spaces belong to this sample.\n"
+          }
+        },
+        "schema_valid": true
+      },
+      "comprobaciones_exactitud": [
+        {
+          "tipo": "TEXTO_ORIGINAL_IDENTICO",
+          "original_id": "ORIGINAL_EN_V1",
+          "json_pointer": "/response/body/proyeccion/texto_original"
+        }
+      ]
+    },
+    {
+      "id": "D07_CONTENIDO_EN_UI_ES",
+      "descripcion": "Interfaz española muestra el mismo original inglés sin traducirlo.",
+      "contexto_sintetico": {
+        "escenario": "Mismos permisos y misma versión que D06; sólo cambia idioma UI",
+        "principal": "sujeto_sintetico_servidor_a",
+        "idioma_ui": "es"
+      },
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/material/u-c3/versiones/v-d1",
+        "headers": {
+          "Accept": "application/json, application/problem+json"
+        },
+        "body": null,
+        "target_schema": "T02_LECTURA.schema.json#/$defs/ExactRequest",
+        "input": {
+          "unidad_id": "u-c3",
+          "version_id": "v-d1"
+        },
+        "schema_valid": true
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json",
+          "Cache-Control": "private, no-store"
+        },
+        "target_schema": "T02_LECTURA.schema.json#/$defs/DetailResponse",
+        "body": {
+          "contrato": "t02-lectura/1",
+          "proyeccion": {
+            "tipo": "CONTENIDO",
+            "referencia": {
+              "unidad_id": "u-c3",
+              "version_id": "v-d1"
+            },
+            "metadatos": {
+              "titulo": "Trial glossary",
+              "localizador": "Synthetic text, unit u-c3, version v-d1",
+              "estado_editorial": "PUBLICADA",
+              "clasificacion": {
+                "funcion_sustantiva": "DEFINICIONAL",
+                "base_de_validez": "REFERENCIA_NO_AUTORITATIVA",
+                "alcance_de_aplicacion": "REUTILIZABLE_CON_CONDICIONES"
+              },
+              "condiciones_lectura": [
+                "Synthetic glossary only; no authority for operational decisions."
+              ]
+            },
+            "idioma_original": "en",
+            "texto_original": "Trial glossary\n\n  Scope: synthetic demonstration.\n“Sample” means an invented item in this trial.\nThe spelling café and  two spaces belong to this sample.\n"
+          }
+        },
+        "schema_valid": true
+      },
+      "comprobaciones_exactitud": [
+        {
+          "tipo": "TEXTO_ORIGINAL_IDENTICO",
+          "original_id": "ORIGINAL_EN_V1",
+          "json_pointer": "/response/body/proyeccion/texto_original"
+        }
+      ]
+    },
+    {
+      "id": "D08_VERSION_HISTORICA",
+      "descripcion": "Pedir v-b1 entrega su texto exacto SUPERSEDIDA, no v-b2; sin añadir sucesora o afirmar actualidad.",
+      "contexto_sintetico": {
+        "escenario": "Referencia histórica y contenido autorizados",
+        "principal": "sujeto_sintetico_servidor_a",
+        "idioma_ui": "es"
+      },
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/material/u-a1/versiones/v-b1",
+        "headers": {
+          "Accept": "application/json, application/problem+json"
+        },
+        "body": null,
+        "target_schema": "T02_LECTURA.schema.json#/$defs/ExactRequest",
+        "input": {
+          "unidad_id": "u-a1",
+          "version_id": "v-b1"
+        },
+        "schema_valid": true
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json",
+          "Cache-Control": "private, no-store"
+        },
+        "target_schema": "T02_LECTURA.schema.json#/$defs/DetailResponse",
+        "body": {
+          "contrato": "t02-lectura/1",
+          "proyeccion": {
+            "tipo": "CONTENIDO",
+            "referencia": {
+              "unidad_id": "u-a1",
+              "version_id": "v-b1"
+            },
+            "metadatos": {
+              "titulo": "Depósito — ensayo histórico",
+              "localizador": "Ensayo textual, unidad u-a1, versión v-b1",
+              "estado_editorial": "SUPERSEDIDA",
+              "clasificacion": {
+                "funcion_sustantiva": "NORMATIVA",
+                "base_de_validez": "ADOPCION_DEL_AMBITO",
+                "alcance_de_aplicacion": "REUTILIZABLE_CON_CONDICIONES"
+              },
+              "condiciones_lectura": [
+                "Versión sintética histórica; no usar como orientación actual."
+              ]
+            },
+            "idioma_original": "es",
+            "texto_original": "Guía de ensayo — depósito (versión anterior)\r\n\r\n  Ámbito: demostración sintética histórica.\r\nRegla anterior: conservar exactamente este texto.\r\nExcepción anterior: no usarlo como orientación actual.\r\n"
+          }
+        },
+        "schema_valid": true
+      },
+      "comprobaciones_exactitud": [
+        {
+          "tipo": "TEXTO_ORIGINAL_IDENTICO",
+          "original_id": "ORIGINAL_ES_V1",
+          "json_pointer": "/response/body/proyeccion/texto_original"
+        }
+      ]
+    },
+    {
+      "id": "D09_AUSENCIA",
+      "descripcion": "La referencia solicitada no existe en este mundo sintético.",
+      "contexto_sintetico": {
+        "escenario": "Ausencia; infraestructura operativa",
+        "principal": "sujeto_sintetico_servidor_a",
+        "idioma_ui": "es"
+      },
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/material/u-x9/versiones/v-x9",
+        "headers": {
+          "Accept": "application/json, application/problem+json"
+        },
+        "body": null,
+        "target_schema": "T02_LECTURA.schema.json#/$defs/ExactRequest",
+        "input": {
+          "unidad_id": "u-x9",
+          "version_id": "v-x9"
+        },
+        "schema_valid": true
+      },
+      "response": {
+        "status": 404,
+        "headers": {
+          "Content-Type": "application/problem+json",
+          "Cache-Control": "private, no-store"
+        },
+        "target_schema": "T02_LECTURA.schema.json#/$defs/Problema",
+        "body": {
+          "type": "about:blank",
+          "title": "No disponible",
+          "status": 404,
+          "codigo": "NO_DISPONIBLE"
+        },
+        "schema_valid": true
+      }
+    },
+    {
+      "id": "D10_NINGUNO",
+      "descripcion": "Misma petición: el objeto existe a NINGUNO; respuesta idéntica a D09.",
+      "contexto_sintetico": {
+        "escenario": "Objeto existente a NINGUNO",
+        "principal": "sujeto_sintetico_servidor_a",
+        "idioma_ui": "es"
+      },
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/material/u-x9/versiones/v-x9",
+        "headers": {
+          "Accept": "application/json, application/problem+json"
+        },
+        "body": null,
+        "target_schema": "T02_LECTURA.schema.json#/$defs/ExactRequest",
+        "input": {
+          "unidad_id": "u-x9",
+          "version_id": "v-x9"
+        },
+        "schema_valid": true
+      },
+      "response": {
+        "status": 404,
+        "headers": {
+          "Content-Type": "application/problem+json",
+          "Cache-Control": "private, no-store"
+        },
+        "target_schema": "T02_LECTURA.schema.json#/$defs/Problema",
+        "body": {
+          "type": "about:blank",
+          "title": "No disponible",
+          "status": 404,
+          "codigo": "NO_DISPONIBLE"
+        },
+        "schema_valid": true
+      }
+    },
+    {
+      "id": "D11_INDETERMINACION_LOCAL",
+      "descripcion": "Misma petición: revelabilidad local no declarada; respuesta idéntica a D09.",
+      "contexto_sintetico": {
+        "escenario": "Indeterminación local; no avería de infraestructura",
+        "principal": "sujeto_sintetico_servidor_a",
+        "idioma_ui": "es"
+      },
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/material/u-x9/versiones/v-x9",
+        "headers": {
+          "Accept": "application/json, application/problem+json"
+        },
+        "body": null,
+        "target_schema": "T02_LECTURA.schema.json#/$defs/ExactRequest",
+        "input": {
+          "unidad_id": "u-x9",
+          "version_id": "v-x9"
+        },
+        "schema_valid": true
+      },
+      "response": {
+        "status": 404,
+        "headers": {
+          "Content-Type": "application/problem+json",
+          "Cache-Control": "private, no-store"
+        },
+        "target_schema": "T02_LECTURA.schema.json#/$defs/Problema",
+        "body": {
+          "type": "about:blank",
+          "title": "No disponible",
+          "status": 404,
+          "codigo": "NO_DISPONIBLE"
+        },
+        "schema_valid": true
+      }
+    },
+    {
+      "id": "D12_EXISTENCIA_EN_DETALLE",
+      "descripcion": "El GET exacto no confirma identidad cuando sólo se permite EXISTENCIA; mismo 404 que ausencia.",
+      "contexto_sintetico": {
+        "escenario": "Existencia genérica autorizada sin referencia identificable",
+        "principal": "sujeto_sintetico_servidor_a",
+        "idioma_ui": "es"
+      },
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/material/u-x9/versiones/v-x9",
+        "headers": {
+          "Accept": "application/json, application/problem+json"
+        },
+        "body": null,
+        "target_schema": "T02_LECTURA.schema.json#/$defs/ExactRequest",
+        "input": {
+          "unidad_id": "u-x9",
+          "version_id": "v-x9"
+        },
+        "schema_valid": true
+      },
+      "response": {
+        "status": 404,
+        "headers": {
+          "Content-Type": "application/problem+json",
+          "Cache-Control": "private, no-store"
+        },
+        "target_schema": "T02_LECTURA.schema.json#/$defs/Problema",
+        "body": {
+          "type": "about:blank",
+          "title": "No disponible",
+          "status": 404,
+          "codigo": "NO_DISPONIBLE"
+        },
+        "schema_valid": true
+      }
+    },
+    {
+      "id": "D13_PG_CAIDO",
+      "descripcion": "PG indisponible: fallo técnico sin original, lista vacía, fixture ni respuesta almacenada de respaldo.",
+      "contexto_sintetico": {
+        "escenario": "Fallo técnico global de PG antes de cualquier resultado por objeto",
+        "principal": "sujeto_sintetico_servidor_a",
+        "idioma_ui": "es"
+      },
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/material/u-a1/versiones/v-b2",
+        "headers": {
+          "Accept": "application/json, application/problem+json"
+        },
+        "body": null,
+        "target_schema": "T02_LECTURA.schema.json#/$defs/ExactRequest",
+        "input": {
+          "unidad_id": "u-a1",
+          "version_id": "v-b2"
+        },
+        "schema_valid": true
+      },
+      "response": {
+        "status": 503,
+        "headers": {
+          "Content-Type": "application/problem+json",
+          "Cache-Control": "private, no-store"
+        },
+        "target_schema": "T02_LECTURA.schema.json#/$defs/Problema",
+        "body": {
+          "type": "about:blank",
+          "title": "Fallo técnico",
+          "status": 503,
+          "codigo": "FALLO_TECNICO"
+        },
+        "schema_valid": true
+      }
+    },
+    {
+      "id": "D14_POLITICA_INACCESIBLE",
+      "descripcion": "Servicio global de política inaccesible: fallo técnico; no se confunde con indeterminación local de D11.",
+      "contexto_sintetico": {
+        "escenario": "Fallo técnico global de infraestructura de política",
+        "principal": "sujeto_sintetico_servidor_a",
+        "idioma_ui": "es"
+      },
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/material/u-a1/versiones/v-b2",
+        "headers": {
+          "Accept": "application/json, application/problem+json"
+        },
+        "body": null,
+        "target_schema": "T02_LECTURA.schema.json#/$defs/ExactRequest",
+        "input": {
+          "unidad_id": "u-a1",
+          "version_id": "v-b2"
+        },
+        "schema_valid": true
+      },
+      "response": {
+        "status": 503,
+        "headers": {
+          "Content-Type": "application/problem+json",
+          "Cache-Control": "private, no-store"
+        },
+        "target_schema": "T02_LECTURA.schema.json#/$defs/Problema",
+        "body": {
+          "type": "about:blank",
+          "title": "Fallo técnico",
+          "status": 503,
+          "codigo": "FALLO_TECNICO"
+        },
+        "schema_valid": true
+      }
+    },
+    {
+      "id": "D15_PG_CAIDO_OTRA_REFERENCIA",
+      "descripcion": "El mismo fallo global de PostgreSQL que D13, con u-x9/v-x9 como referencia solicitada: idéntico 503 sin consultar si ese ID existe.",
+      "contexto_sintetico": {
+        "escenario": "Mismo fallo técnico global de PG que D13 antes de cualquier resultado por objeto; sólo cambia la referencia solicitada",
+        "principal": "sujeto_sintetico_servidor_a",
+        "idioma_ui": "es"
+      },
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/material/u-x9/versiones/v-x9",
+        "headers": {
+          "Accept": "application/json, application/problem+json"
+        },
+        "body": null,
+        "target_schema": "T02_LECTURA.schema.json#/$defs/ExactRequest",
+        "input": {
+          "unidad_id": "u-x9",
+          "version_id": "v-x9"
+        },
+        "schema_valid": true
+      },
+      "response": {
+        "status": 503,
+        "headers": {
+          "Content-Type": "application/problem+json",
+          "Cache-Control": "private, no-store"
+        },
+        "target_schema": "T02_LECTURA.schema.json#/$defs/Problema",
+        "body": {
+          "type": "about:blank",
+          "title": "Fallo técnico",
+          "status": 503,
+          "codigo": "FALLO_TECNICO"
+        },
+        "schema_valid": true
+      }
+    },
+    {
+      "id": "P01_SOLICITUD_INVALIDA",
+      "descripcion": "Una query no admitida se rechaza. input representa lo recibido para el cotejo negativo, no un body de GET válido.",
+      "contexto_sintetico": {
+        "escenario": "Solicitud fuera del contrato vacío del listado",
+        "principal": "sujeto_sintetico_servidor_a",
+        "idioma_ui": "es"
+      },
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/material?filtro=PUBLICADA",
+        "headers": {
+          "Accept": "application/json, application/problem+json"
+        },
+        "body": null,
+        "target_schema": "T02_LECTURA.schema.json#/$defs/ListRequest",
+        "input": {
+          "filtro": "PUBLICADA"
+        },
+        "schema_valid": false
+      },
+      "response": {
+        "status": 400,
+        "headers": {
+          "Content-Type": "application/problem+json",
+          "Cache-Control": "private, no-store"
+        },
+        "target_schema": "T02_LECTURA.schema.json#/$defs/Problema",
+        "body": {
+          "type": "about:blank",
+          "title": "Solicitud inválida",
+          "status": 400,
+          "codigo": "PETICION_NO_ADMITIDA"
+        },
+        "schema_valid": true
+      }
+    },
+    {
+      "id": "P02_SIN_PRINCIPAL",
+      "descripcion": "No hay principal de ensayo habilitado: 403 antes de consultar objetos, sin inventar desafío 401.",
+      "contexto_sintetico": {
+        "escenario": "Principal ausente o ensayo no habilitado",
+        "principal": null,
+        "idioma_ui": "es"
+      },
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/material",
+        "headers": {
+          "Accept": "application/json, application/problem+json"
+        },
+        "body": null,
+        "target_schema": "T02_LECTURA.schema.json#/$defs/ListRequest",
+        "input": {},
+        "schema_valid": true
+      },
+      "response": {
+        "status": 403,
+        "headers": {
+          "Content-Type": "application/problem+json",
+          "Cache-Control": "private, no-store"
+        },
+        "target_schema": "T02_LECTURA.schema.json#/$defs/Problema",
+        "body": {
+          "type": "about:blank",
+          "title": "No autenticado",
+          "status": 403,
+          "codigo": "NO_AUTENTICADO"
+        },
+        "schema_valid": true
+      }
+    }
+  ],
+  "comparaciones": [
+    {
+      "id": "EQ_LISTA_SIN_IDENTIFICABLES",
+      "tipo": "RESPUESTAS_IDENTICAS",
+      "casos": [
+        "L01_AUSENCIA",
+        "L02_NINGUNO",
+        "L03_INDETERMINACION_LOCAL"
+      ],
+      "json_pointer": "/response",
+      "esperado": "Igualdad completa de status, cabeceras y body; ningún objeto NINGUNO añade señal o fila."
+    },
+    {
+      "id": "EQ_LISTA_CON_OCULTOS",
+      "tipo": "RESPUESTAS_IDENTICAS",
+      "casos": [
+        "L05_REFERENCIAS",
+        "L06_REFERENCIAS_MAS_NINGUNO"
+      ],
+      "json_pointer": "/response",
+      "esperado": "Mismos items, orden, metadatos, señal, status y cabeceras."
+    },
+    {
+      "id": "EQ_DETALLE_NO_IDENTIFICABLE",
+      "tipo": "RESPUESTAS_IDENTICAS",
+      "casos": [
+        "D09_AUSENCIA",
+        "D10_NINGUNO",
+        "D11_INDETERMINACION_LOCAL",
+        "D12_EXISTENCIA_EN_DETALLE"
+      ],
+      "json_pointer": "/response",
+      "esperado": "El mismo GET exacto devuelve idéntico 404, sin identificar causas ni confirmar existencia."
+    },
+    {
+      "id": "EQ_ES_CAMBIO_UI",
+      "tipo": "RESPUESTAS_IDENTICAS",
+      "casos": [
+        "D04_CONTENIDO_ES_UI_ES",
+        "D05_CONTENIDO_ES_UI_EN"
+      ],
+      "json_pointer": "/response",
+      "esperado": "Cambiar sólo idioma_ui no modifica metadatos, idioma_original, texto_original, status o cabeceras."
+    },
+    {
+      "id": "EQ_EN_CAMBIO_UI",
+      "tipo": "RESPUESTAS_IDENTICAS",
+      "casos": [
+        "D06_CONTENIDO_EN_UI_EN",
+        "D07_CONTENIDO_EN_UI_ES"
+      ],
+      "json_pointer": "/response",
+      "esperado": "El original inglés permanece idéntico con controles UI españoles."
+    },
+    {
+      "id": "EQ_FALLO_TECNICO",
+      "tipo": "RESPUESTAS_IDENTICAS",
+      "casos": [
+        "D13_PG_CAIDO",
+        "D14_POLITICA_INACCESIBLE",
+        "D15_PG_CAIDO_OTRA_REFERENCIA"
+      ],
+      "json_pointer": "/response",
+      "esperado": "Mismo problema genérico 503, sin detalles internos o contenido de respaldo. D13 y D15 representan el mismo fallo global de PG con referencias distintas: la respuesta no depende de la existencia del ID."
+    },
+    {
+      "id": "EXACTITUD_HISTORICA",
+      "tipo": "VERSION_EXACTA",
+      "casos": [
+        "D08_VERSION_HISTORICA"
+      ],
+      "original_id": "ORIGINAL_ES_V1",
+      "esperado": "Referencia v-b1 y texto de ORIGINAL_ES_V1; no referencia/texto de ORIGINAL_ES_V2."
+    }
+  ]
+}
