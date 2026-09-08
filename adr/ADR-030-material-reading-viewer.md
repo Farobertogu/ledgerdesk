@@ -1,6 +1,6 @@
 # ADR-030 · Ephemeral material reading viewer
 
-**Status:** proposed · **Decision date:** pending acceptance
+**Status:** accepted · **Decision date:** 2026-09-09
 
 ## Context
 
