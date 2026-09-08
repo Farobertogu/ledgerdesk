@@ -3,27 +3,33 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
-import { createServer } from 'node:net';
 import { request as httpRequest } from 'node:http';
 import { setTimeout as delay } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
+import { readTrialConfig } from '../../src/server/reading/config.mjs';
+import { assertNoTrialData, captureBuildIdentity, reserveLoopbackPort, startDatabaseTrap } from './harness_guards.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
-let forbiddenConnections = 0;
-const trap = createServer(socket => { forbiddenConnections++; socket.destroy(); });
-await new Promise(resolve => trap.listen(0, '127.0.0.1', resolve));
-const trapPort = trap.address().port;
+const verifyBuild = await captureBuildIdentity(new URL('../../.next/BUILD_ID', import.meta.url));
+let currentCheck = 'harness startup';
+let activeServerPid = null;
+const trap = await startDatabaseTrap(() => ({ check: currentCheck, activeServerPid }));
+const trapPort = trap.port;
 const enabled = {
   LEDGERDESK_READING_TRIAL: '1', LEDGERDESK_READING_ENVIRONMENT: 'local-synthetic',
-  LEDGERDESK_READING_SUBJECT: 'synthetic-reader-a', LEDGERDESK_READING_GENERATION: 'http-1',
+  LEDGERDESK_READING_SUBJECT: 'synthetic-http-harness-33bf5297fca145e0',
+  LEDGERDESK_READING_GENERATION: 'http-harness-generation-33bf5297fca145e0',
 };
 let checks = 0;
 
 async function withNext(configuration, run, shouldStart = true) {
-  const reservation = createServer();
-  await new Promise(resolve => reservation.listen(0, '127.0.0.1', resolve));
-  const port = reservation.address().port;
-  await new Promise(resolve => reservation.close(resolve));
+  currentCheck = shouldStart ? 'server launch' : 'invalid configuration launch';
+  await verifyBuild(currentCheck);
+  const reservation = await reserveLoopbackPort();
+  const port = reservation.port;
+  await reservation.release();
+  // The reservation must be released for Next to bind. A competing bind after release
+  // must make this exact-port child fail; readiness is read from this child, never HTTP.
   const child = spawn(process.execPath, ['ci/reading_start.mjs', String(port)], {
     cwd: root, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'],
     env: {
@@ -36,6 +42,7 @@ async function withNext(configuration, run, shouldStart = true) {
       ...configuration,
     },
   });
+  activeServerPid = child.pid;
   const exited = once(child, 'exit');
   let output = '';
   child.stdout.on('data', chunk => { output += chunk; });
@@ -51,15 +58,21 @@ async function withNext(configuration, run, shouldStart = true) {
       checks++;
       return;
     }
-    assert.ok(output.includes('Ready in'), `Next failed to start: ${output.slice(-1500)}`);
+    assert.ok(output.includes('Ready in') && child.exitCode === null && !output.includes('EADDRINUSE'),
+      `Owned Next child failed to bind its port: ${output.slice(-1500)}`);
+    await verifyBuild('server ready');
     await run(`http://127.0.0.1:${port}`);
   } finally {
     if (child.exitCode === null) child.kill();
     await exited;
+    activeServerPid = null;
+    await verifyBuild('after server exit');
   }
 }
 
 async function expectProblem(base, path, status, headers = {}) {
+  currentCheck = `GET ${path}; expected ${status}; ${Object.keys(headers).length ? 'forged headers' : 'baseline'}`;
+  await verifyBuild(currentCheck);
   const response = await fetch(base + path, { headers, redirect: 'manual' });
   assert.equal(response.status, status, path);
   assert.equal(response.headers.get('cache-control'), 'private, no-store');
@@ -83,13 +96,14 @@ try {
     await expectProblem(base, '/api/v1/material?subject=synthetic-reader-a', 400);
     await expectProblem(base, '/api/v1/material/u/versions/v?role=owner', 400);
     await expectProblem(base, '/api/v1/material/%ZZ/versions/v', 400);
+    currentCheck = 'disabled material page with forged identity';
     const page = await fetch(base + '/material', { headers: malicious });
     assert.equal(page.status, 200);
     const html = await page.text();
     assert.match(html, /Trial is disabled/);
     assert.doesNotMatch(html, /Choose a session|Customer portal|Acting as|11111111-1111/);
     checks++;
-    assert.equal(forbiddenConnections, 0, 'new composition consulted legacy DB');
+    trap.assertUntouched();
   });
   await withNext(enabled, async base => {
     const malicious = {
@@ -104,12 +118,14 @@ try {
         assert.equal(forged.headers[header], baseline.headers[header]);
       }
     }
+    currentCheck = 'HEAD material';
     const head = await fetch(base + '/api/v1/material', { method: 'HEAD' });
     assert.equal(head.status, 400);
     assert.equal(await head.text(), '');
     assert.equal(head.headers.get('cache-control'), 'private, no-store');
     checks++;
     // Fetch refuses this framing header; use an ordinary, complete chunked HTTP request.
+    currentCheck = 'GET material with chunked framing';
     const transfer = await new Promise((resolve, reject) => {
       const outgoing = httpRequest(base + '/api/v1/material', {
         method: 'GET', headers: { 'Transfer-Encoding': 'chunked' }, agent: false,
@@ -132,12 +148,17 @@ try {
     });
     checks++;
     await expectProblem(base, '/api/v1/material/u/versiones/v', 400);
+    currentCheck = 'enabled material page without serialized trial context';
     const page = await fetch(base + '/material');
-    assert.match(await page.text(), /the reading service is not yet available/);
+    const html = await page.text();
+    assert.match(html, /Material library/);
+    assertNoTrialData(html, readTrialConfig(enabled));
     checks++;
     // URLs retained, legacy identity disabled. No DB: this verifies the unauthenticated shells,
     // not the five authenticated SQL readers (those belong to the isolated T04 suite).
     for (const path of ['/', '/session', '/portal', '/queue', '/supervisor', '/promotion', '/tickets/11111111-1111-4111-8111-111111111111']) {
+      currentCheck = `retained legacy page ${path}`;
+      await verifyBuild(currentCheck);
       const response = await fetch(base + path, { redirect: 'manual' });
       assert.equal(response.status, 200, `legacy URL changed: ${path}`);
       assert.match(await response.text(), /Customer portal/);
@@ -145,9 +166,10 @@ try {
     }
   });
   await withNext({ ...enabled, LEDGERDESK_READING_ENVIRONMENT: 'not-a-trial' }, null, false);
-  assert.equal(forbiddenConnections, 0, 'any check reached legacy PostgreSQL');
-  console.log(`T01 real Next HTTP: ${checks} checks passed; legacy DB connections: ${forbiddenConnections}.`);
+  await verifyBuild('harness completion');
+  trap.assertUntouched();
+  console.log(`T01 real Next HTTP: ${checks} checks passed; legacy DB connections: ${trap.count()}; build identity unchanged.`);
   console.log('No successful material response, DB persistence, authorization policy, UI viewer or temporal guarantee is claimed.');
 } finally {
-  await new Promise(resolve => trap.close(resolve));
+  await trap.close();
 }

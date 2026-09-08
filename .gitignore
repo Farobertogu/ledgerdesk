@@ -18,3 +18,5 @@ __pycache__/
 # wholesale `git add` cannot sweep them into a card's diff.
 AGENTS.md
 CLAUDE.md
+test-results/
+playwright-report/
