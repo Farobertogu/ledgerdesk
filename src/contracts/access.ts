@@ -31,6 +31,7 @@ const capability = object({
 
 /** Proposed concrete routes, not an HTTP dispatcher or a permission catalogue. */
 export const ACCESS_ROUTES = {
+  reception: { method: 'GET', path: '/api/access/v1/reception', request: empty, response: object({ csrf_token: code }), context: 'reception', consumer: 'T02' },
   activation_challenge: { method: 'POST', path: '/api/access/v1/activation/challenges', request: object({ email: exactEmail }), response: accepted, context: 'reception', consumer: 'T02' },
   activate_master: { method: 'POST', path: '/api/access/v1/activation/complete', request: proof, response: completed, context: 'provisional', consumer: 'T02' },
   login: { method: 'POST', path: '/api/access/v1/sessions', request: object({ email: exactEmail, password: secret }), response: session, context: 'reception', consumer: 'T02' },

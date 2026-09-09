@@ -9,14 +9,14 @@ is a replacement for the `reading/1` material DTO. The executable definitions
 are in `src/contracts/access.ts`, `access_transport.ts`, `access_security.ts`
 and `access_context.ts`; independent examples are in `tests/access/examples.mjs`.
 
-The foundation has **no operational access endpoints**. Its only server consumer
-is the isolated transport experiment. The import check prevents an application
-composition root from accidentally activating it in T01. The following bindings
-specify what each later producer must enforce; a schema or table does not confer
-authority. Unresolved route admission stays closed, rather than being replaced
-with an unrestricted administrative endpoint.
+T02 adds an operational synthetic producer in `src/server/access/terminal.ts`
+and a minimal UI at `/access`. The original T01 fixture remains a transport test.
+The import check permits only the explicit runtime adapters and keeps the UI
+away from server identity and legacy SQL. The producer requires the isolated
+configuration described in [T02](INC-02-T02.md); it is not enabled as a Next API
+route. Unimplemented route admission stays closed. A schema does not confer authority.
 
-## Proposed route bindings
+## Route bindings and first producers
 
 All paths below have the prefix `/api/access/v1`. The executable route table
 contains their exact request and success-response shapes. A POST body is not a
@@ -35,6 +35,7 @@ verification. These mode distinctions remain separate from route and schema name
 
 | Route key | Method and suffix | Parent act or permitted treatment; effect | Responsible function and admission conditions | First producer |
 |---|---|---|---|---|
+| reception | GET `/reception` | Bounded pre-authentication reception; prepare provisional cookie/CSRF, no account data | Current synthetic deployment and reception treatment, bounded per-peer requests; no account or authority creation | T02 |
 | activation_challenge | POST `/activation/challenges` | Credential activation reception; accept a bounded attempt, not a delivery claim | Service/infrastructure custody under an admitted deployment declaration, exact predeclared master address and reception/mail profile | T02 |
 | activate_master | POST `/activation/complete` | Credential activation; establish the verifier for the predeclared office account | Bound proof, address, purpose, revision, one-time consumption and prior evidence; no first-visitor ownership or new investiture | T02 |
 | login | POST `/sessions` | Authentication treatment; create and rotate an opaque server session | Service identity treatment; current account restriction, bounded verification, CSRF and evidence. No client role or scope | T02 |
@@ -95,7 +96,7 @@ impersonation, direct positive grant or first-visitor bootstrap exists.
   expiry value does not authorize its requested lifetime.
 - Side-effecting intentions use `x-ledgerdesk-intent`, a fresh opaque identifier
   with the same bounded syntax as route IDs. The receiving operation persists
-  its stable namespace and canonical payload; a different payload conflicts.
+  its stable namespace and HMAC of the canonical payload; a different payload conflicts.
   A retry reauthorizes the current result, never replays a secret or silently
   rebinds to a different account. T02/T03 implement persistence and reconciliation.
 - A challenge's generic `accepted` acknowledges reception, not account
@@ -154,9 +155,9 @@ valid credentials or authorization.
 The session cookie is opaque, host-only, Secure, HttpOnly, Path=/, no Domain,
 SameSite=Strict. It contains no role, scope or frozen permission. Rotation and
 revocation are server facts. JavaScript may receive an independent CSRF token,
-never the cookie credential. The transport experiment binds CSRF to a provisional
-context before a login-like rotation, then uses a different session/CSRF pair.
-That in-memory fixture is not an account/session implementation.
+never the cookie credential. T02 stores the provisional CSRF with its flow and
+the authenticated CSRF with its session. Login rotates both and invalidates the
+provisional flow. The original in-memory T01 fixture remains independently tested.
 
 Keep credential-free INC-01 regressions intact. Its `Reader` still omits
 credentials; the existing Origin suite's two assertions and mutation M5 are
@@ -177,13 +178,14 @@ The trial selects `@node-rs/argon2` 2.2.0, Argon2id v19, 65,536 KiB,
 Use the maintained verifier, not a new password scheme. The measured test
 checks correct/wrong passwords, salt uniqueness and no Unicode normalization
 on Windows and Linux. These small-sample timings are not a production throughput
-or side-channel claim. Before T02 hashes a password, enforce input bounds and
-bounded concurrency; before verifying a stored PHC value, parse its parameters
-and reject unsupported/resource-excessive settings. Do not pass an attacker-
-controlled encoded verifier directly to an unbounded KDF.
+or side-channel claim. T02 enforces input bounds and two concurrent KDF operations,
+with no unbounded queue. It validates stored PHC parameters before expensive work.
+Unknown accounts and unsupported verifiers use a fixed supported decoy and cannot
+authenticate. Unsupported stored parameters are never passed to the KDF.
 
 The explicit `access-trial/1` fixture chooses 1,800-second sessions,
-300-second proofs, 86,400-second invitation lifetimes, 5 proof attempts, 5 login attempts per 300-second window,
+300-second proofs, 86,400-second invitation lifetimes, 5 proof attempts,
+5 login attempts per (email, socket peer) per 300-second window,
 16,384-byte bodies, 30-second resend spacing, 3 resends and 2 transaction retries.
 The schema rejects missing, unknown, nonfinite and inconsistent configuration.
 T02/T03 implement the actual limits, expiry, rotation and secure random generation.
@@ -191,6 +193,25 @@ Attempt exhaustion must not let an unverified caller permanently lock out an
 account. Codes/session secrets use 32 cryptographically random bytes; persist
 only the appropriate verifier/reference, never a raw code in ordinary evidence.
 No external SMTP, actual credential or real person's address is in this delivery.
+
+The T02 realization also caps login work per email at ten times `loginAttempts`
+(50 with the fixture above), across socket peers, in an independently started
+window of the same duration. Both successful and unsuccessful admitted attempts
+consume a slot. A request refused by the peer budget does not consume the
+aggregate budget or extend either window. The email object lock serializes both
+budget checks with the decision. A fresh flow, cookie, intention or service
+restart does not reset persisted limits. Only the terminal's socket address is
+used; forwarded headers are not trusted and no reverse proxy is supported here.
+
+This changes the original five-per-email realization, not the production policy.
+It isolates one exhausted peer while retaining a finite distributed-guessing
+ceiling; it is not universal protection against denial of service. Peers sharing
+a public address share a budget. Exhausting the 50-attempt aggregate still
+temporarily denies all peers, including a correct password, with `rate_limited`.
+A continuing attacker may exhaust later windows. Limits never set account
+restriction, replace a verifier or invalidate an existing session. Recovery mail
+and proof limits retain their separate behavior; this is not a general anti-abuse
+or production capacity assessment.
 
 `invitationSeconds` is required and bounded to 1–604,800 seconds in this trial
 configuration. The fixture's 24-hour selection and the seven-day configuration
@@ -208,23 +229,24 @@ Resending a message, renewing a proof or recovering credentials does not reset
 that expiry. This pure predicate and its boundary tests are implemented here;
 an operational issuance/acceptance service is not.
 
-## Persistence and invalidation design for the next tasks
+## Persistence and invalidation
 
 Use a dedicated synthetic database for the INC-02 facts consumed in one
 decision. Keep the original `inc01_reader`/`inc01_synthetic` contract intact.
-The proposed INC-02 owner is NOLOGIN; runtime roles have no ownership,
+The INC-02 owner is NOLOGIN; runtime roles have no ownership,
 membership escalation, BYPASSRLS, CREATE or inherited PUBLIC privileges.
 Separate account/session effect access, permitted reading and evidence append
-paths. The DDL and effective bilateral privilege tests belong to T02/T04;
-these role boundaries are a design, not a database already created.
+paths. T02 implements identity DDL and effective bilateral privilege probes;
+authenticated material reading remains T04.
 
-Candidate names for the isolated realization are database `inc02_synthetic`,
-NOLOGIN owner `inc02_owner`, effect runtime `inc02_runtime`, read/evidence runtime
-`inc02_reader`, and a separate test-only inspection credential. Runtime access
-is limited to its explicit tables/projections and admitted effect functions,
-not arbitrary owner impersonation or unrestricted evidence updates. The exact
-SQL grants, search paths, function privileges and account/grant write boundary
-must pass bilateral tests before use; these names are not proof of isolation.
+T02 uses database `inc02_synthetic`, NOLOGIN owner `inc02_owner`, effect runtime
+`inc02_runtime`, deployment controller `inc02_control` and a separate test-only
+inspection credential. Runtime table grants are explicit; account identity and
+restriction updates, control functions, ownership, public-schema creation and
+evidence modification are denied. The master insertion trigger checks the
+predeclared address and person. There is no `inc02_reader` or grant table yet.
+The runtime credential is a trusted service credential, not an end-user role;
+SQL isolation alone does not establish person-level authorization.
 No existing user's database or historical container is a migration target.
 
 Required facts: deployment/root declaration; account; attributable person link;
@@ -260,7 +282,9 @@ but externally unaccredited declaration has its distinct marking. Master
 activation conveys neither global reading nor approval.
 
 Commit is not handoff. Required access evidence precedes the terminal's handoff;
-transport observation follows it. No SQL transaction stays open while awaiting
+transport observation follows it. `handed_off` records the terminal's synchronous
+response handoff, not socket delivery or human receipt; interruption is distinct.
+No SQL transaction stays open while awaiting
 browser/network activity. Hold the appropriate coordination until the protected
 boundary, with time rechecked there. Expiry without a writer remains a separate,
 unaccredited temporal condition. This transport proof does not close it.
@@ -269,10 +293,10 @@ unaccredited temporal condition. This transport proof does not close it.
 
 | Capability | This delivery | Remaining first consumer |
 |---|---|---|
-| Closed contract parsing/validation, profile selection and transport guards | Implemented and unit-tested | HTTP producer integration in T02/T03 |
-| Same-site HTTPS cookie/CSRF/CORS/TLS isolation | Exercised in an isolated Next/terminal/browser fixture | Actual login, cookies, receiver limits and sessions in T02 |
-| Password library/configuration | Installed, explicit and benchmarked | Bounded verifier adapter, rate limits and persistent lifecycle in T02 |
-| Master activation/session/capability projection | Contracts only; no active routes | T02 |
+| Closed contract parsing/validation, profile selection and transport guards | T02 routes integrated; others remain closed | T03 producers |
+| Same-site HTTPS cookie/CSRF/CORS/TLS isolation | Real synthetic Next/terminal/PG/browser journey | Production deployment assessment |
+| Password library/configuration | Bounded verifier, decoy, rate limits and persisted lifecycle | Production capacity assessment |
+| Master activation/session/capability projection | Implemented in the isolated T02 service | Ordinary accounts and invitation consumers in T03 |
 | Invitations, accepted gains, withdrawal and initial verifier | Contracts only; no active routes | T03 |
 | Current authority and authenticated material reading | Internal port/data contracts and coordination design only | T02/T03 kernel; T04 integration |
 | Census and administration UI | Contract only, not an implemented screen | T04/T05 |

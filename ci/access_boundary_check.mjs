@@ -3,7 +3,9 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { moduleReferences } from './reading_boundary_check.mjs';
 
-const access = (name) => /^src\/contracts\/access(?:_[a-z]+)?\.ts$/.test(name) || name.startsWith('src/server/access/');
+const contract = (name) => /^src\/contracts\/access(?:_[a-z]+)?\.ts$/.test(name);
+const presentation = (name) => name.startsWith('src/components/access/') || name === 'src/app/access/page.tsx';
+const access = (name) => contract(name) || name.startsWith('src/server/access/') || presentation(name);
 export function accessSourceViolations(file, source) {
   const { references, computed } = moduleReferences(source, { jsx: /[jt]sx$/.test(file) });
   const errors = [];
@@ -13,10 +15,17 @@ export function accessSourceViolations(file, source) {
       specifier.startsWith('.') ? path.posix.normalize(path.posix.join(path.posix.dirname(file), specifier)) : null;
     if (target && !/\.[cm]?[jt]sx?$/.test(target)) target += '.ts';
     if (access(file)) {
-      const allowed = target ? access(target) : file.startsWith('src/server/access/') && specifier === 'node:crypto';
+      const external = (file === 'src/server/access/postgres/store.ts' && specifier === 'pg') ||
+        (file === 'src/server/access/password.ts' && specifier === '@node-rs/argon2') ||
+        (file === 'src/server/access/terminal.ts' && ['node:https','node:http'].includes(specifier)) ||
+        (file.startsWith('src/server/access/') && specifier === 'node:crypto') ||
+        (presentation(file) && specifier === 'react');
+      const allowed = target ? access(target) : external;
       if (!allowed) errors.push(`Forbidden access import: ${specifier}`);
       if (file.startsWith('src/contracts/') && target?.startsWith('src/server/')) errors.push('Contract imports server');
-    } else if (target && access(target)) errors.push('Access foundation has no operational composition root in T01');
+      if (presentation(file) && target?.startsWith('src/server/')) errors.push('Presentation imports server');
+      if (!presentation(file) && target && presentation(target)) errors.push('Server or contract imports presentation');
+    } else if (target && access(target)) errors.push('Access cannot be imported by a legacy or unrelated composition root');
   }
   return errors;
 }

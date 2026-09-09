@@ -18,7 +18,7 @@ Source of truth for build order: the specification's build plan, as amended — 
 
 | Card | Increment | Depends on | Closing evidence |
 |---|---|---|---|
-| INC-02 | Access and identity: I02-T01 accepted; remaining tasks pending | INC-01 | [T01 evidence](docs/INC-02-T01.md) and [PR #24](https://github.com/Farobertogu/ledgerdesk/pull/24). T02 has not started; operational accounts, invitations and authenticated reading remain unimplemented. This does not close INC-02. |
+| INC-02 | Access and identity: I02-T01 and I02-T02 accepted; I02-T03 remains pending | INC-01 | [T01 evidence](docs/INC-02-T01.md), [PR #24](https://github.com/Farobertogu/ledgerdesk/pull/24), [T02 evidence](docs/INC-02-T02.md), and [PR #25](https://github.com/Farobertogu/ledgerdesk/pull/25). ADR-033 is accepted on 2026-09-10 for synthetic deployment activation, sessions and controlled recovery. Invitations and authenticated reading remain later tasks. This does not close INC-02 or authorize production use. |
 
 ## Backlog (plan order)
 
@@ -76,6 +76,7 @@ it for a row that used to be there.
 
 | Card | Increment | Evidence |
 |---|---|---|
+| I02-T02 | Persistent synthetic deployment activation, sessions and controlled credential recovery | [PR #25](https://github.com/Farobertogu/ledgerdesk/pull/25); [T02 evidence](docs/INC-02-T02.md); [implementation CI run](https://github.com/Farobertogu/ledgerdesk/actions/runs/34368378368) passed all four required jobs. Access 74/74, runtime units 5/5, real PG16/HTTPS/browser access 21/21, retained reading service 25/25 and integration 18/18. ADR-033 is accepted on 2026-09-10. Shared-peer/aggregate denial limits, the earlier intermittent I03 timeout and full temporal conformity remain declared; T03 and production use are not included. |
 | I02-T01 | Access contracts and isolated HTTPS session transport | [PR #24](https://github.com/Farobertogu/ledgerdesk/pull/24); [CI run](https://github.com/Farobertogu/ledgerdesk/actions/runs/34350407814) passed all four required jobs on the implementation commit. Access 72/72, Linux HTTPS/security 17/17, original reading integration 18/18; the directed Origin mutation fails at B11. The ADR-032 session amendment is accepted on 2026-09-09. No operational accounts, production activation or full temporal conformity is claimed. |
 | INC-01 | Synthetic integrated reading — experimental acceptance, not full temporal conformity | T01/T02 in PR #20; T03 in PR #21; T04 in PR #22; T05 in [PR #23](https://github.com/Farobertogu/ledgerdesk/pull/23). [T05 evidence](docs/INC-01-T05.md): 17 integration scenarios, 18/18 entries; [CI run](https://github.com/Farobertogu/ledgerdesk/actions/runs/34327696588) passed `check`, `db`, `app` and `reading`. ADR-032 accepted on 2026-09-09. LR-AC21 remains partial: writer-free expiry reports `fullTemporalConformity: false`; no real-data deployment or production readiness is authorized. |
 | I0 | Repo spine: git, CI, ADR template, board, `status/`, minutes template | commit `73abba1` on `main` + CI run green |
