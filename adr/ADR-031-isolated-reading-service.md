@@ -1,6 +1,6 @@
 # ADR-031 · Isolated reading service and controlled delivery
 
-**Status:** proposed · **Decision date:** pending acceptance
+**Status:** accepted · **Decision date:** 2026-09-09
 
 ## Context
 
