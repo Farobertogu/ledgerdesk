@@ -45,6 +45,8 @@ jobs:
       - run: node ci/access_boundary_check.mjs
       - run: npm run test:access
       - run: npm run test:access:browser
+      - run: npm run test:access:runtime:unit
+      - run: npm run test:access:runtime
       # This owns a fresh, separately named PG16 Compose project; no historical DB scripts.
       - run: npm run test:reading:service
       - run: npm run typecheck:app
@@ -58,6 +60,12 @@ jobs:
         with:
           name: reading-integration-screenshots
           path: test-results/reading-integration/
+          if-no-files-found: ignore
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: access-runtime-evidence
+          path: test-results/access-runtime/
           if-no-files-found: ignore
   db:
     runs-on: ubuntu-latest

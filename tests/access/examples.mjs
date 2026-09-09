@@ -8,6 +8,7 @@ const invitation = { email: 'Recipient@Example.test', family: 'application', gra
 
 // Independent, concrete fixtures. They are not generated from the schemas.
 export const examples = {
+  reception: [{}, { csrf_token: 'A'.repeat(43) }],
   activation_challenge: [{ email: 'Master@Example.test' }, accepted],
   activate_master: [proof, completed],
   login: [{ email: 'Master@Example.test', password: 'Synthetic example only' }, session],

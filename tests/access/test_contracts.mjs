@@ -4,9 +4,9 @@ import { ACCESS_ROUTES, ACCESS_ERRORS, validateAccess, accessSchema, decodeAcces
 import { examples } from './examples.mjs';
 
 test('closed route inventory has exact, unique English method/path pairs', () => {
-  assert.equal(Object.keys(ACCESS_ROUTES).length, 18);
+  assert.equal(Object.keys(ACCESS_ROUTES).length, 19);
   assert.deepEqual(Object.keys(examples).sort(), Object.keys(ACCESS_ROUTES).sort());
-  assert.equal(new Set(Object.values(ACCESS_ROUTES).map((r) => `${r.method} ${r.path}`)).size, 18);
+  assert.equal(new Set(Object.values(ACCESS_ROUTES).map((r) => `${r.method} ${r.path}`)).size, 19);
   assert.equal(Object.values(ACCESS_ROUTES).some((r) => /execute|investiture|impersonate|register|direct-grant/.test(r.path)), false);
 });
 for (const [route, pair] of Object.entries(examples)) {

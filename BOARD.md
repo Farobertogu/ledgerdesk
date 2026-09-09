@@ -18,7 +18,7 @@ Source of truth for build order: the specification's build plan, as amended — 
 
 | Card | Increment | Depends on | Closing evidence |
 |---|---|---|---|
-| INC-02 | Access and identity: I02-T01 accepted; remaining tasks pending | INC-01 | [T01 evidence](docs/INC-02-T01.md) and [PR #24](https://github.com/Farobertogu/ledgerdesk/pull/24). T02 has not started; operational accounts, invitations and authenticated reading remain unimplemented. This does not close INC-02. |
+| INC-02 | Access and identity: I02-T01 accepted; I02-T02 implementation reviewed, pending PR acceptance | INC-01 | [T01 evidence](docs/INC-02-T01.md), [PR #24](https://github.com/Farobertogu/ledgerdesk/pull/24), and [T02 evidence](docs/INC-02-T02.md). Synthetic deployment activation, sessions and the correction tests passed locally. ADR-033 remains proposed; remote verification and PR acceptance are separate. Invitations and authenticated reading remain later tasks. This does not close INC-02. |
 
 ## Backlog (plan order)
 
