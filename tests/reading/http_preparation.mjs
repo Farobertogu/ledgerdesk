@@ -37,6 +37,7 @@ async function withNext(configuration, run, shouldStart = true) {
       LEDGERDESK_READING_TRIAL: '0', LEDGERDESK_READING_ENVIRONMENT: '',
       LEDGERDESK_READING_SUBJECT: '', LEDGERDESK_READING_GENERATION: '',
       LEDGERDESK_DEV_IDENTITY: '0',
+      LEDGERDESK_READING_SERVICE_ORIGIN: `http://127.0.0.1:${port}`,
       // Overrides .env files. A legacy DB query hits a counter, never an existing database.
       DATABASE_URL: `postgresql://synthetic:synthetic@127.0.0.1:${trapPort}/never_connect`,
       ...configuration,

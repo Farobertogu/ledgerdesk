@@ -33,8 +33,8 @@ const copy = {
   },
 };
 
-export default function MaterialReader() {
-  const [reader] = useState(() => new Reader());
+export default function MaterialReader({ serviceOrigin }: { serviceOrigin: string }) {
+  const [reader] = useState(() => new Reader(undefined, serviceOrigin));
   const state = useSyncExternalStore(reader.subscribe, reader.snapshot, reader.snapshot);
   const [language, setLanguage] = useState<'en' | 'es'>('en');
   const [light, setLight] = useState(false);

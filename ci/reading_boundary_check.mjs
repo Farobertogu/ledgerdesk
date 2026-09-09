@@ -44,7 +44,7 @@ const inDirectory = (value, directory) => value === directory || value.startsWit
 
 function readingModule(relative) {
   const p = lower(relative);
-  return p === CONTRACT || p === PORT || p === 'src/instrumentation.ts' || p === 'src/proxy.ts' ||
+  return p === CONTRACT || p === 'src/contracts/reading_origin.ts' || p === PORT || p === 'src/instrumentation.ts' || p === 'src/proxy.ts' ||
     inDirectory(p, 'src/server/reading') || inDirectory(p, 'src/components/reading') ||
     inDirectory(p, 'src/app/material') || inDirectory(p, 'src/app/api/v1/material');
 }
