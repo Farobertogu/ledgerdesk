@@ -20,7 +20,7 @@ jobs:
   reading:
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    # Reading foundation/viewer checks have no PG service or destructive legacy scripts.
+    # Service tests own an isolated PG16 Compose project; no destructive legacy scripts.
     # The boundary uses the installed TypeScript parser, not a second hand-written TSX parser.
     env:
       LEDGERDESK_READING_TRIAL: '0'
@@ -37,6 +37,10 @@ jobs:
       - run: npm run test:reading
       - run: npm run test:reading:viewer
       - run: npm run test:reading:harness
+      - run: npm run test:reading:policy
+      - run: npm run test:reading:lifecycle
+      # This owns a fresh, separately named PG16 Compose project; no historical DB scripts.
+      - run: npm run test:reading:service
       - run: npm run typecheck:app
       - run: npm run build
       - run: npm run test:reading:http

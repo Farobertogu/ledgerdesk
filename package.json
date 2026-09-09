@@ -20,6 +20,10 @@
     "test:reading:viewer": "node --experimental-strip-types --test tests/reading/test_T03_reader.mjs",
     "test:reading:harness": "node --test tests/reading/test_T03_harness_guards.mjs",
     "test:reading:browser": "playwright test --config playwright.reading.config.ts",
+    "test:reading:policy": "node --experimental-strip-types --test tests/reading/test_T04_policy.mjs",
+    "test:reading:lifecycle": "node --test tests/reading/test_T04_lifecycle.mjs",
+    "test:reading:service": "node --experimental-strip-types --test --test-concurrency=1 tests/reading/test_T04_pg.mjs",
+    "start:reading:service": "node --experimental-strip-types ci/reading_service.mjs",
     "start:reading": "node ci/reading_start.mjs",
     "test:gateway": "node --experimental-strip-types --test --test-concurrency=1 tests/gateway/"
   },

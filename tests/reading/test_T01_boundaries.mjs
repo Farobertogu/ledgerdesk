@@ -62,6 +62,22 @@ test('empty or incomplete trees cannot pass vacuously', (t) => {
   rejected(checkReadingBoundaries(empty), /missing required reading root/);
 });
 
+test('PostgreSQL is confined to the reviewed store adapter, not a directory-wide exception', (t) => {
+  const f = fixture(t);
+  f.write('src/server/reading/postgres/store.ts', "import { Client } from 'pg'; export const connect = () => new Client();");
+  assert.equal(checkReadingBoundaries(f.root).ok, true);
+  f.write('src/server/reading/postgres/other.ts', "import pg from 'pg'; export const other = pg;");
+  rejected(checkReadingBoundaries(f.root), /unapproved external module pg/);
+});
+
+test('a component cannot import the PostgreSQL store transitively', (t) => {
+  const f = fixture(t);
+  f.write('src/server/reading/postgres/store.ts', "import { Client } from 'pg'; export const connect = () => new Client();");
+  f.write('src/shared/reading_bridge.ts', "export { connect } from '../server/reading/postgres/store.ts';");
+  f.write('src/components/reading/Leaking.tsx', "import { connect } from '../../shared/reading_bridge.ts'; export default function Leak() { return connect(); }");
+  rejected(checkReadingBoundaries(f.root), /presentation reaches reading server/);
+});
+
 for (const [name, source, expected] of [
   ['direct alias after an innocent framework import', "import { cookies } from 'next/headers';\nimport { identity } from '@/server/session';", /src\/server\/session.ts/],
   ['relative import', "import { oldDb } from '../db.ts';", /src\/server\/db.ts/],
