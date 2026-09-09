@@ -219,11 +219,15 @@ export function checkReadingBoundaries(projectRoot) {
       for (const edge of node.edges) {
         if (edge.error) { report(`${mode}: ${edge.location}: ${edge.error}`); continue; }
         if (edge.external) {
-          if (mode === 'reading' && !frameworkOrBuiltin(edge.external)) report(`reading: ${edge.location}: unapproved external module ${edge.external}`);
+          const readingPgAdapter = relative(file) === 'src/server/reading/postgres/store.ts' && edge.external === 'pg';
+          if (mode === 'reading' && !frameworkOrBuiltin(edge.external) && !readingPgAdapter) report(`reading: ${edge.location}: unapproved external module ${edge.external}`);
           continue;
         }
         const target = relative(edge.file);
         const route = [...chain, target].join(' -> ');
+        if (mode === 'presentation' && inDirectory(lower(target), 'src/server')) {
+          report(`presentation reaches reading server: ${route}`);
+        }
         if (mode === 'reading' && forbiddenToReading(target)) {
           report(`reading reaches legacy dependency: ${route}`);
         } else if (mode === 'legacy' && readingModule(target)) {
@@ -234,6 +238,8 @@ export function checkReadingBoundaries(projectRoot) {
     for (const file of roots) visit(file, [relative(file)]);
   }
   traverse(readingRoots, 'reading');
+  // A separate traversal prevents an earlier server visit from hiding a transitive client edge.
+  traverse(sources.filter((file) => inDirectory(lower(relative(file)), 'src/components/reading')), 'presentation');
   traverse(legacyRoots, 'legacy');
   return { ok: violations.length === 0, violations, inspected: graph.size };
 }
