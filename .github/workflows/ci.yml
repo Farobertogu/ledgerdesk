@@ -39,6 +39,8 @@ jobs:
       - run: npm run test:reading:harness
       - run: npm run test:reading:policy
       - run: npm run test:reading:lifecycle
+      - run: npm run test:reading:origins
+      - run: npm run test:reading:mutations
       # This owns a fresh, separately named PG16 Compose project; no historical DB scripts.
       - run: npm run test:reading:service
       - run: npm run typecheck:app
@@ -46,6 +48,13 @@ jobs:
       - run: npm run test:reading:http
       - run: npx playwright install --with-deps chromium
       - run: npm run test:reading:browser
+      - run: npm run test:reading:integration
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: reading-integration-screenshots
+          path: test-results/reading-integration/
+          if-no-files-found: ignore
   db:
     runs-on: ubuntu-latest
     timeout-minutes: 20

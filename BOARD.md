@@ -17,7 +17,7 @@ Source of truth for build order: the specification's build plan, as amended — 
 
 | Card | Increment | Branch | Closing evidence |
 |---|---|---|---|
-| INC-01 | Synthetic integrated reading; T04 policy, persistence and controlled HTTP | card/INC-01-reading-service | T01/T02 merged in PR #20; T03 merged in PR #21; T04 SQL/HTTP and policy evidence under review; T05 and full temporal conformity remain pending |
+| INC-01 | Synthetic integrated reading; T05 direct browser-to-terminal integration | card/INC-01-reading-integration | T01/T02 merged in PR #20; T03 in PR #21; T04 in PR #22; T05 integration under development; full temporal conformity remains pending |
 
 ## Backlog (plan order)
 

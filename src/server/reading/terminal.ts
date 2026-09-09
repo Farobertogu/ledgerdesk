@@ -1,6 +1,7 @@
 import { createServer } from 'node:http';
 import type { ServerResponse } from 'node:http';
 import { PROBLEMS } from '../../contracts/material_reading.ts';
+import { readLoopbackOrigin } from '../../contracts/reading_origin.ts';
 import type { ReadingOutcome, TransportObservation } from '../kb/reading.ts';
 import { parseReadingRequest } from './http.ts';
 import { contextFromTrial } from './context.ts';
@@ -48,6 +49,9 @@ export async function startReadingTerminal(options: Readonly<{
   port?: number;
   observer?: TerminalObserver;
 }>) {
+  const configuredOrigin = options.env.LEDGERDESK_READING_UI_ORIGIN;
+  const uiOrigin = readLoopbackOrigin(configuredOrigin);
+  if (configuredOrigin !== undefined && !uiOrigin) throw new Error('Invalid reading UI origin');
   const context = contextFromTrial(readTrialConfig(options.env));
   const activeResponses = new Set<ServerResponse>();
   const observe = options.observer ?? (() => undefined);
@@ -61,6 +65,14 @@ export async function startReadingTerminal(options: Readonly<{
   let stopping = false;
   const server = createServer((req, res) => {
     activeResponses.add(res); res.once('close', () => activeResponses.delete(res));
+    // CORS permits this browser to read a response; it never creates reading authority.
+    // Non-browser trial clients still require the same server-owned synthetic context.
+    res.setHeader('Vary', 'Origin');
+    const origin = req.headers.origin;
+    if (origin !== undefined) {
+      if (!uiOrigin || origin !== uiOrigin) { void send(res, PROBLEMS[403]); return; }
+      res.setHeader('Access-Control-Allow-Origin', uiOrigin);
+    }
     let request: Request;
     try {
       // Host never controls destination, authority or route interpretation.

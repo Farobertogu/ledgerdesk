@@ -1,6 +1,7 @@
 import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
+  outputDir: './test-results/reading-browser',
   testDir: './tests/reading/browser', fullyParallel: false, workers: 1,
   timeout: 20000, retries: 0, reporter: 'list',
   use: { baseURL: 'http://127.0.0.1:3180', browserName: 'chromium',
@@ -12,6 +13,7 @@ export default defineConfig({
     env: { LEDGERDESK_READING_TRIAL: '1', LEDGERDESK_READING_ENVIRONMENT: 'local-synthetic',
       LEDGERDESK_READING_SUBJECT: 'synthetic-browser', LEDGERDESK_READING_GENERATION: 'browser-test',
       LEDGERDESK_DEV_IDENTITY: '0', NEXT_TELEMETRY_DISABLED: '1',
+      LEDGERDESK_READING_SERVICE_ORIGIN: 'http://127.0.0.1:3180',
       DATABASE_URL: 'postgresql://synthetic:synthetic@127.0.0.1:1/synthetic_unused' },
   },
 });

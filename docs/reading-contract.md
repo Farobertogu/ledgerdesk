@@ -195,3 +195,7 @@ The 24 LR-AC acceptance groups retain their original scopes. Contract shape and 
 tests do not demonstrate policy execution, contextual fidelity, persistence, rendering, timing or
 the integrated T03–T05 path. Synthetic acceptance does not authorize real data, deployment or later
 increments. Merging to `main` requires the `reading` CI job alongside `check`, `db` and `app`.
+
+The direct browser-to-terminal trial topology, its origin configuration and the
+24-group evidence map are documented in [INC-01 T05](INC-01-T05.md). This adds no
+public payload field, client authority or proxy handoff to `reading/1`.

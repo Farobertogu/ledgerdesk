@@ -296,6 +296,23 @@ test('the existing timezone formatter is not a shared presentation exception', (
   rejectsOnlyEdge(checkReadingBoundaries(f.root), 'reading', 'src/app/material/page.tsx', 'src/components/format.ts');
 });
 
+test('the trial origin helper cannot import a legacy algorithm', (t) => {
+  const f = fixture(t);
+  f.write('src/contracts/reading_origin.ts', productSource('src/contracts/reading_origin.ts'));
+  f.write('src/alg/retrieval.ts', productSource('src/alg/retrieval.ts'));
+  assert.equal(checkReadingBoundaries(f.root).ok, true);
+  f.append('src/contracts/reading_origin.ts', "import '@/alg/retrieval';");
+  rejectsOnlyEdge(checkReadingBoundaries(f.root), 'reading', 'src/contracts/reading_origin.ts', 'src/alg/retrieval.ts');
+});
+
+test('legacy pages cannot inherit trial origin configuration through the helper', (t) => {
+  const f = fixture(t);
+  f.write('src/contracts/reading_origin.ts', productSource('src/contracts/reading_origin.ts'));
+  assert.equal(checkReadingBoundaries(f.root).ok, true);
+  f.append('src/app/portal/page.tsx', "import '@/contracts/reading_origin';");
+  rejectsOnlyEdge(checkReadingBoundaries(f.root), 'legacy', 'src/app/portal/page.tsx', 'src/contracts/reading_origin.ts');
+});
+
 test('new reading components can use the contract and exact shared Panel exception', (t) => {
   const f = fixture(t);
   f.write('src/components/Panel.tsx', productSource('src/components/Panel.tsx'));
