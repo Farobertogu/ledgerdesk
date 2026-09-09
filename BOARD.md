@@ -4,8 +4,9 @@
 
 The active new-system work follows the adjusted construction plan (INC-01 through INC-15),
 not the historical 25-card roadmap below. The latter is preserved as provenance, not inherited
-product requirements. INC-01 remains in progress until T03–T05 and its experimental acceptance
-are demonstrated; completing T01/T02 does not close it. See ADR-029 for the scoped authorization.
+product requirements. INC-01 is accepted within its local, synthetic experimental scope;
+T01–T05 evidence is recorded below. LR-AC21 remains partially covered: this acceptance does
+not establish full temporal conformity or authorize production use. See ADR-029 through ADR-032.
 
 Source of truth for build order: the specification's build plan, as amended — **25 verifiable increments**, order and dependencies only. **Working rule: one branch per card (`card/<ID>-<slug>`); a card merges to `main` only after its named tests are green and the owner has reviewed the PR (merge `--no-ff`).** Tags mark plan gates: `baseline-v1.0` (sealed), `demo-w7`, `freeze-a4`. `main` is protected: merge by PR with the `check`, `db`, `app` and `reading` jobs green — the `db` job is where every closing test of a data card actually runs.
 
@@ -15,9 +16,7 @@ Source of truth for build order: the specification's build plan, as amended — 
 
 ## In progress
 
-| Card | Increment | Branch | Closing evidence |
-|---|---|---|---|
-| INC-01 | Synthetic integrated reading; T05 direct browser-to-terminal integration | card/INC-01-reading-integration | T01/T02 merged in PR #20; T03 in PR #21; T04 in PR #22; T05 integration under development; full temporal conformity remains pending |
+*(empty)*
 
 ## Backlog (plan order)
 
@@ -75,6 +74,7 @@ it for a row that used to be there.
 
 | Card | Increment | Evidence |
 |---|---|---|
+| INC-01 | Synthetic integrated reading — experimental acceptance, not full temporal conformity | T01/T02 in PR #20; T03 in PR #21; T04 in PR #22; T05 in [PR #23](https://github.com/Farobertogu/ledgerdesk/pull/23). [T05 evidence](docs/INC-01-T05.md): 17 integration scenarios, 18/18 entries; [CI run](https://github.com/Farobertogu/ledgerdesk/actions/runs/34327696588) passed `check`, `db`, `app` and `reading`. ADR-032 accepted on 2026-09-09. LR-AC21 remains partial: writer-free expiry reports `fullTemporalConformity: false`; no real-data deployment or production readiness is authorized. |
 | I0 | Repo spine: git, CI, ADR template, board, `status/`, minutes template | commit `73abba1` on `main` + CI run green |
 | I1 | Documentary baseline: proposal, WBS, Gantt, stories layer 1/2, models | PR #1 merged `--no-ff`; tag `baseline-v1.0` on the merge commit |
 | I0b | Process gate: `adr_gate` in CI · `FROZEN_PATHS` · PR template · protection of `main` | PR #2 merged; evidence pair on PR #3: **red** [run 32401784489](https://github.com/Farobertogu/ledgerdesk/actions/runs/32401784489) (frozen path without ADR) → **green** [run 32401951976](https://github.com/Farobertogu/ledgerdesk/actions/runs/32401951976) (same path covered by ADR-018) |
