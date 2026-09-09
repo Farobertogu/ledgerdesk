@@ -41,6 +41,10 @@ jobs:
       - run: npm run test:reading:lifecycle
       - run: npm run test:reading:origins
       - run: npm run test:reading:mutations
+      # Keep the credential-free assertions and M5 above unchanged; session/1 has its own negatives.
+      - run: node ci/access_boundary_check.mjs
+      - run: npm run test:access
+      - run: npm run test:access:browser
       # This owns a fresh, separately named PG16 Compose project; no historical DB scripts.
       - run: npm run test:reading:service
       - run: npm run typecheck:app

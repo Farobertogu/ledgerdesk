@@ -12,7 +12,9 @@ Source of truth for build order: the specification's build plan, as amended — 
 
 ## In review
 
-*(empty)*
+| Card | Increment | Depends on | Closing evidence |
+|---|---|---|---|
+| INC-02 | I02-T01 only: access contracts and isolated HTTPS session-transport experiment | INC-01 | [T01 evidence](docs/INC-02-T01.md): 72 access checks, 17 Linux transport/security entries and an integrated Origin-guard negative control. ADR-032 amendment remains proposed. This does not close INC-02 or implement accounts. |
 
 ## In progress
 

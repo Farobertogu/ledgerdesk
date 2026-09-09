@@ -1,0 +1,14 @@
+**
+!package.json
+!package-lock.json
+!src/
+!src/contracts/
+!src/contracts/access*.ts
+!src/server/
+!src/server/access/
+!src/server/access/transport.ts
+!tests/
+!tests/access/
+!tests/access/**
+tests/access/ui/.next
+tests/access/ui/node_modules

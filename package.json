@@ -28,7 +28,9 @@
     "test:reading:integration": "node --experimental-strip-types --test --test-concurrency=1 tests/reading/test_T05_integration.mjs",
     "start:reading:service": "node --experimental-strip-types ci/reading_service.mjs",
     "start:reading": "node ci/reading_start.mjs",
-    "test:gateway": "node --experimental-strip-types --test --test-concurrency=1 tests/gateway/"
+    "test:gateway": "node --experimental-strip-types --test --test-concurrency=1 tests/gateway/",
+    "test:access": "node --experimental-strip-types --test tests/access/test_contracts.mjs tests/access/test_transport.mjs tests/access/test_boundaries_mutations.mjs tests/access/test_security.mjs",
+    "test:access:browser": "node ci/access_transport_check.mjs"
   },
   "devDependencies": {
     "@playwright/test": "1.63.0",
@@ -43,6 +45,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "0.120.0",
     "@next/env": "16.3.1",
+    "@node-rs/argon2": "2.2.0",
     "next": "16.3.1",
     "pg": "8.23.0",
     "react": "19.2.8",
