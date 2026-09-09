@@ -53,9 +53,10 @@ possible browser/OS/network interleaving. See `docs/INC-01-T05.md` for the 24
 acceptance groups and the distinction between demonstrated trial behavior and
 the outstanding contract.
 
-## Proposed amendment — 2026-09-09: separate session transport
+## Amendment — 2026-09-09: separate session transport
 
-**Amendment status: proposed; not an acceptance or production activation.**
+**Amendment status: accepted · Decision date: 2026-09-09.**
+Acceptance covers the isolated synthetic design, not production activation.
 The original accepted decision continues to describe the INC-01 synthetic
 profile. Its omitted credentials, loopback HTTP origin format, absent credentialed
 CORS, simple GETs and unchanged identity/storage mechanism remain regression requirements.
@@ -93,4 +94,4 @@ extend the INC-01-only unchanged-mechanism clause; they are not implemented here
 The writer-free-expiry limitation is unchanged.
 
 See `docs/INC-02-T01.md` for the evidence and `docs/access-contract.md` for the
-proposed bindings. Acceptance of this amendment remains part of review.
+route bindings and implementation limits.

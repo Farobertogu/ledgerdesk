@@ -3,7 +3,8 @@
 ## Boundary
 
 `access/1` defines closed English intentions and projections for the current
-identity increment. `session/1` is its proposed HTTPS browser transport. Neither
+identity increment. `session/1` is its accepted synthetic HTTPS browser transport
+under ADR-032. Neither
 is a replacement for the `reading/1` material DTO. The executable definitions
 are in `src/contracts/access.ts`, `access_transport.ts`, `access_security.ts`
 and `access_context.ts`; independent examples are in `tests/access/examples.mjs`.
