@@ -1251,7 +1251,8 @@ test(
       'A13 actual Next UI signs in and out with persistent account; no SSR or UI-host secret',
       async () => {
         await env.admin.query(
-          'TRUNCATE access_trial.session,access_trial.account',
+          // Owned synthetic fixture only: the additive invitation foreign keys now reference accounts.
+          'TRUNCATE access_trial.session,access_trial.account CASCADE',
         );
         await env.admin.query('DELETE FROM access_trial.throttle');
         app = next({

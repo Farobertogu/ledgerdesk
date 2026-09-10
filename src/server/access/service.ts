@@ -15,6 +15,9 @@ import type { AccessConfig } from './config.ts';
 import { AccessStore } from './postgres/store.ts';
 import { PasswordVerifier } from './password.ts';
 import { tokenMatches } from './transport.ts';
+import { canonicalIntent } from '../../contracts/access_canonical.ts';
+import { performInvitation } from './invitations.ts';
+import { InvitationAuthority } from './invitation_authority.ts';
 
 export const FLOW_COOKIE = '__Host-ledgerdesk-flow';
 // Synthetic-trial bound: keep distributed guessing finite without sharing the
@@ -29,6 +32,7 @@ export type AccessInput = {
   csrf?: string;
   intent?: string;
   peer: string;
+  parameters?: Record<string, string>;
 };
 export type AccessOutput = {
   status: number;
@@ -42,8 +46,9 @@ export type AccessOutput = {
 export interface LocalMailbox {
   send(message: {
     email: string;
-    challenge_id: string;
-    code: string;
+    challenge_id?: string;
+    code?: string;
+    invitation_id?: string;
     purpose: string;
   }): Promise<void>;
 }
@@ -140,7 +145,16 @@ export class AccessService {
   async receive(route: AccessRoute, onLoss: () => void): Promise<AccessStore> {
     const db = new AccessStore(this.config, onLoss);
     try {
-      await db.admit(['logout', 'recover_credential'].includes(route));
+      await db.admit(
+        [
+          'logout',
+          'recover_credential',
+          'amend_invitation',
+          'withdraw_invitation',
+          'withdraw_grant',
+          'initial_credential',
+        ].includes(route),
+      );
       const control = (
         await db.client.query('SELECT * FROM access_trial.deployment')
       ).rows[0];
@@ -165,16 +179,34 @@ export class AccessService {
     const { route, body } = input,
       s = this.config.security;
     const db = admitted ?? (await this.receive(route, onLoss));
+    if (ACCESS_ROUTES[route].consumer === 'T03')
+      return performInvitation(this, input, db, this.hooks, this.mailbox);
     const close = () => db.close();
     let output: AccessOutput;
     let pendingMail: Parameters<LocalMailbox['send']>[0] | undefined;
     const newId = randomUUID();
     try {
-      await db.begin(
+      const proofAccount =
+        route === 'recover_credential' &&
+        typeof body.challenge_id === 'string' &&
+        /^[a-f0-9-]{36}$/.test(body.challenge_id)
+          ? (
+              await db.client.query(
+                'SELECT email FROM access_trial.proof WHERE id=$1',
+                [body.challenge_id],
+              )
+            ).rows[0]?.email
+          : null;
+      await db.begin([
+        ...(input.flow ? ['flow:' + this.digest(input.flow)] : []),
+        ...(input.session ? ['session:' + this.digest(input.session)] : []),
         this.digest(
           String(body.email ?? input.flow ?? input.session ?? input.peer),
         ),
-      );
+        ...(body.email || proofAccount
+          ? ['email:' + this.digest(String(body.email ?? proofAccount))]
+          : []),
+      ]);
       const q = (sql: string, args: unknown[] = []) =>
         db.client.query(sql, args);
       const now = await db.now();
@@ -316,7 +348,7 @@ export class AccessService {
         if (post && (!input.intent || !opaque.test(input.intent)))
           return fail('invalid_request');
         // HMAC rather than stored request bytes: password/code material is not an intent record.
-        const payloadDigest = this.digest(
+        const legacyDigest = this.digest(
           JSON.stringify([
             route,
             Object.keys(body)
@@ -324,6 +356,7 @@ export class AccessService {
               .map((k) => [k, body[k]]),
           ]),
         );
+        const payloadDigest = this.digest(canonicalIntent(route, {}, body));
         const intentKey = `${route}:${binding}`;
         if (post) {
           const prior = (
@@ -333,21 +366,28 @@ export class AccessService {
             )
           ).rows[0];
           if (prior) {
-            if (prior.payload_digest !== payloadDigest)
+            if (
+              prior.payload_digest !==
+              (prior.canonical_profile === 'legacy_t02'
+                ? legacyDigest
+                : payloadDigest)
+            )
               return fail('revision_conflict');
             // A login secret is never replayable. Retry with a fresh intention to authenticate again.
             if (route === 'login') return fail('revision_conflict');
             if (route === 'activate_master' || route === 'recover_credential') {
               const subject = (
                 await q(
-                  'SELECT restricted FROM access_trial.account WHERE email=$1',
-                  [control.master_email],
+                  `SELECT a.restricted,a.office FROM access_trial.account a WHERE a.email=COALESCE(
+                  (SELECT email FROM access_trial.proof WHERE id=$1),$2)`,
+                  [body.challenge_id, control.master_email],
                 )
               ).rows[0];
               if (
                 !subject ||
                 subject.restricted ||
                 (route === 'recover_credential' &&
+                  subject.office === 'master' &&
                   Number(control.recovery_until) <= now)
               )
                 return fail('forbidden');
@@ -376,12 +416,12 @@ export class AccessService {
             ])
           ).rows[0];
           const eligible =
-            email === control.master_email &&
-            (purpose === 'activation'
-              ? !account
+            purpose === 'activation'
+              ? email === control.master_email && !account
               : !!account &&
                 !account.restricted &&
-                Number(control.recovery_until) > now);
+                (account.office !== 'master' ||
+                  Number(control.recovery_until) > now);
           // Same persistent attempt bookkeeping for eligible and ineligible addresses.
           if (allowed) {
             const id = randomUUID(),
@@ -391,7 +431,7 @@ export class AccessService {
               [email, purpose],
             );
             await q(
-              'INSERT INTO access_trial.proof VALUES($1,$2,$3,$4,$5,false,0,$6,$7)',
+              'INSERT INTO access_trial.proof VALUES($1,$2,$3,$4,$5,false,0,$6,$7,$8)',
               [
                 id,
                 email,
@@ -400,12 +440,13 @@ export class AccessService {
                 Math.min(
                   now + s.proofSeconds * 1000,
                   expiry,
-                  purpose === 'recovery'
+                  purpose === 'recovery' && account?.office === 'master'
                     ? Number(control.recovery_until)
                     : expiry,
                 ),
                 control.revision,
                 now,
+                purpose === 'recovery' ? (account?.revision ?? null) : null,
               ],
             );
             if (eligible)
@@ -433,7 +474,8 @@ export class AccessService {
             !proof ||
             proof.used ||
             proof.purpose !== purpose ||
-            proof.email !== control.master_email ||
+            (purpose === 'activation' &&
+              proof.email !== control.master_email) ||
             Number(proof.expires_at) <= now ||
             proof.deployment_revision !== control.revision ||
             proof.attempts >= s.proofAttempts
@@ -459,12 +501,20 @@ export class AccessService {
           if (purpose === 'activation' && account) return fail('forbidden');
           if (
             purpose === 'recovery' &&
-            (!account ||
-              account.restricted ||
-              Number(control.recovery_until) <= now)
+            account &&
+            proof.account_revision !== null &&
+            proof.account_revision !== account.revision
           )
             return fail('forbidden');
-          if (purpose === 'recovery')
+          if (
+            purpose === 'recovery' &&
+            (!account ||
+              account.restricted ||
+              (account.office === 'master' &&
+                Number(control.recovery_until) <= now))
+          )
+            return fail('forbidden');
+          if (purpose === 'recovery' && account.office === 'master')
             expiry = Math.min(expiry, Number(control.recovery_until));
           const verifier = await this.passwords.create(String(body.password));
           subject = account?.id ?? randomUUID();
@@ -486,6 +536,10 @@ export class AccessService {
             );
             await q(
               'UPDATE access_trial.session SET revoked=true,revision=revision+1 WHERE account_id=$1',
+              [account.id],
+            );
+            await q(
+              'UPDATE access_trial.initial_credential_flow SET consumed=true WHERE account_id=$1',
               [account.id],
             );
           }
@@ -589,11 +643,48 @@ export class AccessService {
             },
             expiresAt: expiry,
           };
-        else if (route === 'capabilities')
+        else if (route === 'capabilities') {
+          const authority = new InvitationAuthority(db, now);
+          await authority.load();
+          const viewer = authority.accounts.find(
+            (a) => a.id === session.account_id,
+          );
+          const options: { family: string; term: unknown }[] = [];
+          let optionChecks = 0;
+          for (const scope of authority.scopes)
+            for (const permission of authority.permissions)
+              for (const support of authority.supports) {
+                if (++optionChecks > 4096)
+                  throw new Error('CAPABILITY_OPTIONS_BOUND');
+                for (const faculty of ['exercise', 'grant'] as const) {
+                  const compiled = authority.compile(
+                    viewer,
+                    permission.family,
+                    [
+                      {
+                        permission_id: permission.id,
+                        exercise_or_grant: faculty,
+                        scope_ref: scope.id,
+                        support_ref: support.id,
+                      },
+                    ],
+                    now + s.invitationSeconds * 1000,
+                  );
+                  if (compiled)
+                    options.push({
+                      family: permission.family,
+                      term: compiled[0],
+                    });
+                  if (options.length > 64)
+                    throw new Error('CAPABILITY_PROJECTION_BOUND');
+                }
+              }
+          expiry = Math.min(expiry, authority.deadline);
           result = {
             status: 200,
             body: {
               revision: control.revision,
+              invitation_options: options,
               capabilities: [
                 {
                   capability_id: 'session_status',
@@ -613,18 +704,21 @@ export class AccessService {
             },
             expiresAt: expiry,
           };
-        else return fail('unavailable');
+        } else return fail('unavailable');
         if (post && result.status === 200)
-          await q('INSERT INTO access_trial.intent VALUES($1,$2,$3,$4)', [
-            intentKey,
-            input.intent,
-            payloadDigest,
-            JSON.stringify(
-              route === 'login'
-                ? { operation_id: newId, status: 'completed' }
-                : result.body,
-            ),
-          ]);
+          await q(
+            "INSERT INTO access_trial.intent(binding,intention,payload_digest,receipt,canonical_profile) VALUES($1,$2,$3,$4,'canon_m09_1')",
+            [
+              intentKey,
+              input.intent,
+              payloadDigest,
+              JSON.stringify(
+                route === 'login'
+                  ? { operation_id: newId, status: 'completed' }
+                  : result.body,
+              ),
+            ],
+          );
         return result;
       };
       output = await run();

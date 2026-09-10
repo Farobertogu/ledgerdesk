@@ -7,6 +7,7 @@ import {
   type AccessRoute,
 } from '../../contracts/access';
 import { sessionTransport } from '../../contracts/access_transport';
+import InvitationPanel from './InvitationPanel';
 
 type Mode = 'login' | 'activation' | 'recovery';
 export default function AccessPanel({ apiOrigin }: { apiOrigin: string }) {
@@ -210,8 +211,8 @@ export default function AccessPanel({ apiOrigin }: { apiOrigin: string }) {
           <section>
             <h1>A verified way in.</h1>
             <p>
-              Activate the predeclared office account, then use your password to
-              start a server-verified session.
+              Activate the predeclared office account or accept a nominated invitation,
+              then use your password to start a server-verified session.
             </p>
             <div className="access-note">
               <strong>Synthetic access environment</strong>
@@ -366,6 +367,7 @@ export default function AccessPanel({ apiOrigin }: { apiOrigin: string }) {
             </p>
           </section>
         </div>
+        <InvitationPanel apiOrigin={apiOrigin} authenticated={authenticated} ready={!busy}/>
       </div>
     </main>
   );

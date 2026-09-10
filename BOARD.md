@@ -16,9 +16,11 @@ Source of truth for build order: the specification's build plan, as amended — 
 
 ## In progress
 
+Active access follow-up: [tracked browser failures and closure criteria](docs/INC-02-T03.md#tracked-browser-follow-up).
+
 | Card | Increment | Depends on | Closing evidence |
 |---|---|---|---|
-| INC-02 | Access and identity: I02-T01 and I02-T02 accepted; I02-T03 remains pending | INC-01 | [T01 evidence](docs/INC-02-T01.md), [PR #24](https://github.com/Farobertogu/ledgerdesk/pull/24), [T02 evidence](docs/INC-02-T02.md), and [PR #25](https://github.com/Farobertogu/ledgerdesk/pull/25). ADR-033 is accepted on 2026-09-10 for synthetic deployment activation, sessions and controlled recovery. Invitations and authenticated reading remain later tasks. This does not close INC-02 or authorize production use. |
+| INC-02 | Access and identity: I02-T01, I02-T02 and I02-T03 accepted; I02-T04 remains pending | INC-01 | [T01 evidence](docs/INC-02-T01.md), [PR #24](https://github.com/Farobertogu/ledgerdesk/pull/24), [T02 evidence](docs/INC-02-T02.md), [PR #25](https://github.com/Farobertogu/ledgerdesk/pull/25), [T03 evidence](docs/INC-02-T03.md), and [PR #26](https://github.com/Farobertogu/ledgerdesk/pull/26). ADR-034 is accepted on 2026-09-10 for revisioned synthetic invitations and ordinary-account lifecycle. The two browser follow-ups remain open. Authenticated reading and remaining authority/administration work remain later tasks. This does not close INC-02 or authorize production use. |
 
 ## Backlog (plan order)
 

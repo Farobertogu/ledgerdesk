@@ -20,6 +20,10 @@ const empty = object({});
 const reason = text(1, 1000);
 const proof = object({ challenge_id: id, code, password: secret });
 const grant = object({ permission_id: id, exercise_or_grant: choices('exercise', 'grant'), scope_ref: id, support_ref: id });
+const term = object({ permission_id: id, exercise_or_grant: choices('exercise','grant'), scope_ref: id, support_ref: id,
+  permission_label: text(1,200), scope_label: text(1,200), purpose_ref: id, support_label: text(1,200),
+  continuity: choices('domain','delegated'), permission_revision: revision, scope_revision: revision, support_revision: revision, expires_at: integer(),
+  authority_declarations: array(object({declaration_ref:id,revision,accreditation:choices('not_externally_accredited')}),0,64) });
 const accepted = object({ status: choices('accepted') });
 const completed = object({ operation_id: id, status: choices('completed'), revision });
 const receipt = object({ operation_id: id, status: choices('accepted', 'completed', 'not_completed') });
@@ -39,7 +43,8 @@ export const ACCESS_ROUTES = {
   recovery_challenge: { method: 'POST', path: '/api/access/v1/recovery/challenges', request: object({ email: exactEmail }), response: accepted, context: 'reception', consumer: 'T02' },
   recover_credential: { method: 'POST', path: '/api/access/v1/recovery/complete', request: proof, response: completed, context: 'provisional', consumer: 'T02' },
   issue_invitation: { method: 'POST', path: '/api/access/v1/invitations', request: object({ email: exactEmail, family: choices('application', 'material_governance'), grants: array(grant, 1, 32), expires_at: integer() }), response: object({ invitation_id: id, revision, status: choices('pending_acceptance') }), context: 'session', consumer: 'T03' },
-  invitation_view: { method: 'GET', path: '/api/access/v1/invitations/:invitation_id', request: empty, response: object({ invitation_id: id, revision, email: exactEmail, family: choices('application', 'material_governance'), grants: array(grant, 1, 32), expires_at: integer() }), context: 'provisional_or_session', consumer: 'T03' },
+  amend_invitation: { method: 'POST', path: '/api/access/v1/invitations/:invitation_id/amend', request: object({ expected_revision: revision, grants: array(grant, 1, 32) }), response: completed, context: 'session', consumer: 'T03' },
+  invitation_view: { method: 'GET', path: '/api/access/v1/invitations/:invitation_id', request: empty, response: object({ invitation_id: id, revision, email: exactEmail, family: choices('application', 'material_governance'), grants: array(grant, 1, 32), expires_at: integer(), state: choices('pending','accepted','withdrawn'), terms: array(term,1,32), accepted_grants: array(object({grant_id:id,revision}),0,32) }), context: 'provisional_or_session', consumer: 'T03' },
   invitation_challenge: { method: 'POST', path: '/api/access/v1/invitations/:invitation_id/challenges', request: empty, response: accepted, context: 'reception', consumer: 'T03' },
   verify_invitation_email: { method: 'POST', path: '/api/access/v1/invitation-proofs/:challenge_id/verify', request: object({ code }), response: object({ proof_id: id, expires_at: integer() }), context: 'reception', consumer: 'T03' },
   accept_invitation: { method: 'POST', path: '/api/access/v1/invitations/:invitation_id/accept', request: object({ expected_revision: revision, proof_id: id }), response: completed, context: 'provisional_or_session', consumer: 'T03' },
@@ -47,7 +52,7 @@ export const ACCESS_ROUTES = {
   withdraw_invitation: { method: 'POST', path: '/api/access/v1/invitations/:invitation_id/withdraw', request: object({ expected_revision: revision, reason }), response: completed, context: 'session', consumer: 'T03' },
   withdraw_grant: { method: 'POST', path: '/api/access/v1/grants/:grant_id/withdraw', request: object({ expected_revision: revision, reason }), response: completed, context: 'session', consumer: 'T03' },
   current_session: { method: 'GET', path: '/api/access/v1/session', request: empty, response: session, context: 'session', consumer: 'T02' },
-  capabilities: { method: 'GET', path: '/api/access/v1/capabilities', request: empty, response: object({ capabilities: array(capability, 0, 64), revision }), context: 'session', consumer: 'T02' },
+  capabilities: { method: 'GET', path: '/api/access/v1/capabilities', request: empty, response: object({ capabilities: array(capability, 0, 64), revision, invitation_options: array(object({family:choices('application','material_governance'),term}),0,64) }), context: 'session', consumer: 'T02' },
   people: { method: 'GET', path: '/api/access/v1/people', request: object({ cursor: text(0, 512) }), response: object({ people: array(object({ account_id: id, display_name: text(1, 200) }), 0, 100), revision, next_cursor: text(0, 512) }), context: 'session', consumer: 'T04' },
   operation_result: { method: 'GET', path: '/api/access/v1/operations/:operation_id', request: empty, response: receipt, context: 'provisional_or_session', consumer: 'T03' },
 } as const;

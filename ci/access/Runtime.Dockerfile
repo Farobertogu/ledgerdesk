@@ -11,6 +11,7 @@ COPY src/server/access ./src/server/access
 COPY src/components/access ./src/components/access
 COPY tests/access ./tests/access
 COPY tests/reading/timing_comparison.mjs ./tests/reading/timing_comparison.mjs
+COPY tests/reading/browser_diagnostics.mjs ./tests/reading/browser_diagnostics.mjs
 ENV NEXT_TELEMETRY_DISABLED=1 LEDGERDESK_ACCESS_CONTAINER=1
 RUN node node_modules/next/dist/bin/next build tests/access/runtime-ui --webpack && mkdir /work/output && chown -R pwuser:pwuser /work/tests/access/runtime-ui/.next /work/output
 USER pwuser
