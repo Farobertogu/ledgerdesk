@@ -14,12 +14,22 @@ COPY src/server/kb/reading.ts ./src/server/kb/reading.ts
 COPY src/components/access ./src/components/access
 COPY src/components/reading ./src/components/reading
 COPY ci/access_material_schema.mjs ./ci/access_material_schema.mjs
+COPY ci/access_final_routes.mjs ./ci/access_final_routes.mjs
+COPY src/app/access ./src/app/access
+COPY src/app/layout.tsx src/app/globals.css ./src/app/
+COPY src/instrumentation.ts ./src/instrumentation.ts
+COPY next.config.mjs postcss.config.mjs tsconfig.app.json ./
 COPY tests/access ./tests/access
 COPY tests/reading/timing_comparison.mjs ./tests/reading/timing_comparison.mjs
 COPY tests/reading/browser_diagnostics.mjs ./tests/reading/browser_diagnostics.mjs
 COPY tests/reading/T04_seed.mjs ./tests/reading/T04_seed.mjs
 ENV NEXT_TELEMETRY_DISABLED=1 LEDGERDESK_ACCESS_CONTAINER=1
 ARG ACCESS_UI_MUTATION=""
-RUN ACCESS_UI_MUTATION="$ACCESS_UI_MUTATION" node tests/access/ui_mutation.mjs && node node_modules/next/dist/bin/next build tests/access/runtime-ui --webpack && mkdir /work/output && chown -R pwuser:pwuser /work/tests/access/runtime-ui/.next /work/output
+ARG ACCESS_FINAL_ROUTES="0"
+# The read-only BuildKit input is a public source inventory, not a credential.
+# Its independent digest binds the copied files and invalidates the build cache.
+ARG ACCESS_COMPOSITION_SHA256=""
+ENV ACCESS_COMPOSITION_SHA256=$ACCESS_COMPOSITION_SHA256
+RUN --mount=type=secret,id=access_composition if [ "$ACCESS_FINAL_ROUTES" = "1" ]; then node ci/access_final_routes.mjs && node node_modules/next/dist/bin/next build tests/access/final-ui --webpack; else ACCESS_UI_MUTATION="$ACCESS_UI_MUTATION" node tests/access/ui_mutation.mjs && node node_modules/next/dist/bin/next build tests/access/runtime-ui --webpack; fi && mkdir /work/output && chown -R pwuser:pwuser /work/tests/access /work/output
 USER pwuser
 CMD ["node", "--experimental-strip-types", "--test", "--test-concurrency=1", "tests/access/test_runtime.mjs"]

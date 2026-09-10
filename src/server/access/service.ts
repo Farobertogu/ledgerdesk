@@ -20,6 +20,7 @@ import { performInvitation } from './invitations.ts';
 import { InvitationAuthority } from './invitation_authority.ts';
 import { capabilityExplanation, type CapabilityAxes } from '../../contracts/access_presentation.ts';
 import { currentReadingControl } from './reading_control.ts';
+import { materializeBootstrap } from './bootstrap.ts';
 
 export const FLOW_COOKIE = '__Host-ledgerdesk-flow';
 // Synthetic-trial bound: keep distributed guessing finite without sharing the
@@ -524,7 +525,7 @@ export class AccessService {
             expiry = Math.min(expiry, Number(control.recovery_until));
           const verifier = await this.passwords.create(String(body.password));
           subject = account?.id ?? randomUUID();
-          if (purpose === 'activation')
+          if (purpose === 'activation') {
             await q(
               'INSERT INTO access_trial.account(id,email,person_ref,office,verifier) VALUES($1,$2,$3,$4,$5)',
               [
@@ -535,7 +536,8 @@ export class AccessService {
                 verifier,
               ],
             );
-          else {
+            expiry = Math.min(expiry, await materializeBootstrap(db, control, subject!, newId, now));
+          } else {
             await q(
               'UPDATE access_trial.account SET verifier=$1,revision=revision+1 WHERE id=$2',
               [verifier, account.id],

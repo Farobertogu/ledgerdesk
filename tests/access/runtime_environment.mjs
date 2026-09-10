@@ -5,6 +5,7 @@ import {
   readFileSync,
   mkdirSync,
   rmSync,
+  existsSync,
 } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
 import path from 'node:path';
@@ -18,6 +19,9 @@ export async function runtimeEnvironment({ invitations = true } = {}) {
   assert.equal(homedir(), '/home/pwuser');
   const scratch = mkdtempSync(path.join(tmpdir(), 'access-runtime-'));
   let started = false;
+  const nss = '/home/pwuser/.pki/nssdb';
+  const certificateName = path.basename(scratch);
+  let trusted = false;
   let admin;
   const clients = [];
   const run = (program, args) =>
@@ -40,9 +44,16 @@ export async function runtimeEnvironment({ invitations = true } = {}) {
           '-w',
           'stop',
         ]);
-      assert.ok(scratch.startsWith(path.join(tmpdir(), 'access-runtime-')));
-      rmSync(scratch, { recursive: true, force: true });
-      console.log('ACCESS_PG_CLEANED');
+      try {
+        if (trusted) {
+          run('certutil', ['-D', '-d', `sql:${nss}`, '-n', certificateName]);
+          trusted = false;
+        }
+      } finally {
+        assert.ok(scratch.startsWith(path.join(tmpdir(), 'access-runtime-')));
+        rmSync(scratch, { recursive: true, force: true });
+        console.log('ACCESS_PG_CLEANED');
+      }
     }
   }
   try {
@@ -200,20 +211,21 @@ export async function runtimeEnvironment({ invitations = true } = {}) {
       '-extfile',
       'leaf.ext',
     ]);
-    const nss = '/home/pwuser/.pki/nssdb';
     mkdirSync(nss, { recursive: true });
-    run('certutil', ['-N', '--empty-password', '-d', `sql:${nss}`]);
+    if (!existsSync(path.join(nss, 'cert9.db')))
+      run('certutil', ['-N', '--empty-password', '-d', `sql:${nss}`]);
     run('certutil', [
       '-A',
       '-d',
       `sql:${nss}`,
       '-n',
-      'runtime-root',
+      certificateName,
       '-t',
       'C,,',
       '-i',
       path.join(scratch, 'ca.crt'),
     ]);
+    trusted = true;
     return {
       admin,
       runtime,

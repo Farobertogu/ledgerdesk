@@ -5,22 +5,26 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { createEvidenceDirectory } from './access_evidence.mjs';
 import { UI_MUTATIONS } from '../tests/access/ui_mutation.mjs';
+import { withSourceComposition } from './access_final_routes.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const invitations = process.argv.includes('--invitations');
 const reading = process.argv.includes('--reading');
 const administration = process.argv.includes('--administration');
-if ([reading, invitations, administration].filter(Boolean).length > 1)
+const journey = process.argv.includes('--journey');
+if ([reading, invitations, administration, journey].filter(Boolean).length > 1)
   throw new Error('Choose one runtime suite');
-const owner = `access-${administration ? 't05' : reading ? 't04' : invitations ? 't03' : 't02'}-${randomUUID()}`,
+const owner = `access-${journey ? 't06' : administration ? 't05' : reading ? 't04' : invitations ? 't03' : 't02'}-${randomUUID()}`,
   image = 'ledgerdesk-access-runtime:2';
 const mutation = process.argv.find((a) => a.startsWith('--mutation=')) ?? '';
-const evidenceFolder = administration
-  ? 'access-administration'
-  : reading
-    ? 'access-reading'
-    : invitations
-      ? 'access-invitations'
-      : 'access-runtime';
+const evidenceFolder = journey
+  ? 'access-journey'
+  : administration
+    ? 'access-administration'
+    : reading
+      ? 'access-reading'
+      : invitations
+        ? 'access-invitations'
+        : 'access-runtime';
 let transcript = '';
 if (
   ![
@@ -49,6 +53,12 @@ if (
     '--mutation=disclose-private-reason',
     '--mutation=drop-invitation-view-admission',
     '--mutation=offer-withdrawn-grant',
+    '--mutation=drop-bootstrap-materialization',
+    '--mutation=drop-bootstrap-revision',
+    '--mutation=drop-bootstrap-root-binding',
+    '--mutation=drop-bootstrap-exercise-bound',
+    '--mutation=drop-journey-reading-authority',
+    '--mutation=drop-journey-evidence',
     ...Object.keys(UI_MUTATIONS).map((name) => '--mutation=' + name),
   ].includes(mutation)
 )
@@ -69,10 +79,14 @@ if (mutation && mutation !== '--mutation=early-failure') {
     '--mutation=offer-withdrawn-grant',
     ...Object.keys(UI_MUTATIONS).map((name) => '--mutation=' + name),
   ].includes(mutation);
+  const journeyMutation =
+    mutation.startsWith('--mutation=drop-bootstrap-') ||
+    mutation.startsWith('--mutation=drop-journey-');
   if (
     invitations !== invitationMutation ||
     reading !== readingMutation ||
-    administration !== administrationMutation
+    administration !== administrationMutation ||
+    journey !== journeyMutation
   )
     throw new Error('Mutation belongs to the other runtime suite');
 }
@@ -143,13 +157,16 @@ for (const signal of ['SIGINT', 'SIGTERM'])
     }
   });
 try {
-  await command(
+  const build = (compositionArgs) => command(
     [
       'build',
+      ...compositionArgs,
       '-f',
       'ci/access/Runtime.Dockerfile',
       '--iidfile',
       path.join(target, 'image.id'),
+      '--build-arg',
+      'ACCESS_FINAL_ROUTES=' + (journey ? '1' : '0'),
       '--build-arg',
       'ACCESS_UI_MUTATION=' +
         (Object.hasOwn(UI_MUTATIONS, variant) ? variant : ''),
@@ -159,6 +176,13 @@ try {
     ],
     900000,
   );
+  if (journey)
+    await withSourceComposition(root, path.join(target, 'source-composition.json'),
+      ({ filename, sha256 }) => build([
+        '--secret', 'id=access_composition,src=' + filename,
+        '--build-arg', 'ACCESS_COMPOSITION_SHA256=' + sha256,
+      ]));
+  else await build([]);
   builtImage = readFileSync(path.join(target, 'image.id'), 'utf8').trim();
   if (!/^sha256:[a-f0-9]{64}$/.test(builtImage))
     throw new Error('Invalid built image identity');
@@ -180,17 +204,19 @@ try {
         ? ['--env', `ACCESS_RUNTIME_MUTATION=${mutation.slice(11)}`]
         : []),
       builtImage,
-      ...(invitations || reading || administration
+      ...(invitations || reading || administration || journey
         ? [
             'node',
             '--experimental-strip-types',
             '--test',
             '--test-concurrency=1',
-            administration
-              ? 'tests/access/test_administration.mjs'
-              : reading
-                ? 'tests/access/test_authorized_reading.mjs'
-                : 'tests/access/test_invitations.mjs',
+            journey
+              ? 'tests/access/test_whole_journey.mjs'
+              : administration
+                ? 'tests/access/test_administration.mjs'
+                : reading
+                  ? 'tests/access/test_authorized_reading.mjs'
+                  : 'tests/access/test_invitations.mjs',
           ]
         : []),
     ],

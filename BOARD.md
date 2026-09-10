@@ -18,6 +18,12 @@ Source of truth for build order: the specification's build plan, as amended — 
 
 Active access follow-up: [tracked browser failures and closure criteria](docs/INC-02-T03.md#tracked-browser-follow-up).
 
+T06 whole-journey implementation is prepared for publication on `card/INC-02-whole-journey`:
+[scope, 28-row acceptance map and evidence](docs/INC-02-T06.md).
+[ADR-037](adr/ADR-037-whole-journey.md) remains proposed. Final-head remote CI and
+owner acceptance remain required before merge. No whole-increment acceptance or
+production authorization follows from its local experimental results.
+
 | Card | Increment | Depends on | Closing evidence |
 |---|---|---|---|
 | INC-02 | Access and identity: I02-T01 through I02-T05 accepted within their experimental scope; T06 pending | INC-01 | [T01 evidence](docs/INC-02-T01.md), [PR #24](https://github.com/Farobertogu/ledgerdesk/pull/24), [T02 evidence](docs/INC-02-T02.md), [PR #25](https://github.com/Farobertogu/ledgerdesk/pull/25), [T03 evidence](docs/INC-02-T03.md), and [PR #26](https://github.com/Farobertogu/ledgerdesk/pull/26). [T04 scope and evidence](docs/INC-02-T04.md), [PR #27](https://github.com/Farobertogu/ledgerdesk/pull/27): 27/27 real runtime entries, eight directed unit cases, six discriminating mutation/cleanup runs, and retained regressions; [implementation CI](https://github.com/Farobertogu/ledgerdesk/actions/runs/34450022436) passed all four required jobs. ADR-035 is accepted on 2026-09-10 as a localized extension of ADR-034. [T05 implementation and evidence](docs/INC-02-T05.md): 26/26 administration entries, 12/12 directed units, seven earlier discriminating runtime mutants and an early-failure cleanup run, plus five directed notice-lifetime mutants; the correction sections record per-offer/adoption coverage, exact-session notice lifetime and isolated run IDs. ADR-036 is accepted on 2026-09-11. [Implementation CI](https://github.com/Farobertogu/ledgerdesk/actions/runs/34486227644) passed all four required jobs; [PR #28](https://github.com/Farobertogu/ledgerdesk/pull/28) records final-head checks and merge evidence. BROWSER-I03 and BROWSER-J19 remain open under their existing closure criteria. R24 records an observed temporal failure; full temporal conformity remains false and is not inherited by later capabilities. T06 whole-journey acceptance remains pending. This does not close INC-02 or authorize real data or production use. |
