@@ -51,6 +51,8 @@ jobs:
       - run: npm run test:access:invitations
       - run: npm run test:access:reading:unit
       - run: npm run test:access:reading
+      - run: npm run test:access:administration:unit
+      - run: npm run test:access:administration
       # This owns a fresh, separately named PG16 Compose project; no historical DB scripts.
       - run: npm run test:reading:service
       - run: npm run typecheck:app
@@ -82,6 +84,12 @@ jobs:
         with:
           name: access-reading-evidence
           path: test-results/access-reading/
+          if-no-files-found: ignore
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: access-administration-evidence
+          path: test-results/access-administration/
           if-no-files-found: ignore
   db:
     runs-on: ubuntu-latest

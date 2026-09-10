@@ -310,13 +310,13 @@ unaccredited temporal condition. This transport proof does not close it.
 
 | Capability | This delivery | Remaining first consumer |
 |---|---|---|
-| Closed contract parsing/validation, profile selection and transport guards | Nine T02 and ten T03 routes integrated; other admission remains closed | T04 consumers |
+| Closed contract parsing/validation, profile selection and transport guards | T02/T03 routes and the T04 census integrated; other admission remains closed | New explicitly admitted consumers |
 | Same-site HTTPS cookie/CSRF/CORS/TLS isolation | Real synthetic Next/terminal/PG/browser journey | Production deployment assessment |
 | Password library/configuration | Bounded verifier, decoy, rate limits and persisted lifecycle | Production capacity assessment |
-| Master activation/session/capability projection | Implemented, with current server-derived invitation options | Broader truthful capability surfaces |
-| Invitations, accepted gains, withdrawal and initial verifier | Real isolated T03 producer and connected minimal UI | Integrated administration in T05 |
-| Current authority and authenticated material reading | Current invitation grant/support/scope/function and incompatibility checks implemented; material integration closed | T04 integration |
-| Census and administration UI | Contract only, not an implemented screen | T04/T05 |
+| Master activation/session/capability projection | Implemented, with current server-derived invitation options and four-axis presentation | New explicitly disclosed surfaces |
+| Invitations, accepted gains, withdrawal and initial verifier | Real isolated producer and object-authorized T05 controls | Whole-journey acceptance in T06 |
+| Current authority and authenticated material reading | Shared evaluator and session-bearing reading implemented in T04 | Full temporal conformity remains false |
+| Census and administration UI | Scoped nominal pagination and effective capabilities connected to real producers | Whole-journey acceptance in T06 |
 | Post-bootstrap authority-management routes | Admission conditional; no route | Actual admitted consumer, not inferred from an entity |
 | Real data, external mail, production authentication or full temporal conformity | Not authorized or demonstrated | Separate conditions and evidence |
 
@@ -327,6 +327,82 @@ support-bound grant expiry and any consumed function declarations, marked as
 not externally accredited. No optional field is silently dropped for an older
 client: deploy the paired service/UI, and fail closed on mismatched projections.
 There is no new alias, credential format or `reading/1` change.
+
+## Effective administration projection
+
+The T05 paired extension adds `explanation` to each capability and
+`available_actions` to an already-authorized `invitation_view`. Both are required
+closed fields. Deploy the matching producer, validator and UI together; no
+optional fallback accepts an older DTO. No route or method is added.
+
+`explanation` is one of `available`, `not_implemented`, `disabled`, `unverified`,
+`not_authorized`, `not_executable`. It summarizes only the existing axes, with
+precedence: not implemented, disabled, either unknown axis, not authorized, then
+executable or not executable. The four axes remain separately visible. Validation
+rejects a summary inconsistent with them. No internal investiture, permission,
+support, treatment or restriction cause is exported. A new diagnosis cannot be
+introduced as interface copy without an authorized disclosure rule.
+
+Non-revealable capabilities are absent from the server response, not represented
+by `revealable: false`. There is no hidden count, placeholder or auxiliary list.
+Names of disclosed capabilities are safe text, never HTML. A missing capability
+does not tell the client why it is missing.
+
+Each action offer has `{ action, target_id, revision }`. Actions are limited to
+`accept_invitation`, `amend_invitation`, `withdraw_invitation`, `withdraw_grant`.
+Invitation actions refer to the containing pending invitation and its current
+revision; withdrawal targets must belong to its accepted grant references. No
+duplicates, foreign targets or arbitrary action names are valid. An authorized
+view with an empty action list remains a successful, readable view. An object
+that is absent or not inspectable returns the same neutral unavailable projection.
+An offer permits preparing the corresponding input; it does not bypass proof,
+replacement-term, current-revision or current-authority checks at execution.
+
+The visual rule is explicit: absent amendment and withdrawal offers have no
+controls in the view. Acceptance remains visible but disabled unless its offer,
+current proof and local readiness are all present. A readable view with zero
+offers stays readable. Protocol values `yes`, `no`, `unverified` are displayed as
+`Yes`, `No`, `Not verified`; the wire values do not change.
+
+Acceptance eligibility is shared by projection and execution, preserving the
+ordered authorization/revision/state checks and their 403/409 outcomes. Grant
+withdrawal faculty remains independent of the withdrawn flag: a stale revision
+still conflicts before lifecycle rejection, and an already-withdrawn grant is
+not misrecorded as an attempt to escalate authority.
+
+The UI does not persist secrets, pending intentions, private views or census
+cursors in localStorage, sessionStorage or IndexedDB. The existing server-set
+HttpOnly session cookie is unchanged. An unconfirmed invitation request retains its exact
+key and body in memory, including expiry; other mutations cannot replace it.
+The explicit retry replays those bytes rather than regenerating the form.
+Session/proof context changes and reload discard that local state; the interface
+does not claim an unobserved effect failed. A known operation can be consulted
+through the existing reauthorized receipt route, not a new search endpoint.
+
+After a lost provisional sign-in response, a valid current-session observation
+may establish a new local authenticated context and retire that provisional
+login attempt. It does not recover or confirm its receipt. The interface states
+that distinction and permits sign-out from the separately verified session.
+The notice belongs to that recovered session: a same-session refresh retains it,
+including when a later observation fails. Confirmed sign-out, a successful new
+sign-in, an observed replacement (including another session of the same account),
+or confirmed absence retires it. Starting an operation or losing its response does
+not clear it. Retiring the notice does not confirm the earlier missing receipt.
+A failed observation cannot make this transition. Other uncertain effects and
+same-context requests retain their reconciliation requirement; changing access
+tabs does not silently discard them.
+
+Session comparison uses the exact current session CSRF value in memory, never
+account revision as a session identity. It neither renders nor logs that value.
+Local lifetime changes cancel outstanding presentation work. Additional session
+observations guard adoption of sensitive responses; they are not an atomic
+browser/server transaction or instantaneous synchronization between tabs.
+Technical uncertainty does not masquerade as unauthenticated or revoke a session.
+The post-await local-context check remains distinct from the pre-await check.
+Local cancellation is not reported as an observed session mismatch.
+
+Directed tests cover these new views independently. They do not close R24 or the
+two tracked browser failures and do not authorize real data or production use.
 
 ## Technical references
 

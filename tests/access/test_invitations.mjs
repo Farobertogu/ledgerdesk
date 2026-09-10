@@ -129,7 +129,7 @@ test(
           'invitations.ts',
           'if (inv.revision !== body.expected_revision)',
           'if (false)',
-          2,
+          1,
         ],
         'drop-invitation-support': [
           'invitation_authority.ts',
@@ -147,7 +147,7 @@ test(
           'invitations.ts',
           'proof.id !== body.proof_id',
           'false',
-          2,
+          1,
         ],
         'drop-canonical-target': [
           '../../contracts/access_canonical.ts',
@@ -171,7 +171,15 @@ test(
           source = readFileSync(target, 'utf8');
         assert.equal(source.split(from).length - 1, count);
         let changed = source.replaceAll(from, to);
+        if (mutation === 'drop-invitation-revision') {
+          const shared = 'if (expected && inv.revision !== expected.revision)';
+          assert.equal(changed.split(shared).length - 1, 1);
+          changed = changed.replace(shared, 'if (false)');
+        }
         if (mutation === 'drop-invitation-proof') {
+          const shared = '(expected && proof.id !== expected.proofId)';
+          assert.equal(changed.split(shared).length - 1, 1);
+          changed = changed.replace(shared, 'false');
           const predicate = 'AND ($4::uuid IS NULL OR p.id=$4)';
           assert.equal(changed.split(predicate).length - 1, 1);
           changed = changed.replace(

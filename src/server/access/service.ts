@@ -18,6 +18,7 @@ import { tokenMatches } from './transport.ts';
 import { canonicalIntent } from '../../contracts/access_canonical.ts';
 import { performInvitation } from './invitations.ts';
 import { InvitationAuthority } from './invitation_authority.ts';
+import { capabilityExplanation, type CapabilityAxes } from '../../contracts/access_presentation.ts';
 import { currentReadingControl } from './reading_control.ts';
 
 export const FLOW_COOKIE = '__Host-ledgerdesk-flow';
@@ -685,7 +686,7 @@ export class AccessService {
                 }
               }
           expiry = Math.min(expiry, authority.deadline);
-          const additional: { capability_id: string; implemented: boolean; enabled: boolean; authorized: string; executable: string }[] = [];
+          const additional: (CapabilityAxes & { capability_id: string })[] = [];
           if (this.readingGeneration) {
             const materialControl=(await q('SELECT * FROM material_trial.control')).rows[0];
             const treatmentReady=materialControl && ['capture_ready','processing_ready','conservation_ready','trace_ready','destination_ready'].every(k=>materialControl[k]===true);
@@ -704,7 +705,7 @@ export class AccessService {
             body: {
               revision: control.revision,
               invitation_options: options,
-              capabilities: [
+              capabilities: ([
                 ...additional,
                 {
                   capability_id: 'session_status',
@@ -720,7 +721,7 @@ export class AccessService {
                   authorized: 'yes',
                   executable: 'yes',
                 },
-              ],
+              ] as (CapabilityAxes & { capability_id: string })[]).map(c => ({ ...c, explanation: capabilityExplanation(c) })),
             },
             expiresAt: expiry,
           };

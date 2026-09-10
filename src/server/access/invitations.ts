@@ -10,6 +10,7 @@ import {
   canonicalValue,
 } from '../../contracts/access_canonical.ts';
 import { invitationExpiryAllowed } from '../../contracts/access_security.ts';
+import type { InvitationAction } from '../../contracts/access_presentation.ts';
 import { tokenMatches } from './transport.ts';
 import {
   InvitationAuthority,
@@ -232,6 +233,73 @@ export async function performInvitation(
     const canInspect = () =>
       recipient() ||
       (!!viewer && viewer.id === inv?.issuer_id && !!currentTerms());
+    const managesInvitation = () =>
+      !!inv &&
+      !!current &&
+      !!viewer &&
+      viewer.id === inv.issuer_id &&
+      !!currentTerms();
+    const mayWithdraw = (g: any) => {
+      const target = g && authority.accounts.find((a) => a.id === g.account_id);
+      return (
+        !!g &&
+        !!target &&
+        target.office !== 'master' &&
+        authority.allows(viewer, g.permission_id, 'grant', g.scope_ref)
+      );
+    };
+    // Shared offer/execution eligibility. Preserve the ordered 403/409 distinction;
+    // faculty, expected revision and lifecycle state are not one boolean predicate.
+    const acceptanceEligibility = async (expected?: {
+      proofId: unknown;
+      revision: unknown;
+    }) => {
+      if (
+        !inv ||
+        !current ||
+        !recipient() ||
+        !proof ||
+        (expected && proof.id !== expected.proofId) ||
+        proof.invitation_id !== inv.id ||
+        proof.used ||
+        proof.superseded
+      )
+        return { error: 'forbidden' as AccessError };
+      if (expected && inv.revision !== expected.revision)
+        return { error: 'revision_conflict' as AccessError };
+      if (
+        inv.state !== 'pending' ||
+        Number(inv.expires_at) <= now ||
+        !invitationExpiryAllowed(
+          security,
+          Number(inv.issued_at),
+          Number(inv.expires_at),
+        )
+      )
+        return { error: 'forbidden' as AccessError };
+      if (expected)
+        expiry = Math.min(
+          expiry,
+          Number(inv.expires_at),
+          Number(proof.expires_at),
+        );
+      const terms = currentTerms();
+      if (!terms) return { error: 'forbidden' as AccessError };
+      if (canonicalValue(terms) !== canonicalValue(current.terms))
+        return { error: 'revision_conflict' as AccessError };
+      const personRef = await person(inv.email);
+      if (authority.incompatible(personRef, current.grants))
+        return { error: 'forbidden' as AccessError };
+      const target = (
+        await q(
+          'SELECT id,restricted,office,verifier IS NULL AS needs_verifier FROM access_trial.account WHERE email=$1',
+          [inv.email],
+        )
+      ).rows[0];
+      if (target?.restricted || target?.office === 'master')
+        return { error: 'forbidden' as AccessError };
+      return { terms, personRef, target };
+    };
     const event = async (
       objectRef: string,
       revision: number,
@@ -542,6 +610,40 @@ export async function performInvitation(
             [inv.id],
           )
         ).rows;
+        // No object-action projection is constructed until this object's view is admitted.
+        const availableActions: InvitationAction[] = [];
+        const pending = inv.state === 'pending' && Number(inv.expires_at) > now;
+        if (pending && managesInvitation()) {
+          availableActions.push(
+            {
+              action: 'amend_invitation',
+              target_id: inv.id,
+              revision: inv.revision,
+            },
+            {
+              action: 'withdraw_invitation',
+              target_id: inv.id,
+              revision: inv.revision,
+            },
+          );
+        }
+        if (!(await acceptanceEligibility()).error)
+          availableActions.push({
+            action: 'accept_invitation',
+            target_id: inv.id,
+            revision: inv.revision,
+          });
+        for (const row of grants) {
+          const g = authority.grants.find((g) => g.id === row.id);
+          if (mayWithdraw(g) && !g.withdrawn)
+            availableActions.push({
+              action: 'withdraw_grant',
+              target_id: g.id,
+              revision: g.revision,
+            });
+        }
+        if (pending) expiry = Math.min(expiry, Number(inv.expires_at));
+        if (proof) expiry = Math.min(expiry, Number(proof.expires_at));
         result = {
           status: 200,
           body: {
@@ -557,14 +659,14 @@ export async function performInvitation(
               grant_id: g.id,
               revision: g.revision,
             })),
+            available_actions: availableActions,
           },
         };
       } else if (
         route === 'amend_invitation' ||
         route === 'withdraw_invitation'
       ) {
-        if (!inv || !current || viewer.id !== inv.issuer_id || !currentTerms())
-          return failure('forbidden');
+        if (!managesInvitation()) return failure('forbidden');
         if (inv.revision !== body.expected_revision)
           return failure('revision_conflict');
         if (inv.state !== 'pending' || Number(inv.expires_at) <= now)
@@ -622,48 +724,18 @@ export async function performInvitation(
           },
         };
       } else if (route === 'accept_invitation') {
-        if (
-          !inv ||
-          !current ||
-          !recipient() ||
-          !proof ||
-          proof.id !== body.proof_id ||
-          proof.invitation_id !== inv.id ||
-          proof.used ||
-          proof.superseded
-        )
-          return failure('forbidden');
-        if (inv.revision !== body.expected_revision)
-          return failure('revision_conflict');
-        if (
-          inv.state !== 'pending' ||
-          Number(inv.expires_at) <= now ||
-          !invitationExpiryAllowed(
-            security,
-            Number(inv.issued_at),
-            Number(inv.expires_at),
-          )
-        )
-          return failure('forbidden');
+        const eligibility = await acceptanceEligibility({
+          proofId: body.proof_id,
+          revision: body.expected_revision,
+        });
+        if (eligibility.error) return failure(eligibility.error);
         expiry = Math.min(
           expiry,
           Number(inv.expires_at),
           Number(proof.expires_at),
         );
-        const terms = currentTerms();
-        if (!terms) return failure('forbidden');
-        if (canonicalValue(terms) !== canonicalValue(current.terms))
-          return failure('revision_conflict');
-        const personRef = await person(inv.email);
-        if (authority.incompatible(personRef, current.grants))
-          return failure('forbidden');
-        let target = (
-          await q('SELECT * FROM access_trial.account WHERE email=$1', [
-            inv.email,
-          ])
-        ).rows[0];
-        if (target?.restricted || target?.office === 'master')
-          return failure('forbidden');
+        const { terms, personRef } = eligibility;
+        let target = eligibility.target;
         if (!target) {
           const id = randomUUID();
           await q(
@@ -674,7 +746,7 @@ export async function performInvitation(
             'INSERT INTO access_trial.person_account VALUES($1,$2,$3,$4)',
             [id, personRef, 'invitation:' + inv.id, now],
           );
-          target = { id, verifier: null };
+          target = { id, needs_verifier: true };
         }
         await q(
           'INSERT INTO access_trial.acceptance VALUES($1,$2,$3,$4,$5,$6)',
@@ -702,7 +774,7 @@ export async function performInvitation(
         await q('UPDATE access_trial.email_proof SET used=true WHERE id=$1', [
           proof.id,
         ]);
-        if (target.verifier === null)
+        if (target.needs_verifier)
           await q(
             'INSERT INTO access_trial.initial_credential_flow VALUES($1,$2,$3,$4,false) ON CONFLICT(flow_digest) DO NOTHING',
             [
@@ -769,14 +841,7 @@ export async function performInvitation(
         };
       } else if (route === 'withdraw_grant') {
         const g = authority.grants.find((g) => g.id === path.grant_id);
-        const target =
-          g && authority.accounts.find((a) => a.id === g.account_id);
-        if (
-          !g ||
-          !target ||
-          target.office === 'master' ||
-          !authority.allows(viewer, g.permission_id, 'grant', g.scope_ref)
-        ) {
+        if (!mayWithdraw(g)) {
           await event('restricted-grant', 0, {
             escalation: 'competent-domain',
             reason: 'outside-current-granting-authority',
