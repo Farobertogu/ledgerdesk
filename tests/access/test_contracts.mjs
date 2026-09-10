@@ -59,6 +59,7 @@ test('capability projection is not a single ready flag or promise of future work
   base.capabilities[0].authorized = 'yes'; base.capabilities[0].implemented = false;
   assert.equal(validateAccess('capabilities', 'response', base), false);
   base.capabilities[0].implemented = true;
+  base.capabilities[0].explanation = 'available';
   assert.equal(validateAccess('capabilities', 'response', base), true);
   base.capabilities.push({ ...base.capabilities[0] });
   assert.equal(validateAccess('capabilities', 'response', base), false);

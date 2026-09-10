@@ -7,6 +7,14 @@ import {
   type AccessRoute,
 } from '../../contracts/access';
 import { accessPath } from '../../contracts/access_canonical';
+import type { InvitationAction } from '../../contracts/access_presentation';
+import {
+  assertLocalContext,
+  IntentionSlot,
+  StaleView,
+  verifySession,
+  verifySessionForView,
+} from './view_lifecycle';
 
 type Term = {
   permission_id: string;
@@ -34,6 +42,7 @@ type View = {
   state: string;
   terms: Term[];
   accepted_grants: { grant_id: string; revision: number }[];
+  available_actions: InvitationAction[];
 };
 const selector = (t: Term) => ({
   permission_id: t.permission_id,
@@ -45,10 +54,14 @@ const selector = (t: Term) => ({
 export default function InvitationPanel({
   apiOrigin,
   authenticated,
+  sessionToken,
+  onSessionChanged,
   ready,
 }: {
   apiOrigin: string;
   authenticated: boolean;
+  sessionToken: string;
+  onSessionChanged: () => void;
   ready: boolean;
 }) {
   const [open, setOpen] = useState(false),
@@ -65,7 +78,8 @@ export default function InvitationPanel({
     [choice, setChoice] = useState('0');
   const flowCsrf = useRef(''),
     sessionCsrf = useRef(''),
-    pending = useRef<{ signature: string; key: string } | null>(null);
+    pending = useRef(new IntentionSlot());
+  const [operationId, setOperationId] = useState('');
   const generation = useRef(0),
     abort = useRef<AbortController | null>(null);
   async function call(
@@ -78,9 +92,9 @@ export default function InvitationPanel({
       throw Error('Check the fields and try again.');
     const path = accessPath(route, parameters),
       post = ACCESS_ROUTES[route].method === 'POST';
-    const signature = JSON.stringify([route, path, body]);
-    if (post && pending.current?.signature !== signature)
-      pending.current = { signature, key: crypto.randomUUID() };
+    const request = post
+      ? pending.current.prepare(route, parameters, body)
+      : null;
     const administrative = [
       'issue_invitation',
       'amend_invitation',
@@ -96,29 +110,35 @@ export default function InvitationPanel({
       administrative || (authenticated && !provisional)
         ? sessionCsrf.current
         : flowCsrf.current;
+    const signal = AbortSignal.any([
+      AbortSignal.timeout(10000),
+      abort.current!.signal,
+    ]);
+    if (authenticated && !provisional)
+      await verifySession(apiOrigin, sessionToken, signal);
     const r = await fetch(apiOrigin + path, {
       method: ACCESS_ROUTES[route].method,
       credentials: 'include',
       cache: 'no-store',
       redirect: 'error',
-      signal: AbortSignal.any([
-        AbortSignal.timeout(10000),
-        abort.current!.signal,
-      ]),
+      signal,
       ...(post
         ? {
             headers: {
               'content-type': 'application/json',
               'x-ledgerdesk-csrf': csrf,
-              'x-ledgerdesk-intent': pending.current!.key,
+              'x-ledgerdesk-intent': request!.key,
             },
             body: JSON.stringify(body),
           }
         : {}),
     });
     const raw = await r.text();
-    if (admittedGeneration !== generation.current)
-      throw new DOMException('Context changed', 'AbortError');
+    assertLocalContext(admittedGeneration, generation.current);
+    if (authenticated && !provisional)
+      await verifySessionForView(apiOrigin, sessionToken, signal, () =>
+        assertLocalContext(admittedGeneration, generation.current),
+      );
     if (raw.length > 262144) throw Error('Invalid service response.');
     const result = JSON.parse(raw);
     if (!r.ok) {
@@ -130,7 +150,7 @@ export default function InvitationPanel({
         )
       )
         throw Error('Invalid service response.');
-      if (r.status < 500) pending.current = null;
+      if (request && r.status < 500) pending.current.confirm(request);
       throw Error(
         result.code === 'revision_conflict'
           ? 'The invitation changed. Load its current terms before accepting or changing it.'
@@ -146,7 +166,9 @@ export default function InvitationPanel({
       !validateAccess(route, 'response', result)
     )
       throw Error('Invalid service response.');
-    if (post) pending.current = null;
+    if (request) pending.current.confirm(request);
+    if (result.operation_id && route !== 'operation_result')
+      setOperationId(result.operation_id);
     return result;
   }
   async function run(action: () => Promise<void>) {
@@ -157,6 +179,11 @@ export default function InvitationPanel({
       await action();
     } catch (e) {
       if (admittedGeneration !== generation.current) return;
+      if (e instanceof StaleView) {
+        onSessionChanged();
+        return;
+      }
+      setView(null);
       setMessage(
         e instanceof TypeError || e instanceof DOMException
           ? 'No result was received. The operation may have completed. Retry the unchanged request before starting another.'
@@ -184,18 +211,21 @@ export default function InvitationPanel({
     setChoice('0');
     flowCsrf.current = '';
     sessionCsrf.current = '';
-    pending.current = null;
+    pending.current.clear();
+    setOperationId('');
     return () => {
       generation.current++;
       abort.current?.abort();
     };
-  }, [authenticated]);
+  }, [authenticated, sessionToken]);
   const load = async () => {
     const v = await call('invitation_view', {}, { invitation_id: locator });
     setView(v);
     return v;
   };
   const actionId = { invitation_id: locator };
+  const offered = (action: InvitationAction['action']) =>
+    view?.available_actions.some((a) => a.action === action) ?? false;
   return (
     <section className="invitation-panel" aria-label="Invitations">
       <style>{`.invitation-panel{margin-top:32px;padding-top:24px;border-top:1px solid #d9e3f2}.invitation-panel h2{font-size:25px;margin:0 0 12px}.invitation-workspace{margin-top:20px;display:grid;grid-template-columns:1fr 1fr;gap:24px}.invitation-workspace>div{min-width:0}.invitation-panel select{max-width:100%;width:100%;padding:10px;font:inherit;background:white;border:1px solid #8fa3bf;border-radius:5px}.invitation-panel .actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}.invitation-panel dl{display:grid;grid-template-columns:minmax(90px,.5fr) 1fr;gap:10px;line-height:1.5}.invitation-panel dd{margin:0;overflow-wrap:anywhere}.invitation-terms{background:white;padding:22px;border-left:3px solid #2359ce;margin-top:20px}.invitation-panel .receipt{overflow-wrap:anywhere;font-size:14px}.invitation-panel label{margin-top:14px}@media(max-width:640px){.invitation-workspace{grid-template-columns:1fr}.invitation-panel dl{grid-template-columns:1fr;gap:5px}.invitation-panel dt{font-weight:600}}`}</style>
@@ -228,7 +258,11 @@ export default function InvitationPanel({
         </button>
       ) : (
         <>
-          <div className="invitation-workspace">
+          <fieldset
+            className="invitation-workspace"
+            disabled={busy || !!pending.current.current}
+            style={{ border: 0, padding: 0, minWidth: 0 }}
+          >
             <div>
               <label htmlFor="invitation-id">Invitation identifier</label>
               <input
@@ -406,7 +440,7 @@ export default function InvitationPanel({
                 withdrawn permissions.
               </small>
             </div>
-          </div>
+          </fieldset>
           {view && (
             <div className="invitation-terms">
               <h3>Review before accepting</h3>
@@ -454,7 +488,12 @@ export default function InvitationPanel({
               <div className="actions">
                 <button
                   className="primary"
-                  disabled={busy || !proof || view.state !== 'pending'}
+                  disabled={
+                    busy ||
+                    !!pending.current.current ||
+                    !proof ||
+                    !offered('accept_invitation')
+                  }
                   onClick={() =>
                     void run(async () => {
                       const r = await call(
@@ -462,7 +501,7 @@ export default function InvitationPanel({
                         { expected_revision: view.revision, proof_id: proof },
                         actionId,
                       );
-                      await load();
+                      setView(null);
                       setMessage(
                         'Acceptance completed. Operation ' +
                           r.operation_id +
@@ -473,59 +512,64 @@ export default function InvitationPanel({
                 >
                   Accept displayed revision
                 </button>
-                {authenticated &&
-                  options.length > 0 &&
-                  view.state === 'pending' && (
-                    <>
-                      <button
-                        disabled={busy}
-                        onClick={() =>
-                          void run(async () => {
-                            const o = options[Number(choice)];
-                            await call(
-                              'amend_invitation',
-                              {
-                                expected_revision: view.revision,
-                                grants: [selector(o.term)],
-                              },
-                              actionId,
-                            );
-                            await load();
-                            setMessage(
-                              'Proposal amended. The recipient must accept its new revision.',
-                            );
-                          })
-                        }
-                      >
-                        Amend proposed permission
-                      </button>
-                      <button
-                        disabled={busy}
-                        onClick={() =>
-                          void run(async () => {
-                            await call(
-                              'withdraw_invitation',
-                              {
-                                expected_revision: view.revision,
-                                reason: 'Pending proposal withdrawn',
-                              },
-                              actionId,
-                            );
-                            await load();
-                            setMessage('Pending invitation withdrawn.');
-                          })
-                        }
-                      >
-                        Withdraw pending invitation
-                      </button>
-                    </>
-                  )}
-                {authenticated &&
-                  options.length > 0 &&
-                  view.accepted_grants.map((g) => (
+                {offered('amend_invitation') && (
+                  <>
                     <button
-                      key={g.grant_id}
-                      disabled={busy}
+                      disabled={
+                        busy ||
+                        !!pending.current.current ||
+                        !options[Number(choice)] ||
+                        options[Number(choice)].family !== view.family
+                      }
+                      onClick={() =>
+                        void run(async () => {
+                          const o = options[Number(choice)];
+                          await call(
+                            'amend_invitation',
+                            {
+                              expected_revision: view.revision,
+                              grants: [selector(o.term)],
+                            },
+                            actionId,
+                          );
+                          setView(null);
+                          setMessage(
+                            'Proposal amended. The recipient must accept its new revision.',
+                          );
+                        })
+                      }
+                    >
+                      Amend proposed permission
+                    </button>
+                  </>
+                )}
+                {offered('withdraw_invitation') && (
+                  <button
+                    disabled={busy || !!pending.current.current}
+                    onClick={() =>
+                      void run(async () => {
+                        await call(
+                          'withdraw_invitation',
+                          {
+                            expected_revision: view.revision,
+                            reason: 'Pending proposal withdrawn',
+                          },
+                          actionId,
+                        );
+                        setView(null);
+                        setMessage('Pending invitation withdrawn.');
+                      })
+                    }
+                  >
+                    Withdraw pending invitation
+                  </button>
+                )}
+                {view.available_actions
+                  .filter((a) => a.action === 'withdraw_grant')
+                  .map((g) => (
+                    <button
+                      key={g.target_id}
+                      disabled={busy || !!pending.current.current}
                       onClick={() =>
                         void run(async () => {
                           await call(
@@ -534,9 +578,9 @@ export default function InvitationPanel({
                               expected_revision: g.revision,
                               reason: 'Granted scope withdrawn',
                             },
-                            { grant_id: g.grant_id },
+                            { grant_id: g.target_id },
                           );
-                          await load();
+                          setView(null);
                           setMessage(
                             'Permission withdrawn. The acceptance remains recorded.',
                           );
@@ -547,6 +591,12 @@ export default function InvitationPanel({
                     </button>
                   ))}
               </div>
+              {!view.available_actions.length && (
+                <p>
+                  No actions are available in this view. Its terms remain
+                  readable.
+                </p>
+              )}
             </div>
           )}
         </>
@@ -554,6 +604,52 @@ export default function InvitationPanel({
       <p className="receipt" role="status" aria-live="polite">
         {message}
       </p>
+      {pending.current.current && (
+        <button
+          disabled={busy}
+          onClick={() =>
+            void run(async () => {
+              const saved = pending.current.current!;
+              const result = await call(
+                saved.route as AccessRoute,
+                { ...saved.body },
+                { ...saved.parameters },
+              );
+              setView(null);
+              if (result.invitation_id) setLocator(result.invitation_id);
+              setMessage(
+                'The exact request is now confirmed. Reload the invitation to inspect its current state.',
+              );
+            })
+          }
+        >
+          Retry exact unconfirmed request
+        </button>
+      )}
+      {operationId && (
+        <div className="receipt">
+          <p>Last confirmed operation: {operationId}</p>
+          <button
+            disabled={busy}
+            onClick={() =>
+              void run(async () => {
+                const receipt = await call(
+                  'operation_result',
+                  {},
+                  { operation_id: operationId },
+                );
+                setMessage(
+                  'The server reports this operation as ' +
+                    receipt.status +
+                    '. This does not authorize a new operation.',
+                );
+              })
+            }
+          >
+            Check recorded operation
+          </button>
+        </div>
+      )}
     </section>
   );
 }

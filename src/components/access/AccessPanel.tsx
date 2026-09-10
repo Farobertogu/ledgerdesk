@@ -8,6 +8,10 @@ import {
 } from '../../contracts/access';
 import { sessionTransport } from '../../contracts/access_transport';
 import InvitationPanel from './InvitationPanel';
+import CapabilityPanel from './CapabilityPanel';
+import PeoplePanel from './PeoplePanel';
+import type { Capability } from '../../contracts/access_presentation';
+import { StaleView, verifySession, ViewLifetime } from './view_lifecycle';
 
 type Mode = 'login' | 'activation' | 'recovery';
 export default function AccessPanel({ apiOrigin }: { apiOrigin: string }) {
@@ -19,10 +23,53 @@ export default function AccessPanel({ apiOrigin }: { apiOrigin: string }) {
     [password, setPassword] = useState(''),
     [challenge, setChallenge] = useState(''),
     [code, setCode] = useState('');
-  const [capabilities, setCapabilities] = useState<string[]>([]);
+  const [capabilities, setCapabilities] = useState<Capability[]>([]);
+  const [sessionVersion, setSessionVersion] = useState(0);
+  const [unconfirmedLogin, setUnconfirmedLogin] = useState(false);
+  const lifetime = useRef(new ViewLifetime()),
+    sessionToken = useRef('');
+  function sessionChanged() {
+    setUnconfirmedLogin(false);
+    lifetime.current.reset();
+    sessionToken.current = '';
+    csrf.current = '';
+    pending.current = null;
+    setAuthenticated(false);
+    setCapabilities([]);
+    setSessionVersion((v) => v + 1);
+    setBusy(false);
+    setPassword('');
+    setCode('');
+    setChallenge('');
+    setMessage('The session changed. Refresh the session before continuing.');
+  }
+  function adoptSession(token: string) {
+    // A verified session replaces a provisional login context, not its missing receipt.
+    // Other uncertain effects and same-session attempts are not reconciled by a read.
+    if (pending.current?.route === 'login' && pending.current.context === '') {
+      pending.current = null;
+      setUnconfirmedLogin(true);
+      setPassword('');
+    }
+    if (sessionToken.current !== token) {
+      lifetime.current.reset();
+      setSessionVersion((v) => v + 1);
+    }
+    sessionToken.current = token;
+    csrf.current = token;
+    setAuthenticated(true);
+  }
   const csrf = useRef(''),
-    pending = useRef<{ signature: string; key: string } | null>(null);
+    pending = useRef<{
+      signature: string;
+      key: string;
+      route: AccessRoute;
+      context: string;
+    } | null>(null);
   async function call(route: AccessRoute, body: Record<string, unknown> = {}) {
+    const lease = lifetime.current.capture(),
+      expected = sessionToken.current;
+    const signal = AbortSignal.any([lease.signal, AbortSignal.timeout(10000)]);
     sessionTransport({
       profile: 'session/1',
       uiOrigin: window.location.origin,
@@ -33,14 +80,23 @@ export default function AccessPanel({ apiOrigin }: { apiOrigin: string }) {
     const definition = ACCESS_ROUTES[route],
       post = definition.method === 'POST';
     const signature = JSON.stringify([route, body]);
-    if (post && pending.current?.signature !== signature)
-      pending.current = { signature, key: crypto.randomUUID() };
+    if (post && pending.current && pending.current.signature !== signature)
+      throw Error(
+        'An earlier result is unconfirmed. Retry its unchanged request before starting another.',
+      );
+    if (post && !pending.current)
+      pending.current = {
+        signature,
+        key: crypto.randomUUID(),
+        route,
+        context: expected,
+      };
     const res = await fetch(apiOrigin + definition.path, {
       method: definition.method,
       credentials: 'include',
       cache: 'no-store',
       redirect: 'error',
-      signal: AbortSignal.timeout(10000),
+      signal,
       ...(post
         ? {
             headers: {
@@ -53,6 +109,16 @@ export default function AccessPanel({ apiOrigin }: { apiOrigin: string }) {
         : {}),
     });
     const raw = await res.text();
+    lifetime.current.assert(lease.epoch);
+    if (route === 'capabilities' && expected) {
+      try {
+        await verifySession(apiOrigin, expected, signal);
+        lifetime.current.assert(lease.epoch);
+      } catch (e) {
+        if (e instanceof StaleView) sessionChanged();
+        throw e;
+      }
+    }
     if (raw.length > 32768)
       throw new Error('The service returned an invalid response.');
     const result = JSON.parse(raw);
@@ -66,7 +132,7 @@ export default function AccessPanel({ apiOrigin }: { apiOrigin: string }) {
       )
         throw new Error('The service returned an invalid response.');
       // A 5xx can follow a committed effect. Preserve its intention for reconciliation.
-      if (res.status < 500) pending.current = null;
+      if (post && res.status < 500) pending.current = null;
       throw Object.assign(
         new Error(
           result.code === 'unauthenticated'
@@ -88,27 +154,46 @@ export default function AccessPanel({ apiOrigin }: { apiOrigin: string }) {
       !validateAccess(route, 'response', result)
     )
       throw new Error('The service returned an invalid response.');
-    pending.current = null;
+    if (post) pending.current = null;
     return result;
   }
   async function reception() {
     csrf.current = (await call('reception')).csrf_token;
+  }
+  async function refreshSession() {
+    setCapabilities([]);
+    try {
+      const s = await call('current_session');
+      // Retire the old context's notice, not its missing receipt.
+      if (sessionToken.current && sessionToken.current !== s.csrf_token)
+        setUnconfirmedLogin(false);
+      adoptSession(s.csrf_token);
+      const caps = await call('capabilities');
+      setCapabilities(caps.capabilities);
+      setMessage('Current session verified by the server.');
+    } catch (e) {
+      if ((e as { code?: string }).code === 'unauthenticated') {
+        setUnconfirmedLogin(false);
+        sessionToken.current = '';
+        setAuthenticated(false);
+        await reception();
+        setMessage(
+          'Use your existing credentials, or activate the predeclared office account.',
+        );
+      } else throw e;
+    }
   }
   useEffect(() => {
     let live = true;
     async function start() {
       try {
         try {
-          const session = await call('current_session'),
-            caps = await call('capabilities');
+          const session = await call('current_session');
+          if (!live) return;
+          adoptSession(session.csrf_token);
+          const caps = await call('capabilities');
           if (live) {
-            csrf.current = session.csrf_token;
-            setAuthenticated(true);
-            setCapabilities(
-              caps.capabilities
-                .filter((c: { executable: string }) => c.executable === 'yes')
-                .map((c: { capability_id: string }) => c.capability_id),
-            );
+            setCapabilities(caps.capabilities);
             setMessage('Current session verified by the server.');
           }
         } catch (error) {
@@ -132,10 +217,29 @@ export default function AccessPanel({ apiOrigin }: { apiOrigin: string }) {
     void start();
     return () => {
       live = false;
+      lifetime.current.reset();
+      sessionToken.current = '';
       csrf.current = '';
       pending.current = null;
     };
   }, []); // Configuration is fixed by the server-rendered page, never by a query or cookie.
+  useEffect(() => {
+    const check = () => {
+      const lease = lifetime.current.capture(),
+        token = sessionToken.current;
+      if (!token) return;
+      void verifySession(
+        apiOrigin,
+        token,
+        AbortSignal.any([lease.signal, AbortSignal.timeout(10000)]),
+      ).catch((e) => {
+        if (lease.epoch === lifetime.current.epoch && e instanceof StaleView)
+          sessionChanged();
+      });
+    };
+    window.addEventListener('focus', check);
+    return () => window.removeEventListener('focus', check);
+  }, [apiOrigin]);
   async function execute(action: () => Promise<void>) {
     setBusy(true);
     setMessage('Working…');
@@ -145,7 +249,7 @@ export default function AccessPanel({ apiOrigin }: { apiOrigin: string }) {
       setMessage(
         e instanceof TypeError || e instanceof DOMException
           ? mode === 'login'
-            ? 'No result was received. Reload to check whether a session was established before signing in again.'
+            ? 'No result was received. Refresh the session to check current access before signing in again.'
             : 'No result was received. The operation may have completed; do not assume it failed. Retry the unchanged request to reconcile it.'
           : (e as Error).message,
       );
@@ -158,14 +262,10 @@ export default function AccessPanel({ apiOrigin }: { apiOrigin: string }) {
     await execute(async () => {
       if (mode === 'login') {
         const result = await call('login', { email, password });
-        csrf.current = result.csrf_token;
-        setAuthenticated(true);
+        setUnconfirmedLogin(false);
+        adoptSession(result.csrf_token);
         setPassword('');
-        setCapabilities(
-          (await call('capabilities')).capabilities
-            .filter((c: { executable: string }) => c.executable === 'yes')
-            .map((c: { capability_id: string }) => c.capability_id),
-        );
+        setCapabilities((await call('capabilities')).capabilities);
         setMessage(
           'Signed in. This session does not grant corpus approval or unrestricted reading.',
         );
@@ -187,11 +287,16 @@ export default function AccessPanel({ apiOrigin }: { apiOrigin: string }) {
     });
   }
   const switchMode = (next: Mode) => {
+    if (pending.current) {
+      setMessage(
+        'An earlier result is unconfirmed. Retry its unchanged request, or refresh the session after an uncertain sign-in.',
+      );
+      return;
+    }
     setMode(next);
     setPassword('');
     setCode('');
     setChallenge('');
-    pending.current = null;
     setMessage('');
   };
   return (
@@ -203,7 +308,9 @@ export default function AccessPanel({ apiOrigin }: { apiOrigin: string }) {
       .access-form{background:white;padding:30px;border:1px solid #d9e3f2;border-radius:12px}.access-page label{display:block;font-weight:600;font-size:14px;margin:18px 0 7px}.access-page input{width:100%;box-sizing:border-box;border:1px solid #8fa3bf;border-radius:5px;padding:11px;font:inherit;color:var(--ink)}
       .access-page button{font:inherit;cursor:pointer;border-radius:5px;border:1px solid var(--blue);padding:10px 14px;background:white;color:var(--blue)}.access-page button:disabled{opacity:.5;cursor:wait}.access-page .primary{background:var(--blue);color:white;width:100%;margin-top:24px;font-weight:600}
       .access-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:24px}.access-tabs button[aria-pressed=true]{background:#e9effc;border-width:2px}.access-status{min-height:48px;font-size:14px;margin-top:22px}.access-page :focus-visible{outline:3px solid #f0ae32;outline-offset:3px}
-      .access-page small{display:block;margin-top:10px;line-height:1.5;color:#465d79}.access-page ul{padding-left:22px;line-height:1.8}@media(max-width:640px){.access-page{padding:24px 16px}.access-brand{margin-bottom:24px}.access-grid{grid-template-columns:1fr;gap:24px}.access-form{padding:22px}.access-page h1{font-size:29px}.access-note{margin-top:18px}}
+      .access-page small{display:block;margin-top:10px;line-height:1.5;color:#465d79}.access-page ul{padding-left:22px;line-height:1.8}
+      .access-grid>section{min-width:0}.capability-panel,.people-panel{border-top:1px solid #d9e3f2;margin-top:32px;padding-top:24px}.capability-list{list-style:none;padding:0!important}.capability-list>li{padding:18px 0;border-bottom:1px solid #d9e3f2}.capability-list h3{margin:0 0 12px;overflow-wrap:anywhere}.capability-axes{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.capability-axes dt{font-size:14px;color:#465d79}.capability-axes dd{margin:5px 0 0;font-weight:600}.person-reference{display:block;overflow-wrap:anywhere;font-size:14px}.access-page a{color:var(--blue);text-underline-offset:3px}
+      @media(max-width:640px){.access-page{padding:24px 16px}.access-brand{margin-bottom:24px}.access-grid{grid-template-columns:1fr;gap:24px}.access-form{padding:22px}.access-page h1{font-size:29px}.access-note{margin-top:18px}.capability-axes{grid-template-columns:repeat(2,1fr)}}
     `}</style>
       <div className="access-wrap">
         <div className="access-brand">LedgerDesk</div>
@@ -211,8 +318,9 @@ export default function AccessPanel({ apiOrigin }: { apiOrigin: string }) {
           <section>
             <h1>A verified way in.</h1>
             <p>
-              Activate the predeclared office account or accept a nominated invitation,
-              then use your password to start a server-verified session.
+              Activate the predeclared office account or accept a nominated
+              invitation, then use your password to start a server-verified
+              session.
             </p>
             <div className="access-note">
               <strong>Synthetic access environment</strong>
@@ -226,23 +334,29 @@ export default function AccessPanel({ apiOrigin }: { apiOrigin: string }) {
             {authenticated ? (
               <>
                 <h2>Session active</h2>
-                <p>Available in this delivery:</p>
-                <ul>
-                  {capabilities.map((c) => (
-                    <li key={c}>
-                      {{ logout:'Sign out',session_status:'Check session status',
-                        'material-list':'List authorized material','material-exact':'Read authorized material',
-                        people:'Authorized administration census' }[c] ?? c}
-                    </li>
-                  ))}
-                </ul>
-                {capabilities.includes('material-list') && <p><a href="/access/material">Open material library</a></p>}
+                <p>
+                  Capability states are shown below. A session alone grants no
+                  unrestricted authority.
+                </p>
+                {capabilities.some(
+                  (c) =>
+                    c.capability_id === 'material-list' &&
+                    c.executable === 'yes',
+                ) && (
+                  <p>
+                    <a href="/access/material">Open material library</a>
+                  </p>
+                )}
                 <button
                   className="primary"
                   disabled={busy}
                   onClick={() =>
                     void execute(async () => {
                       await call('logout');
+                      setUnconfirmedLogin(false);
+                      lifetime.current.reset();
+                      sessionToken.current = '';
+                      setSessionVersion((v) => v + 1);
                       setAuthenticated(false);
                       setCapabilities([]);
                       csrf.current = '';
@@ -368,9 +482,40 @@ export default function AccessPanel({ apiOrigin }: { apiOrigin: string }) {
             <p className="access-status" role="status" aria-live="polite">
               {message}
             </p>
+            {unconfirmedLogin && (
+              <small>
+                The earlier sign-in result remains unconfirmed. Current access
+                was checked separately; refreshing did not recover that result.
+              </small>
+            )}
+            <button
+              disabled={busy}
+              onClick={() => void execute(refreshSession)}
+            >
+              Refresh session
+            </button>
           </section>
         </div>
-        <InvitationPanel apiOrigin={apiOrigin} authenticated={authenticated} ready={!busy}/>
+        {authenticated && <CapabilityPanel capabilities={capabilities} />}
+        {authenticated &&
+          capabilities.some(
+            (c) => c.capability_id === 'people' && c.executable === 'yes',
+          ) && (
+            <PeoplePanel
+              key={'people:' + sessionVersion}
+              apiOrigin={apiOrigin}
+              sessionToken={sessionToken.current}
+              onSessionChanged={sessionChanged}
+            />
+          )}
+        <InvitationPanel
+          key={'invitations:' + sessionVersion}
+          apiOrigin={apiOrigin}
+          authenticated={authenticated}
+          sessionToken={sessionToken.current}
+          onSessionChanged={sessionChanged}
+          ready={!busy}
+        />
       </div>
     </main>
   );

@@ -1,15 +1,26 @@
 import { spawn, spawnSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import path from 'node:path';
+import { createEvidenceDirectory } from './access_evidence.mjs';
+import { UI_MUTATIONS } from '../tests/access/ui_mutation.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const invitations = process.argv.includes('--invitations');
 const reading = process.argv.includes('--reading');
-if (reading && invitations) throw new Error('Choose one runtime suite');
-const owner = `access-${reading ? 't04' : invitations ? 't03' : 't02'}-${randomUUID()}`,
+const administration = process.argv.includes('--administration');
+if ([reading, invitations, administration].filter(Boolean).length > 1)
+  throw new Error('Choose one runtime suite');
+const owner = `access-${administration ? 't05' : reading ? 't04' : invitations ? 't03' : 't02'}-${randomUUID()}`,
   image = 'ledgerdesk-access-runtime:2';
 const mutation = process.argv.find((a) => a.startsWith('--mutation=')) ?? '';
-const evidenceFolder = reading ? 'access-reading' : invitations ? 'access-invitations' : 'access-runtime';
+const evidenceFolder = administration
+  ? 'access-administration'
+  : reading
+    ? 'access-reading'
+    : invitations
+      ? 'access-invitations'
+      : 'access-runtime';
 let transcript = '';
 if (
   ![
@@ -34,21 +45,51 @@ if (
     '--mutation=drop-reading-evidence',
     '--mutation=drop-reading-admission',
     '--mutation=drop-reading-generation',
+    '--mutation=disclose-hidden-capability',
+    '--mutation=disclose-private-reason',
+    '--mutation=drop-invitation-view-admission',
+    '--mutation=offer-withdrawn-grant',
+    ...Object.keys(UI_MUTATIONS).map((name) => '--mutation=' + name),
   ].includes(mutation)
 )
   throw new Error('Unknown mutation');
 if (mutation && mutation !== '--mutation=early-failure') {
   const invitationMutation =
-    mutation.startsWith('--mutation=drop-invitation-') ||
+    (mutation.startsWith('--mutation=drop-invitation-') &&
+      mutation !== '--mutation=drop-invitation-view-admission') ||
     mutation === '--mutation=drop-canonical-target' ||
     mutation === '--mutation=drop-flow-coordination';
-  const readingMutation = mutation.startsWith('--mutation=drop-reading-') || mutation === '--mutation=drop-cursor-session';
-  if (invitations !== invitationMutation || reading !== readingMutation)
+  const readingMutation =
+    mutation.startsWith('--mutation=drop-reading-') ||
+    mutation === '--mutation=drop-cursor-session';
+  const administrationMutation = [
+    '--mutation=disclose-hidden-capability',
+    '--mutation=disclose-private-reason',
+    '--mutation=drop-invitation-view-admission',
+    '--mutation=offer-withdrawn-grant',
+    ...Object.keys(UI_MUTATIONS).map((name) => '--mutation=' + name),
+  ].includes(mutation);
+  if (
+    invitations !== invitationMutation ||
+    reading !== readingMutation ||
+    administration !== administrationMutation
+  )
     throw new Error('Mutation belongs to the other runtime suite');
 }
 function docker(args, timeout = 15000) {
   return spawnSync('docker', args, { cwd: root, encoding: 'utf8', timeout });
 }
+const variant = mutation ? mutation.slice(11) : 'baseline';
+const target = createEvidenceDirectory(
+  path.join(root, 'test-results'),
+  evidenceFolder,
+  variant,
+  owner,
+);
+const startedAt = new Date().toISOString();
+let copied = false,
+  cleaned = false,
+  builtImage = '';
 function clean() {
   const found = docker([
     'inspect',
@@ -103,9 +144,24 @@ for (const signal of ['SIGINT', 'SIGTERM'])
   });
 try {
   await command(
-    ['build', '-f', 'ci/access/Runtime.Dockerfile', '-t', image, '.'],
+    [
+      'build',
+      '-f',
+      'ci/access/Runtime.Dockerfile',
+      '--iidfile',
+      path.join(target, 'image.id'),
+      '--build-arg',
+      'ACCESS_UI_MUTATION=' +
+        (Object.hasOwn(UI_MUTATIONS, variant) ? variant : ''),
+      '-t',
+      image,
+      '.',
+    ],
     900000,
   );
+  builtImage = readFileSync(path.join(target, 'image.id'), 'utf8').trim();
+  if (!/^sha256:[a-f0-9]{64}$/.test(builtImage))
+    throw new Error('Invalid built image identity');
   await command(
     [
       'run',
@@ -123,14 +179,18 @@ try {
       ...(mutation
         ? ['--env', `ACCESS_RUNTIME_MUTATION=${mutation.slice(11)}`]
         : []),
-      image,
-      ...(invitations || reading
+      builtImage,
+      ...(invitations || reading || administration
         ? [
             'node',
             '--experimental-strip-types',
             '--test',
             '--test-concurrency=1',
-            reading ? 'tests/access/test_authorized_reading.mjs' : 'tests/access/test_invitations.mjs',
+            administration
+              ? 'tests/access/test_administration.mjs'
+              : reading
+                ? 'tests/access/test_authorized_reading.mjs'
+                : 'tests/access/test_invitations.mjs',
           ]
         : []),
     ],
@@ -140,33 +200,48 @@ try {
   console.error(e.message);
   process.exitCode = 1;
 } finally {
-  const info = docker([
-    'inspect',
-    '--format',
-    '{{index .Config.Labels "ledgerdesk.test-owner"}}',
-    owner,
-  ]);
-  if (info.status === 0 && info.stdout.trim() === owner) {
-    const target = fileURLToPath(
-      new URL(
-        `../test-results/${evidenceFolder}/${mutation ? mutation.slice(11) : 'baseline'}/`,
-        import.meta.url,
-      ),
-    );
-    mkdirSync(target, { recursive: true });
-    writeFileSync(
-      new URL(
-        `../test-results/${evidenceFolder}/${mutation ? mutation.slice(11) : 'baseline'}/run.log`,
-        import.meta.url,
-      ),
-      transcript,
-    );
-    const copy = docker(['cp', `${owner}:/work/output/.`, target], 15000);
-    if (copy.status !== 0) {
-      console.error('Evidence copy failed');
-      process.exitCode = 1;
+  try {
+    const info = docker([
+      'inspect',
+      '--format',
+      '{{index .Config.Labels "ledgerdesk.test-owner"}}',
+      owner,
+    ]);
+    if (info.status === 0 && info.stdout.trim() === owner) {
+      const copy = docker(['cp', `${owner}:/work/output/.`, target], 15000);
+      copied = copy.status === 0;
+      if (copy.status !== 0) {
+        console.error('Evidence copy failed');
+        process.exitCode = 1;
+      }
+    }
+  } finally {
+    try {
+      clean();
+      cleaned = true;
+      transcript += `\nACCESS_RUNTIME_CLEANED ${owner}\n`;
+      console.log(`ACCESS_RUNTIME_CLEANED ${owner}`);
+    } finally {
+      writeFileSync(path.join(target, 'run.log'), transcript);
+      writeFileSync(
+        path.join(target, 'run.json'),
+        JSON.stringify(
+          {
+            runId: owner,
+            suite: evidenceFolder,
+            variant,
+            image: builtImage,
+            startedAt,
+            finishedAt: new Date().toISOString(),
+            evidenceCopied: copied,
+            cleaned,
+            exitCode: process.exitCode || (cleaned ? 0 : 1),
+          },
+          null,
+          2,
+        ),
+      );
+      console.log('ACCESS_EVIDENCE ' + target);
     }
   }
-  clean();
-  console.log(`ACCESS_RUNTIME_CLEANED ${owner}`);
 }

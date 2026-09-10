@@ -19,6 +19,7 @@ COPY tests/reading/timing_comparison.mjs ./tests/reading/timing_comparison.mjs
 COPY tests/reading/browser_diagnostics.mjs ./tests/reading/browser_diagnostics.mjs
 COPY tests/reading/T04_seed.mjs ./tests/reading/T04_seed.mjs
 ENV NEXT_TELEMETRY_DISABLED=1 LEDGERDESK_ACCESS_CONTAINER=1
-RUN node node_modules/next/dist/bin/next build tests/access/runtime-ui --webpack && mkdir /work/output && chown -R pwuser:pwuser /work/tests/access/runtime-ui/.next /work/output
+ARG ACCESS_UI_MUTATION=""
+RUN ACCESS_UI_MUTATION="$ACCESS_UI_MUTATION" node tests/access/ui_mutation.mjs && node node_modules/next/dist/bin/next build tests/access/runtime-ui --webpack && mkdir /work/output && chown -R pwuser:pwuser /work/tests/access/runtime-ui/.next /work/output
 USER pwuser
 CMD ["node", "--experimental-strip-types", "--test", "--test-concurrency=1", "tests/access/test_runtime.mjs"]

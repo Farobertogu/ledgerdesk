@@ -1,3 +1,4 @@
+import { CAPABILITY_EXPLANATIONS, INVITATION_ACTIONS, capabilityExplanation, type Capability } from './access_presentation.ts';
 /** Executable access/1 shapes. A valid intention does not establish route admission. */
 export const ACCESS_PROFILE = 'access/1' as const;
 type Shape =
@@ -31,6 +32,7 @@ const session = object({ authenticated: choices(true), session_revision: revisio
 const capability = object({
   capability_id: id, implemented: choices(true, false), enabled: choices(true, false),
   authorized: choices('yes', 'no', 'unverified'), executable: choices('yes', 'no', 'unverified'),
+  explanation: choices(...CAPABILITY_EXPLANATIONS),
 });
 
 /** Proposed concrete routes, not an HTTP dispatcher or a permission catalogue. */
@@ -44,7 +46,7 @@ export const ACCESS_ROUTES = {
   recover_credential: { method: 'POST', path: '/api/access/v1/recovery/complete', request: proof, response: completed, context: 'provisional', consumer: 'T02' },
   issue_invitation: { method: 'POST', path: '/api/access/v1/invitations', request: object({ email: exactEmail, family: choices('application', 'material_governance'), grants: array(grant, 1, 32), expires_at: integer() }), response: object({ invitation_id: id, revision, status: choices('pending_acceptance') }), context: 'session', consumer: 'T03' },
   amend_invitation: { method: 'POST', path: '/api/access/v1/invitations/:invitation_id/amend', request: object({ expected_revision: revision, grants: array(grant, 1, 32) }), response: completed, context: 'session', consumer: 'T03' },
-  invitation_view: { method: 'GET', path: '/api/access/v1/invitations/:invitation_id', request: empty, response: object({ invitation_id: id, revision, email: exactEmail, family: choices('application', 'material_governance'), grants: array(grant, 1, 32), expires_at: integer(), state: choices('pending','accepted','withdrawn'), terms: array(term,1,32), accepted_grants: array(object({grant_id:id,revision}),0,32) }), context: 'provisional_or_session', consumer: 'T03' },
+  invitation_view: { method: 'GET', path: '/api/access/v1/invitations/:invitation_id', request: empty, response: object({ invitation_id: id, revision, email: exactEmail, family: choices('application', 'material_governance'), grants: array(grant, 1, 32), expires_at: integer(), state: choices('pending','accepted','withdrawn'), terms: array(term,1,32), accepted_grants: array(object({grant_id:id,revision}),0,32), available_actions: array(object({action:choices(...INVITATION_ACTIONS),target_id:id,revision}),0,35) }), context: 'provisional_or_session', consumer: 'T03' },
   invitation_challenge: { method: 'POST', path: '/api/access/v1/invitations/:invitation_id/challenges', request: empty, response: accepted, context: 'reception', consumer: 'T03' },
   verify_invitation_email: { method: 'POST', path: '/api/access/v1/invitation-proofs/:challenge_id/verify', request: object({ code }), response: object({ proof_id: id, expires_at: integer() }), context: 'reception', consumer: 'T03' },
   accept_invitation: { method: 'POST', path: '/api/access/v1/invitations/:invitation_id/accept', request: object({ expected_revision: revision, proof_id: id }), response: completed, context: 'provisional_or_session', consumer: 'T03' },
@@ -81,10 +83,17 @@ export function validateAccess(route: AccessRoute, direction: 'request' | 'respo
   if (!Object.hasOwn(ACCESS_ROUTES, route) || (direction !== 'request' && direction !== 'response')) return false;
   if (!valid(ACCESS_ROUTES[route][direction], value)) return false;
   if (route === 'capabilities' && direction === 'response') {
-    const rows = (value as { capabilities: { capability_id: string; implemented: boolean; enabled: boolean; authorized: string; executable: string }[] }).capabilities;
+    const rows = (value as { capabilities: Capability[] }).capabilities;
     return new Set(rows.map((row) => row.capability_id)).size === rows.length &&
-      rows.every((row) => (!row.enabled || row.implemented) &&
+      rows.every((row) => row.explanation === capabilityExplanation(row) && (!row.enabled || row.implemented) &&
         (row.executable !== 'yes' || (row.implemented && row.enabled && row.authorized === 'yes')));
+  }
+  if (route === 'invitation_view' && direction === 'response') {
+    const v = value as { invitation_id:string; revision:number; state:string; accepted_grants:{grant_id:string;revision:number}[]; available_actions:{action:string;target_id:string;revision:number}[] };
+    return new Set(v.available_actions.map(a=>a.action+':'+a.target_id)).size === v.available_actions.length &&
+      v.available_actions.every(a=>a.action === 'withdraw_grant'
+        ? v.accepted_grants.some(g=>g.grant_id === a.target_id && g.revision === a.revision)
+        : v.state === 'pending' && a.target_id === v.invitation_id && a.revision === v.revision);
   }
   return true;
 }
