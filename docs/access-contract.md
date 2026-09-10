@@ -9,7 +9,7 @@ is a replacement for the `reading/1` material DTO. The executable definitions
 are in `src/contracts/access.ts`, `access_transport.ts`, `access_security.ts`
 and `access_context.ts`; independent examples are in `tests/access/examples.mjs`.
 
-T02 adds an operational synthetic producer in `src/server/access/terminal.ts`
+T02 and T03 provide the operational synthetic producer in `src/server/access/terminal.ts`
 and a minimal UI at `/access`. The original T01 fixture remains a transport test.
 The import check permits only the explicit runtime adapters and keeps the UI
 away from server identity and legacy SQL. The producer requires the isolated
@@ -43,6 +43,7 @@ verification. These mode distinctions remain separate from route and schema name
 | recovery_challenge | POST `/recovery/challenges` | Credential recovery reception; accept a bounded attempt | Bound account/deployment recovery profile; no public address enumeration or attacker-triggered account lockout | T02 |
 | recover_credential | POST `/recovery/complete` | Credential recovery; replace the verifier and invalidate old sessions | Exact-purpose proof and permitted recovery route. Does not revive grants, invitations, investitures or signatures | T02 |
 | issue_invitation | POST `/invitations` | Issue invitation / propose permission gain; persist exact nominative terms, no usable grant | Responsible issuer with current **granting**, not merely exercising/reading, authority; family, subordinate scope, support, expiry and incompatibilities | T03 |
+| amend_invitation | POST `/invitations/:invitation_id/amend` | Amend the same pending concession; retain old terms and increment revision, no positive grant | Current issuer, granting authority and local constraints; exact revision; cannot change recipient, family or expiration | T03 |
 | invitation_view | GET `/invitations/:invitation_id` | Projection of the invitation's own terms, not a public directory | Exact-email provisional flow or authorized session; current recipient view and treatment. Identifier alone reveals nothing | T03 |
 | invitation_challenge | POST `/invitations/:invitation_id/challenges` | Invitation email-control reception; bounded delivery attempt | Invitation-bound address and purpose, controlled mailbox, resend limit; indistinguishable unauthorized/absent projection | T03 |
 | verify_invitation_email | POST `/invitation-proofs/:challenge_id/verify` | Verify exact-email control for this invitation flow | Attempts, expiry and replay controls; does not accept terms, establish person identity or authorize corpus access | T03 |
@@ -71,14 +72,15 @@ impersonation, direct positive grant or first-visitor bootstrap exists.
 
 - Concrete route selection occurs before decoding. Unknown routes and methods
   do not select a different policy. Path IDs are opaque, case-sensitive,
-  explicitly decoded once and validated; no Unicode or case normalization.
+  validated without Unicode or case normalization. The implemented profile rejects
+  percent-encoded paths rather than providing equivalent aliases.
 - POST uses UTF-8 `application/json`, no compression, no duplicate singleton
   security headers and a bounded body. `decodeAccess` rejects invalid UTF-8,
   duplicate keys (including escaped aliases), unpaired surrogates, excessive
   depth and noncanonical/unsafe integer numbers. Decoding and `validateAccess`
   are both required. Read and limit bytes at the first receiver, not after
   buffering an unbounded body. T02 implements the HTTP receiver.
-- GET has no body. The census accepts only the `cursor` query selector; the
+- GET has no body. Implemented routes reject queries. The deferred census accepts only the `cursor` query selector; the
   first page uses the empty cursor. Other query fields are rejected. Its
   continuation is opaque and bound to the permitted population/snapshot, not
   a client offset into all accounts. No cursor is an authority credential.
@@ -99,6 +101,11 @@ impersonation, direct positive grant or first-visitor bootstrap exists.
   its stable namespace and HMAC of the canonical payload; a different payload conflicts.
   A retry reauthorizes the current result, never replays a secret or silently
   rebinds to a different account. T02/T03 implement persistence and reconciliation.
+  New payloads use `canon_m09_1`: Unicode scalar key order, unchanged strings,
+  ordered arrays, distinct absence/null and exact safe integer values. Contract,
+  variant, typed path, query and body are included; object and revision are in
+  the payload, not the stable namespace. Existing T02 receipts retain their old
+  comparator. See [T03](INC-02-T03.md) for vectors and the populated migration test.
 - A challenge's generic `accepted` acknowledges reception, not account
   existence or delivered mail. Its opaque challenge ID and one-time code
   travel through the controlled, bound test mailbox. Codes are entered in a
@@ -226,8 +233,8 @@ T03 must call this check against the server's issuance time before persisting an
 invitation. On acceptance it must recheck the stored absolute expiry against the
 current server time, together with revision and authority, in the same decision.
 Resending a message, renewing a proof or recovering credentials does not reset
-that expiry. This pure predicate and its boundary tests are implemented here;
-an operational issuance/acceptance service is not.
+that expiry. T03 applies this predicate when issuing and accepting, and rechecks
+the absolute deadline. Amendment cannot prolong it.
 
 ## Persistence and invalidation
 
@@ -244,7 +251,8 @@ T02 uses database `inc02_synthetic`, NOLOGIN owner `inc02_owner`, effect runtime
 inspection credential. Runtime table grants are explicit; account identity and
 restriction updates, control functions, ownership, public-schema creation and
 evidence modification are denied. The master insertion trigger checks the
-predeclared address and person. There is no `inc02_reader` or grant table yet.
+predeclared address and person. T03 adds its grant/support tables; there is still
+no `inc02_reader` or session-derived material delivery.
 The runtime credential is a trusted service credential, not an end-user role;
 SQL isolation alone does not establish person-level authorization.
 No existing user's database or historical container is a migration target.
@@ -293,15 +301,23 @@ unaccredited temporal condition. This transport proof does not close it.
 
 | Capability | This delivery | Remaining first consumer |
 |---|---|---|
-| Closed contract parsing/validation, profile selection and transport guards | T02 routes integrated; others remain closed | T03 producers |
+| Closed contract parsing/validation, profile selection and transport guards | Nine T02 and ten T03 routes integrated; other admission remains closed | T04 consumers |
 | Same-site HTTPS cookie/CSRF/CORS/TLS isolation | Real synthetic Next/terminal/PG/browser journey | Production deployment assessment |
 | Password library/configuration | Bounded verifier, decoy, rate limits and persisted lifecycle | Production capacity assessment |
-| Master activation/session/capability projection | Implemented in the isolated T02 service | Ordinary accounts and invitation consumers in T03 |
-| Invitations, accepted gains, withdrawal and initial verifier | Contracts only; no active routes | T03 |
-| Current authority and authenticated material reading | Internal port/data contracts and coordination design only | T02/T03 kernel; T04 integration |
+| Master activation/session/capability projection | Implemented, with current server-derived invitation options | Broader truthful capability surfaces |
+| Invitations, accepted gains, withdrawal and initial verifier | Real isolated T03 producer and connected minimal UI | Integrated administration in T05 |
+| Current authority and authenticated material reading | Current invitation grant/support/scope/function and incompatibility checks implemented; material integration closed | T04 integration |
 | Census and administration UI | Contract only, not an implemented screen | T04/T05 |
 | Post-bootstrap authority-management routes | Admission conditional; no route | Actual admitted consumer, not inferred from an entity |
 | Real data, external mail, production authentication or full temporal conformity | Not authorized or demonstrated | Separate conditions and evidence |
+
+The T03 closed DTO extension is explicit: `invitation_view` includes current
+state, readable `terms` and accepted grant references/revisions; `capabilities`
+includes `invitation_options`. Terms include grant/support/scope revisions,
+support-bound grant expiry and any consumed function declarations, marked as
+not externally accredited. No optional field is silently dropped for an older
+client: deploy the paired service/UI, and fail closed on mismatched projections.
+There is no new alias, credential format or `reading/1` change.
 
 ## Technical references
 

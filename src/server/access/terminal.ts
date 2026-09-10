@@ -8,6 +8,7 @@ import {
   type AccessRoute,
 } from '../../contracts/access.ts';
 import { SESSION_COOKIE } from '../../contracts/access_transport.ts';
+import { resolveAccessPath } from '../../contracts/access_canonical.ts';
 import { accessConfig, type AccessConfig } from './config.ts';
 import {
   transportEnvelope,
@@ -143,12 +144,8 @@ export async function startAccessTerminal(options: {
       respond(res, 403, accessProblem('forbidden'));
       return;
     }
-    const route = (
-      Object.entries(ACCESS_ROUTES) as [
-        AccessRoute,
-        (typeof ACCESS_ROUTES)[AccessRoute],
-      ][]
-    ).find(([, v]) => v.path === req.url && v.consumer === 'T02')?.[0];
+    const resolved = resolveAccessPath(req.url ?? '');
+    const route = resolved?.route;
     if (!route) {
       respond(res, 404, accessProblem('unavailable'));
       return;
@@ -204,6 +201,7 @@ export async function startAccessTerminal(options: {
       const result = await service.perform(
         {
           route,
+          parameters: resolved!.parameters,
           body,
           session: sessionToken(req.headers.cookie),
           flow: cookie(req, FLOW_COOKIE),

@@ -3,9 +3,11 @@ import { randomUUID } from 'node:crypto';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 const root = fileURLToPath(new URL('../', import.meta.url));
-const owner = `access-t02-${randomUUID()}`,
+const invitations = process.argv.includes('--invitations');
+const owner = `access-${invitations ? 't03' : 't02'}-${randomUUID()}`,
   image = 'ledgerdesk-access-runtime:2';
-const mutation = process.argv[2] ?? '';
+const mutation = process.argv.find((a) => a.startsWith('--mutation=')) ?? '';
+const evidenceFolder = invitations ? 'access-invitations' : 'access-runtime';
 let transcript = '';
 if (
   ![
@@ -19,9 +21,23 @@ if (
     '--mutation=drop-login-account-limit',
     '--mutation=drop-session-cookie',
     '--mutation=early-failure',
+    '--mutation=drop-invitation-revision',
+    '--mutation=drop-invitation-support',
+    '--mutation=drop-invitation-incompatibility',
+    '--mutation=drop-invitation-proof',
+    '--mutation=drop-canonical-target',
+    '--mutation=drop-flow-coordination',
   ].includes(mutation)
 )
   throw new Error('Unknown mutation');
+if (mutation && mutation !== '--mutation=early-failure') {
+  const invitationMutation =
+    mutation.startsWith('--mutation=drop-invitation-') ||
+    mutation === '--mutation=drop-canonical-target' ||
+    mutation === '--mutation=drop-flow-coordination';
+  if (invitations !== invitationMutation)
+    throw new Error('Mutation belongs to the other runtime suite');
+}
 function docker(args, timeout = 15000) {
   return spawnSync('docker', args, { cwd: root, encoding: 'utf8', timeout });
 }
@@ -100,6 +116,15 @@ try {
         ? ['--env', `ACCESS_RUNTIME_MUTATION=${mutation.slice(11)}`]
         : []),
       image,
+      ...(invitations
+        ? [
+            'node',
+            '--experimental-strip-types',
+            '--test',
+            '--test-concurrency=1',
+            'tests/access/test_invitations.mjs',
+          ]
+        : []),
     ],
     300000,
   );
@@ -116,14 +141,14 @@ try {
   if (info.status === 0 && info.stdout.trim() === owner) {
     const target = fileURLToPath(
       new URL(
-        `../test-results/access-runtime/${mutation ? mutation.slice(11) : 'baseline'}/`,
+        `../test-results/${evidenceFolder}/${mutation ? mutation.slice(11) : 'baseline'}/`,
         import.meta.url,
       ),
     );
     mkdirSync(target, { recursive: true });
     writeFileSync(
       new URL(
-        `../test-results/access-runtime/${mutation ? mutation.slice(11) : 'baseline'}/run.log`,
+        `../test-results/${evidenceFolder}/${mutation ? mutation.slice(11) : 'baseline'}/run.log`,
         import.meta.url,
       ),
       transcript,

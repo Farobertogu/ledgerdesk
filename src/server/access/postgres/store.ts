@@ -53,11 +53,20 @@ export class AccessStore {
     );
     this.locked = true;
   }
-  async begin(objectKey: string) {
+  async lockObjects(keys: string[]) {
+    // Order the effective PostgreSQL lock identifiers, including hash collisions.
+    const locks = (
+      await this.client.query(
+        'SELECT DISTINCT hashtext(k) AS key FROM unnest($1::text[]) AS k ORDER BY key',
+        [keys],
+      )
+    ).rows;
+    for (const lock of locks)
+      await this.client.query('SELECT pg_advisory_lock(20203,$1)', [lock.key]);
+  }
+  async begin(objectKey: string | string[]) {
     // Flow/email serialisation precedes the snapshot. Different accounts can verify concurrently.
-    await this.client.query('SELECT pg_advisory_lock(20203,hashtext($1))', [
-      objectKey,
-    ]);
+    await this.lockObjects(Array.isArray(objectKey) ? objectKey : [objectKey]);
     await this.client.query('BEGIN ISOLATION LEVEL REPEATABLE READ');
     this.transaction = true;
     await this.client.query('SET LOCAL synchronous_commit=on');

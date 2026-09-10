@@ -12,7 +12,7 @@ import { randomBytes } from 'node:crypto';
 import { Client } from 'pg';
 import assert from 'node:assert/strict';
 
-export async function runtimeEnvironment() {
+export async function runtimeEnvironment({ invitations = true } = {}) {
   assert.equal(process.env.LEDGERDESK_ACCESS_CONTAINER, '1');
   assert.equal(process.platform, 'linux');
   assert.equal(homedir(), '/home/pwuser');
@@ -91,6 +91,7 @@ export async function runtimeEnvironment() {
     );
     const password = randomBytes(24).toString('hex'),
       controlPassword = randomBytes(24).toString('hex');
+    if (invitations) await admin.query(readFileSync(new URL('../../src/server/access/postgres/002_invitations.sql',import.meta.url),'utf8'));
     await admin.query(`ALTER ROLE inc02_runtime LOGIN PASSWORD '${password}'`);
     await admin.query(
       `ALTER ROLE inc02_control LOGIN PASSWORD '${controlPassword}'`,

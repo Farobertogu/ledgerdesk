@@ -13,6 +13,7 @@ import { captureBuildIdentity, reserveLoopbackPort, startDatabaseTrap, assertNoT
 import { startNextTrial } from './next_trial.mjs';
 import { createObserverGates, cleanupSteps } from './lifecycle.mjs';
 import { compareTiming, TIMING_PROTOCOL } from './timing_comparison.mjs';
+import { observeBrowser } from './browser_diagnostics.mjs';
 
 const detail = id => `/api/v1/material/${encodeURIComponent(id)}/versions/v1`;
 const screenshotDir = new URL('../../test-results/reading-integration/', import.meta.url);
@@ -64,6 +65,8 @@ test('T05 real browser, direct HTTP terminal and exclusive PostgreSQL', { timeou
     node: process.version, browser: browser.version(), buildId: (await readFile(new URL('../../.next/BUILD_ID', import.meta.url), 'utf8')).trim() }));
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const page = await context.newPage(); page.setDefaultTimeout(10000);
+  const diagnostic = observeBrowser(page, fileURLToPath(new URL('diagnostics/', screenshotDir)));
+  t.after(() => diagnostic.close());
   const requests = []; const pageErrors = [];
   page.on('request', request => requests.push({ url: request.url(), method: request.method() }));
   page.on('pageerror', error => pageErrors.push(error.message));
@@ -139,22 +142,25 @@ test('T05 real browser, direct HTTP terminal and exclusive PostgreSQL', { timeou
     await page.setViewportSize({ width: 1280, height: 900 });
   });
 
-  await t.test('I03 reference and complete excerpts contain no hidden original or successor', async () => {
+  await t.test('I03 reference and complete excerpts contain no hidden original or successor', async () => diagnostic.run('I03', async () => {
+    diagnostic.mark('load-and-reference');
     await load(); await read('reference');
     await expect(page.getByText('Reference only. No original text was returned.')).toBeVisible();
     assert.equal(await page.getByTestId('original').count(), 0);
     const ref = await request(detail('reference'));
     assert.equal(ref.body.projection.kind, 'REFERENCE');
     assert.equal('original_text' in ref.body.projection, false);
+    diagnostic.mark('select-complete-excerpt');
     await read('excerpt'); await expect(page.getByTestId('original')).toHaveCount(2);
     assert.deepEqual(await page.getByTestId('original').allTextContents(), ['Regla.', 'Excepto los domingos.']);
     const restricted = policy('EXCERPT'); restricted.unit.forEach(row => { row.grant.fragmentIds = ['rule']; });
     try {
+      diagnostic.mark('restrict-excerpt');
       await update('excerpt', restricted); await load(); await read('excerpt');
       await expect(page.getByText('Reference only. No original text was returned.')).toBeVisible();
       assert.equal(await page.getByTestId('original').count(), 0);
     } finally { await update('excerpt', policy('EXCERPT')); }
-  });
+  }));
 
   await t.test('I04 list is complete and unaffected by NONE or local indeterminacy; existence is unidentifiable', async () => {
     await load(); const before = await request('/api/v1/material');
