@@ -1,6 +1,6 @@
 # ADR-035 · Authenticated material reading
 
-**Status:** proposed · **Decision date:** pending acceptance
+**Status:** accepted · **Decision date:** 2026-09-10
 
 ## Context
 
