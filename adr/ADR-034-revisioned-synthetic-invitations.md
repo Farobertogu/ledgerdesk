@@ -1,6 +1,6 @@
 # ADR-034 · Revisioned synthetic invitations
 
-**Status:** proposed · **Decision date:** pending acceptance
+**Status:** accepted · **Decision date:** 2026-09-10
 
 ## Context
 
@@ -9,7 +9,7 @@ are its next consumer, not a second identity stack. A recipient must accept the
 current proposal without confusing email control, account identity, permission,
 declared function or external accreditation.
 
-## Proposed decision
+## Decision
 
 Extend the isolated `inc02_synthetic` realization additively with revisioned
 invitations, attributable acceptance, ordinary accounts, grants, support,
@@ -45,11 +45,11 @@ newer credential. The initial flow cannot replace a non-null verifier.
 
 ## Localized extension of ADR-033
 
-If accepted, this decision extends ADR-033's T02-only route inventory and
+This decision extends ADR-033's T02-only route inventory and
 master-only recovery scope: the terminal gains the ten T03 routes, and ordinary
 accepted accounts gain bounded recovery. ADR-033's master control-window rule,
 credentialed transport, isolation and evidence constraints remain in force.
-This proposal does not retrospectively change that earlier decision's scope.
+This decision does not retrospectively change that earlier decision's scope.
 
 ## Consequences and limits
 
