@@ -8,7 +8,11 @@ export class AccessStore {
   private exclusive = false;
   private transaction = false;
   healthy = true;
-  constructor(config: AccessConfig, onLoss: () => void) {
+  readonly role: 'inc02_runtime' | 'inc02_reader';
+  constructor(config: AccessConfig, onLoss: () => void, role: 'inc02_runtime' | 'inc02_reader' = 'inc02_runtime') {
+    this.role = role;
+    const url = new URL(config.connectionString);
+    if (url.username !== role || url.pathname !== '/inc02_synthetic' || url.hostname !== '127.0.0.1') throw new Error('DB_CONFIG_IDENTITY');
     this.client = new Client({
       connectionString: config.connectionString,
       connectionTimeoutMillis: 3000,
@@ -33,7 +37,7 @@ export class AccessStore {
       FROM pg_roles r WHERE rolname=current_user`);
     if (
       !r ||
-      r.role !== 'inc02_runtime' ||
+      r.role !== this.role ||
       r.db !== 'inc02_synthetic' ||
       r.version < 160000 ||
       r.version >= 170000 ||

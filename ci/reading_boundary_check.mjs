@@ -204,6 +204,8 @@ export function checkReadingBoundaries(projectRoot) {
   ]);
   const legacyRoots = sources.filter((file) => {
     const p = lower(relative(file));
+    // The access graph has its own checker with exact, tested reading-bridge edges.
+    if (inDirectory(p,'src/server/access') || inDirectory(p,'src/components/access') || inDirectory(p,'src/app/access')) return false;
     return !readingModule(p) && (inDirectory(p, 'src/server') || inDirectory(p, 'src/alg') ||
       inDirectory(p, 'src/app/api') || inDirectory(p, 'src/components') ||
       (inDirectory(p, 'src/app') && /\/(?:page|layout)\.[jt]sx?$/.test(p) && p !== 'src/app/layout.tsx'));

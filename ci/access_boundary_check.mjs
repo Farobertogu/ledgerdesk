@@ -4,7 +4,14 @@ import { fileURLToPath } from 'node:url';
 import { moduleReferences } from './reading_boundary_check.mjs';
 
 const contract = (name) => /^src\/contracts\/access(?:_[a-z]+)?\.ts$/.test(name);
-const presentation = (name) => name.startsWith('src/components/access/') || name === 'src/app/access/page.tsx';
+const presentation = (name) => name.startsWith('src/components/access/') || ['src/app/access/page.tsx','src/app/access/material/page.tsx'].includes(name);
+const sharedReading = new Map([
+  ['src/server/access/authenticated_reading.ts',new Set(['src/server/reading/policy.ts','src/server/reading/context.ts','src/server/kb/reading.ts','src/contracts/material_reading.ts'])],
+  ['src/server/access/terminal.ts',new Set(['src/server/reading/http.ts','src/contracts/material_reading.ts'])],
+  ['src/components/access/AuthenticatedMaterial.tsx',new Set(['src/components/reading/MaterialReader.ts'])],
+  ['src/components/reading/reader.ts',new Set(['src/contracts/access_transport.ts'])],
+  ['src/components/reading/MaterialReader.tsx',new Set(['src/contracts/access_transport.ts'])],
+]);
 const access = (name) => contract(name) || name.startsWith('src/server/access/') || presentation(name);
 export function accessSourceViolations(file, source) {
   const { references, computed } = moduleReferences(source, { jsx: /[jt]sx$/.test(file) });
@@ -20,12 +27,12 @@ export function accessSourceViolations(file, source) {
         (file === 'src/server/access/terminal.ts' && ['node:https','node:http'].includes(specifier)) ||
         (file.startsWith('src/server/access/') && specifier === 'node:crypto') ||
         (presentation(file) && specifier === 'react');
-      const allowed = target ? access(target) : external;
+      const allowed = target ? access(target) || sharedReading.get(file)?.has(target) : external;
       if (!allowed) errors.push(`Forbidden access import: ${specifier}`);
       if (file.startsWith('src/contracts/') && target?.startsWith('src/server/')) errors.push('Contract imports server');
       if (presentation(file) && target?.startsWith('src/server/')) errors.push('Presentation imports server');
       if (!presentation(file) && target && presentation(target)) errors.push('Server or contract imports presentation');
-    } else if (target && access(target)) errors.push('Access cannot be imported by a legacy or unrelated composition root');
+    } else if (target && access(target) && !sharedReading.get(file)?.has(target)) errors.push('Access cannot be imported by a legacy or unrelated composition root');
   }
   return errors;
 }

@@ -1,4 +1,5 @@
 import type { AccessStore } from './postgres/store.ts';
+import { declarationDeadline, independentPeople, resolveDeclarations } from './authority_rules.ts';
 import {
   canonicalValue,
   scalarOrder,
@@ -36,6 +37,8 @@ export class InvitationAuthority {
   grants: any[] = [];
   investitures: any[] = [];
   rules: any[] = [];
+  revalidationEvents: any[] = [];
+  resolutions: any[] = [];
   readonly db: AccessStore;
   readonly now: number;
   constructor(db: AccessStore, now: number) {
@@ -56,7 +59,7 @@ export class InvitationAuthority {
     for (const name of lists) {
       const r = (
         await this.db.client.query(
-          `SELECT * FROM access_trial.${name} LIMIT 1001`,
+          `SELECT ${name === 'account' ? 'id,person_ref,restricted,revision,office' : '*'} FROM access_trial.${name} LIMIT 1001`,
         )
       ).rows;
       if (r.length > 1000) throw new Error('AUTHORITY_SNAPSHOT_BOUND');
@@ -71,6 +74,11 @@ export class InvitationAuthority {
       this.investitures,
       this.rules,
     ] = rows;
+    if ((await this.db.client.query("SELECT to_regclass('access_trial.revalidation_event') AS relation")).rows[0].relation) {
+      this.revalidationEvents = (await this.db.client.query('SELECT * FROM access_trial.revalidation_event LIMIT 1001')).rows;
+      this.resolutions = (await this.db.client.query('SELECT * FROM access_trial.investiture_resolution LIMIT 1001')).rows;
+      if (this.revalidationEvents.length > 1000 || this.resolutions.length > 1000) throw new Error('AUTHORITY_SNAPSHOT_BOUND');
+    }
   }
   contains(parent: string, child: string): boolean {
     const visited = new Set<string>();
@@ -141,9 +149,7 @@ export class InvitationAuthority {
           d.revision === i.revision &&
           Number.isSafeInteger(d?.startsAt) &&
           d.startsAt <= this.now &&
-          d?.termination?.kind === 'expires' &&
-          Number.isSafeInteger(d.termination.at) &&
-          d.termination.at > this.now &&
+          (declarationDeadline(d, this.revalidationEvents) ?? 0) > this.now &&
           [
             'issuerPersonRef',
             'issuerCapacityRef',
@@ -167,18 +173,34 @@ export class InvitationAuthority {
     const p = this.permissions.find((p) => p.id === permission);
     if (!p) return false;
     if (!p.requires_investiture) return true;
-    const current = this.applicableInvestitures(
+    const current = resolveDeclarations(this.applicableInvestitures(
       account.person_ref,
       permission,
       scope,
-    );
+    ), this.resolutions, permission, scope);
     for (const i of current)
       this.deadline = Math.min(
         this.deadline,
         Number(i.expires_at),
-        i.declaration.termination.at,
+        declarationDeadline(i.declaration, this.revalidationEvents)!,
       );
     return current.length > 0;
+  }
+  /** Conditional quorum predicate for future consumers; no multi-person route is opened. */
+  independentActors(accountIds: readonly string[], permission: string, scope: string, required=2): boolean {
+    const actors=accountIds.map(id=>this.accounts.find(a=>a.id===id));
+    return actors.every(a=>this.allows(a,permission,'exercise',scope)) &&
+      independentPeople(actors.map(a=>a?.person_ref ?? null),required);
+  }
+  /** Additional reading ceiling; a policy still has to allow the exact material. */
+  readingMaximum(account: any, permission: string, scope: string, purpose: string): string {
+    if (!this.allows(account, permission, 'exercise', scope)) return 'NONE';
+    const p = this.permissions.find(p => p.id === permission);
+    if (!p?.requires_investiture) return 'CONTENT';
+    const current = resolveDeclarations(this.applicableInvestitures(account.person_ref, permission, scope), this.resolutions, permission, scope);
+    if (!current.length || current.some(i => i.declaration.purposeRef !== purpose)) return 'NONE';
+    const grade = current[0].declaration.maximumGradeRef;
+    return ['NONE','EXISTENCE','REFERENCE','EXCERPT','CONTENT'].includes(grade) ? grade : 'NONE';
   }
   allows(
     account: any,

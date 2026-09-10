@@ -4,10 +4,12 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const invitations = process.argv.includes('--invitations');
-const owner = `access-${invitations ? 't03' : 't02'}-${randomUUID()}`,
+const reading = process.argv.includes('--reading');
+if (reading && invitations) throw new Error('Choose one runtime suite');
+const owner = `access-${reading ? 't04' : invitations ? 't03' : 't02'}-${randomUUID()}`,
   image = 'ledgerdesk-access-runtime:2';
 const mutation = process.argv.find((a) => a.startsWith('--mutation=')) ?? '';
-const evidenceFolder = invitations ? 'access-invitations' : 'access-runtime';
+const evidenceFolder = reading ? 'access-reading' : invitations ? 'access-invitations' : 'access-runtime';
 let transcript = '';
 if (
   ![
@@ -27,6 +29,11 @@ if (
     '--mutation=drop-invitation-proof',
     '--mutation=drop-canonical-target',
     '--mutation=drop-flow-coordination',
+    '--mutation=drop-cursor-session',
+    '--mutation=drop-reading-authority',
+    '--mutation=drop-reading-evidence',
+    '--mutation=drop-reading-admission',
+    '--mutation=drop-reading-generation',
   ].includes(mutation)
 )
   throw new Error('Unknown mutation');
@@ -35,7 +42,8 @@ if (mutation && mutation !== '--mutation=early-failure') {
     mutation.startsWith('--mutation=drop-invitation-') ||
     mutation === '--mutation=drop-canonical-target' ||
     mutation === '--mutation=drop-flow-coordination';
-  if (invitations !== invitationMutation)
+  const readingMutation = mutation.startsWith('--mutation=drop-reading-') || mutation === '--mutation=drop-cursor-session';
+  if (invitations !== invitationMutation || reading !== readingMutation)
     throw new Error('Mutation belongs to the other runtime suite');
 }
 function docker(args, timeout = 15000) {
@@ -116,13 +124,13 @@ try {
         ? ['--env', `ACCESS_RUNTIME_MUTATION=${mutation.slice(11)}`]
         : []),
       image,
-      ...(invitations
+      ...(invitations || reading
         ? [
             'node',
             '--experimental-strip-types',
             '--test',
             '--test-concurrency=1',
-            'tests/access/test_invitations.mjs',
+            reading ? 'tests/access/test_authorized_reading.mjs' : 'tests/access/test_invitations.mjs',
           ]
         : []),
     ],

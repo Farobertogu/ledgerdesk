@@ -230,10 +230,13 @@ export default function AccessPanel({ apiOrigin }: { apiOrigin: string }) {
                 <ul>
                   {capabilities.map((c) => (
                     <li key={c}>
-                      {c === 'logout' ? 'Sign out' : 'Check session status'}
+                      {{ logout:'Sign out',session_status:'Check session status',
+                        'material-list':'List authorized material','material-exact':'Read authorized material',
+                        people:'Authorized administration census' }[c] ?? c}
                     </li>
                   ))}
                 </ul>
+                {capabilities.includes('material-list') && <p><a href="/access/material">Open material library</a></p>}
                 <button
                   className="primary"
                   disabled={busy}

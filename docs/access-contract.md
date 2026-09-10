@@ -96,6 +96,15 @@ impersonation, direct positive grant or first-visitor bootstrap exists.
   Existing invitation acceptance/withdrawal and grant withdrawal require the
   exact `expected_revision`. Stored times are integer Unix milliseconds; an
   expiry value does not authorize its requested lifetime.
+- The `/people` response's `revision` is an opaque numeric population fingerprint,
+  not a monotonic revision counter. It is a compact projection of the server's
+  population/authority digest and carries no chronological or ordering meaning:
+  a greater value does not mean a newer census. Never use it as `expected_revision`,
+  an authorization decision, or a cursor-validity check. Equality is not proof of
+  an identical snapshot, because the public fingerprint is truncated. Continuation
+  is validated separately against server-held cursor state, including the full
+  population digest and the exact account/session binding. This exception does not
+  change the object revision rules for invitations, grants or other mutations.
 - Side-effecting intentions use `x-ledgerdesk-intent`, a fresh opaque identifier
   with the same bounded syntax as route IDs. The receiving operation persists
   its stable namespace and HMAC of the canonical payload; a different payload conflicts.
