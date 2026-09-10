@@ -1,6 +1,6 @@
 # ADR-037 · Declared initial faculties and whole-journey acceptance
 
-**Status:** proposed · **Decision date:** pending acceptance
+**Status:** accepted · **Decision date:** 2026-09-11
 
 ## Context
 
