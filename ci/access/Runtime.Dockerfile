@@ -7,11 +7,17 @@ WORKDIR /work
 COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund
 COPY src/contracts/access*.ts ./src/contracts/
+COPY src/contracts/material_reading.ts src/contracts/reading_origin.ts ./src/contracts/
 COPY src/server/access ./src/server/access
+COPY src/server/reading ./src/server/reading
+COPY src/server/kb/reading.ts ./src/server/kb/reading.ts
 COPY src/components/access ./src/components/access
+COPY src/components/reading ./src/components/reading
+COPY ci/access_material_schema.mjs ./ci/access_material_schema.mjs
 COPY tests/access ./tests/access
 COPY tests/reading/timing_comparison.mjs ./tests/reading/timing_comparison.mjs
 COPY tests/reading/browser_diagnostics.mjs ./tests/reading/browser_diagnostics.mjs
+COPY tests/reading/T04_seed.mjs ./tests/reading/T04_seed.mjs
 ENV NEXT_TELEMETRY_DISABLED=1 LEDGERDESK_ACCESS_CONTAINER=1
 RUN node node_modules/next/dist/bin/next build tests/access/runtime-ui --webpack && mkdir /work/output && chown -R pwuser:pwuser /work/tests/access/runtime-ui/.next /work/output
 USER pwuser

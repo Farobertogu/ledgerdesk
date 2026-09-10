@@ -18,6 +18,7 @@ import { tokenMatches } from './transport.ts';
 import { canonicalIntent } from '../../contracts/access_canonical.ts';
 import { performInvitation } from './invitations.ts';
 import { InvitationAuthority } from './invitation_authority.ts';
+import { currentReadingControl } from './reading_control.ts';
 
 export const FLOW_COOKIE = '__Host-ledgerdesk-flow';
 // Synthetic-trial bound: keep distributed guessing finite without sharing the
@@ -125,14 +126,17 @@ export class AccessService {
   readonly config: AccessConfig;
   private mailbox: LocalMailbox;
   private hooks: AccessHooks;
+  private readingGeneration?: string;
   constructor(
     config: AccessConfig,
     mailbox: LocalMailbox,
     hooks: AccessHooks = {},
+    readingGeneration?: string,
   ) {
     this.config = config;
     this.mailbox = mailbox;
     this.hooks = hooks;
+    this.readingGeneration = readingGeneration;
   }
   digest(value: string) {
     return createHmac('sha256', Buffer.from(this.config.digestKey, 'hex'))
@@ -160,6 +164,7 @@ export class AccessService {
       ).rows[0];
       if (!startupAllowed(control, await db.now()))
         throw new Error('RECEPTION_UNAVAILABLE');
+      await currentReadingControl(db, this.readingGeneration, false);
       return db;
     } catch (e) {
       await db.close();
@@ -680,12 +685,27 @@ export class AccessService {
                 }
               }
           expiry = Math.min(expiry, authority.deadline);
+          const additional: { capability_id: string; implemented: boolean; enabled: boolean; authorized: string; executable: string }[] = [];
+          if (this.readingGeneration) {
+            const materialControl=(await q('SELECT * FROM material_trial.control')).rows[0];
+            const treatmentReady=materialControl && ['capture_ready','processing_ready','conservation_ready','trace_ready','destination_ready'].every(k=>materialControl[k]===true);
+            const surfaces = (await q('SELECT * FROM material_trial.surface ORDER BY id')).rows;
+            for (const surface of surfaces) {
+              if (!surface.revealable) continue;
+              const scope=authority.scopes.find(s=>s.id===surface.scope_ref && s.active);
+              const allowed = scope?.purpose_ref===surface.purpose_ref && authority.readingMaximum(viewer, surface.permission_id, surface.scope_ref, surface.purpose_ref) !== 'NONE';
+              additional.push({ capability_id: surface.id, implemented: true, enabled: surface.enabled,
+                authorized: allowed ? 'yes' : 'no', executable: surface.enabled && surface.policy_ready && treatmentReady && allowed ? 'yes' : 'no' });
+            }
+            expiry = Math.min(expiry, authority.deadline);
+          }
           result = {
             status: 200,
             body: {
               revision: control.revision,
               invitation_options: options,
               capabilities: [
+                ...additional,
                 {
                   capability_id: 'session_status',
                   implemented: true,

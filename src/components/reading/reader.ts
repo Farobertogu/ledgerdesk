@@ -3,6 +3,7 @@ import {
   type ListResponse, type Projection, type Reference,
 } from '../../contracts/material_reading.ts';
 import { readLoopbackOrigin } from '../../contracts/reading_origin.ts';
+import { sessionTransport, sessionRequest, type SessionTransport } from '../../contracts/access_transport.ts';
 
 export type Failure = 'unavailable' | 'unauthenticated' | 'technical' | 'invalid';
 export type ReaderState = Readonly<{
@@ -35,8 +36,10 @@ export class Reader {
   private detailAbort?: AbortController;
   private readonly request: typeof fetch;
   private readonly serviceOrigin: string;
-  constructor(request: typeof fetch = (input, init) => fetch(input, init), serviceOrigin?: string) {
-    if (serviceOrigin !== undefined && !readLoopbackOrigin(serviceOrigin)) throw new Error('Invalid reading origin');
+  private readonly transport?: SessionTransport;
+  constructor(request: typeof fetch = (input, init) => fetch(input, init), serviceOrigin?: string, transport?: SessionTransport) {
+    this.transport = transport === undefined ? undefined : sessionTransport(transport);
+    if (this.transport ? serviceOrigin !== this.transport.terminalOrigin : serviceOrigin !== undefined && !readLoopbackOrigin(serviceOrigin)) throw new Error('Invalid reading origin');
     this.request = request;
     // Relative URLs remain available to isolated controller tests, not the configured page.
     this.serviceOrigin = serviceOrigin ?? '';
@@ -63,7 +66,7 @@ export class Reader {
       failure: error instanceof ReadFailure ? error.reason : 'technical' });
   }
   private async json(url: string, signal: AbortSignal): Promise<unknown> {
-    const response = await this.request(this.serviceOrigin + url, {
+    const response = await this.request(this.serviceOrigin + url, this.transport ? { ...sessionRequest('GET'), signal } : {
       method: 'GET', credentials: 'omit', cache: 'no-store', redirect: 'error', signal,
     });
     const media = response.headers.get('content-type')?.split(';')[0].trim();

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { Reader, sameReference } from './reader';
 import styles from './reader.module.css';
+import type { SessionTransport } from '../../contracts/access_transport';
 
 const copy = {
   en: {
@@ -33,8 +34,8 @@ const copy = {
   },
 };
 
-export default function MaterialReader({ serviceOrigin }: { serviceOrigin: string }) {
-  const [reader] = useState(() => new Reader(undefined, serviceOrigin));
+export default function MaterialReader({ serviceOrigin, transport }: { serviceOrigin: string; transport?: SessionTransport }) {
+  const [reader] = useState(() => new Reader(undefined, serviceOrigin, transport));
   const state = useSyncExternalStore(reader.subscribe, reader.snapshot, reader.snapshot);
   const [language, setLanguage] = useState<'en' | 'es'>('en');
   const [light, setLight] = useState(false);
@@ -65,7 +66,7 @@ export default function MaterialReader({ serviceOrigin }: { serviceOrigin: strin
   return (
     <main className={styles.reader} data-theme={light ? 'light' : 'dark'} lang={language}>
       <header className={styles.header}>
-        <div><p className={styles.eyebrow}>{t.trial}</p><h1>{t.title}</h1></div>
+        <div><p className={styles.eyebrow}>{transport ? 'Authenticated reading trial' : t.trial}</p><h1>{t.title}</h1></div>
         <div className={styles.tools}>
           <label>{t.language} <select value={language} onChange={e => setLanguage(e.target.value as 'en' | 'es')}><option value="en">EN</option><option value="es">ES</option></select></label>
           <button aria-label={t.theme} onClick={() => setLight(!light)}>{light ? '◐' : '◑'}</button>

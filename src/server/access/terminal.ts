@@ -10,6 +10,10 @@ import {
 import { SESSION_COOKIE } from '../../contracts/access_transport.ts';
 import { resolveAccessPath } from '../../contracts/access_canonical.ts';
 import { accessConfig, type AccessConfig } from './config.ts';
+import { AuthenticatedReading, type ReadingHooks, type ProtectedRequest } from './authenticated_reading.ts';
+import { authenticatedReadingConfig, type AuthenticatedReadingConfig } from './reading_config.ts';
+import { parseReadingRequest } from '../reading/http.ts';
+import { PROBLEMS } from '../../contracts/material_reading.ts';
 import {
   transportEnvelope,
   corsHeaders,
@@ -87,9 +91,13 @@ export async function startAccessTerminal(options: {
   tls: ServerOptions;
   mailbox: LocalMailbox;
   hooks?: AccessHooks;
+  reading?: AuthenticatedReadingConfig;
+  readingHooks?: ReadingHooks;
 }) {
   const config = accessConfig(options.config);
-  const service = new AccessService(config, options.mailbox, options.hooks);
+  const readingConfig = options.reading ? authenticatedReadingConfig(options.reading) : undefined;
+  const service = new AccessService(config, options.mailbox, options.hooks, readingConfig?.generation);
+  const reading = readingConfig ? new AuthenticatedReading(service, readingConfig, options.readingHooks) : null;
   await service.initialize();
   const running = new Set<Promise<void>>();
   let active = 0;
@@ -98,7 +106,7 @@ export async function startAccessTerminal(options: {
     (req, res) => {
       const p = handle(req, res).catch(() => {
         if (!res.headersSent)
-          respond(res, 503, accessProblem('technical_failure'));
+          respond(res, 503, materialPath(req.url) ? PROBLEMS[503] : accessProblem('technical_failure'));
         else res.destroy();
       });
       running.add(p);
@@ -108,6 +116,9 @@ export async function startAccessTerminal(options: {
   server.requestTimeout = 10000;
   server.headersTimeout = 10000;
   server.keepAliveTimeout = 1000;
+  function materialPath(url: string | undefined): boolean {
+    return /^\/api\/v1\/material(?:\/|\?|$)/.test(url ?? '');
+  }
   function respond(
     res: ServerResponse,
     status: number,
@@ -125,6 +136,7 @@ export async function startAccessTerminal(options: {
     res.end(body === null ? '' : JSON.stringify(body));
   }
   async function handle(req: IncomingMessage, res: ServerResponse) {
+    const material = materialPath(req.url);
     const envelope = {
       method: req.method ?? '',
       host: req.headers.host,
@@ -139,9 +151,32 @@ export async function startAccessTerminal(options: {
     };
     if (
       !singletonHeaders(req) ||
-      !transportEnvelope(config.transport, envelope)
+      !transportEnvelope(config.transport, material ? { ...envelope, method: 'GET' } : envelope)
     ) {
-      respond(res, 403, accessProblem('forbidden'));
+      respond(res, 403, material ? PROBLEMS[403] : accessProblem('forbidden'));
+      return;
+    }
+    if (material) {
+      const headers = new Headers();
+      for (const name of ['content-length','transfer-encoding']) if (req.headers[name] !== undefined) headers.set(name,String(req.headers[name]));
+      let operation;
+      try { operation = parseReadingRequest(new Request(config.transport.terminalOrigin + req.url, { method:req.method,headers })); }
+      catch { respond(res,400,PROBLEMS[400]); return; }
+      if (!operation) { respond(res,400,PROBLEMS[400]); return; }
+      await protectedDelivery(req,res,{kind:'material',operation});
+      return;
+    }
+    // The census is the sole query-bearing access route. No general query decoder or alias.
+    if (/^\/api\/access\/v1\/people(?:\?|$)/.test(req.url ?? '')) {
+      if (!reading) { respond(res,404,accessProblem('unavailable')); return; }
+      const url = new URL(req.url!,config.transport.terminalOrigin);
+      const keys = [...url.searchParams.keys()];
+      const cursor = url.searchParams.get('cursor') ?? '';
+      if (req.method !== 'GET' || keys.some(k=>k!=='cursor') || keys.length>1 || url.hash ||
+          !validateAccess('people','request',{cursor}) || Number(req.headers['content-length'] ?? 0)!==0) {
+        respond(res,400,accessProblem('invalid_request')); return;
+      }
+      await protectedDelivery(req,res,{kind:'people',cursor});
       return;
     }
     const resolved = resolveAccessPath(req.url ?? '');
@@ -233,6 +268,29 @@ export async function startAccessTerminal(options: {
       } finally {
         active--;
       }
+    }
+  }
+  async function protectedDelivery(req: IncomingMessage, res: ServerResponse, request: ProtectedRequest) {
+    const problem = (status: 403|503) => request.kind==='material' ? PROBLEMS[status] : accessProblem(status===403?'unauthenticated':'technical_failure');
+    if (!reading) { respond(res,503,problem(503)); return; }
+    if (active>=16) { respond(res,503,problem(503)); return; }
+    active++;
+    let result: Awaited<ReturnType<AuthenticatedReading['prepare']>> | undefined;
+    try {
+      result = await reading.prepare(request,sessionToken(req.headers.cookie),()=>res.destroy());
+      if (!result.healthy() || res.destroyed || Date.now()>=result.expiresAt) {
+        respond(res,503,problem(503)); await result.observe('interrupted'); return;
+      }
+      // This terminal is the final material handoff; no proxy or identity-only proof substitutes.
+      options.readingHooks?.afterLastClock?.(result.expiresAt);
+      respond(res,result.status,result.body);
+      await result.observe(res.destroyed || !res.writableEnded ? 'interrupted':'handed_off');
+    } catch (e) {
+      options.hooks?.failure?.(e);
+      if (!res.headersSent) respond(res,503,problem(503));
+      else res.destroy();
+    } finally {
+      try { await result?.close(); } finally { active--; }
     }
   }
   const port = Number(new URL(config.transport.terminalOrigin).port);

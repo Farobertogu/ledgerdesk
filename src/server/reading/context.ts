@@ -8,8 +8,8 @@ export type ReadingContext = Readonly<{
   deploymentId: string;
   scopeId: string;
   subjectId: string;
-  surface: 'material-reader';
-  purpose: 'synthetic-reading-trial';
+  surface: string;
+  purpose: string;
   generation: string;
 }>;
 

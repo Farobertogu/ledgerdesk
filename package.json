@@ -34,7 +34,9 @@
     "test:access:runtime:unit": "node --experimental-strip-types --test tests/access/test_runtime_units.mjs",
     "test:access:runtime": "node ci/access_runtime_check.mjs",
     "test:access:canonical": "node --experimental-strip-types --test tests/access/test_canonical.mjs",
-    "test:access:invitations": "node ci/access_runtime_check.mjs --invitations"
+    "test:access:invitations": "node ci/access_runtime_check.mjs --invitations",
+    "test:access:reading:unit": "node --experimental-strip-types --test tests/access/test_authorized_reading_units.mjs",
+    "test:access:reading": "node ci/access_runtime_check.mjs --reading"
   },
   "devDependencies": {
     "@playwright/test": "1.63.0",
