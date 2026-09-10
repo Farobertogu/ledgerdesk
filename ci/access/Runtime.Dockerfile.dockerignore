@@ -1,7 +1,16 @@
 **
 !package.json
 !package-lock.json
+!next.config.mjs
+!postcss.config.mjs
+!tsconfig.app.json
 !src/
+!src/instrumentation.ts
+!src/app/
+!src/app/access/
+!src/app/access/**
+!src/app/layout.tsx
+!src/app/globals.css
 !src/contracts/
 !src/contracts/access*.ts
 !src/contracts/material_reading.ts
@@ -20,6 +29,7 @@
 !src/components/reading/**
 !ci/
 !ci/access_material_schema.mjs
+!ci/access_final_routes.mjs
 !tests/
 !tests/access/
 !tests/access/**

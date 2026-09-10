@@ -404,6 +404,38 @@ Local cancellation is not reported as an observed session mismatch.
 Directed tests cover these new views independently. They do not close R24 or the
 two tracked browser failures and do not authorize real data or production use.
 
+## Declared initial faculties in the whole-journey profile
+
+Migration `004_bootstrap.sql` adds a preactivation declaration bound to the
+existing exact master address, holder and preparation root. Only external
+deployment setup can supply it; the runtime cannot write it. It is immutable,
+and cannot be installed after a master account exists. It is not a public DTO,
+a role editor, a generic grant route or proof of an external mandate's truth.
+
+The input contains at most 16 exact selectors: `permission_id`,
+`exercise_or_grant`, `scope_ref`, `support_ref`, their three positive revisions
+and an absolute `expires_at`. Unknown fields, duplicate permission/faculty/scope
+selectors, invalid references and unsafe integer values fail. In this bounded
+profile, exercise is limited to explicitly declared initial `invite` and
+`read_people` administration; material exercise and approval are not inferred
+from office. Granting remains explicit and scoped, with current permission,
+domain support, scope, investiture and incompatibility checks. Expiry cannot
+exceed the root or support deadline.
+
+Only successful first activation materializes the declaration, within the same
+snapshot and evidence transaction as account creation and proof consumption.
+The grants identify their bootstrap source; a unique activation record links
+that source and account to durable evidence. A failed declaration or evidence
+write rolls back the whole effect. Exact replay does not duplicate it; a reused
+intention with changed content conflicts. Credential recovery never invokes
+initialization and does not restore a withdrawn grant.
+
+This is the admitted initial-administration exception. It does not let ordinary
+invitation gains bypass acceptance. Earlier isolated schemas remain the old
+credential-only profile; adding the migration to a populated schema preserves
+its facts without retrospective grants. See [ADR-037](../adr/ADR-037-whole-journey.md) and
+[T06](INC-02-T06.md) for the proposed realization and experimental evidence.
+
 ## Technical references
 
 Cookie port limits: [RFC 6265 §8.5](https://httpwg.org/specs/rfc6265.html#section-8.5).
