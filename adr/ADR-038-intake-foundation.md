@@ -1,7 +1,7 @@
 # ADR-038: Intake contracts and bounded feasibility
 
-**Status:** proposed
-**Decision date:** pending acceptance
+**Status:** accepted
+**Decision date:** 2026-09-13
 
 ## Context
 
@@ -10,7 +10,7 @@ original storage and parser containment before operational handlers are built.
 An isolated session transport and reading projection already exist; neither
 admits a material-loading or editorial action automatically.
 
-## Proposed decision
+## Decision
 
 Keep intake in a separate, unmounted contract boundary. Use the existing
 session transport requirements and command canonicalization profile through
@@ -34,7 +34,7 @@ operation/reference must constrain the real producer and consumer.
 
 Evaluate strict UTF-8 text/inert Markdown, declared CSV and bounded cell-oriented
 XLSX using the identified adapter snapshot. These are experimental candidates:
-the operational format scope is not accepted by this ADR proposal. PDF/OCR
+the operational format scope is not adopted by this ADR. PDF/OCR
 remain unoffered in this package.
 
 Keep test-only storage/control prototypes outside production imports. Use
@@ -65,7 +65,8 @@ remain an additional scoped control, not the hostile-code boundary.
   alongside its mapped structural view. That sidecar is protected evidence,
   not a public candidate response. Actual persistence and disclosure must use
   independently controlled antecedents and current authority.
-- The proposal is not accepted by a successful experiment or CI run.
+- Acceptance requires the owner's explicit decision; a successful experiment
+  or CI run alone does not authorize acceptance.
 
 See [the contract](../docs/intake-contract.md) and
 [the evidence and remaining work](../docs/INC-03-T01.md).
