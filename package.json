@@ -8,6 +8,12 @@
     "node": ">=22.6"
   },
   "scripts": {
+    "test:intake": "node ci/intake_t01_check.mjs --group contracts",
+    "test:intake:storage": "node ci/intake_t01_check.mjs --group storage",
+    "test:intake:recovery": "node ci/intake_t01_check.mjs --group recovery",
+    "test:intake:isolation": "node ci/intake_t01_check.mjs --group isolation",
+    "test:intake:limits": "node ci/intake_t01_check.mjs --group limits",
+    "test:intake:lifecycle": "node ci/intake_t01_check.mjs --group lifecycle",
     "corpus": "node --experimental-strip-types quality/gen/corpus.ts",
     "typecheck": "tsc --noEmit",
     "typecheck:app": "tsc --noEmit -p tsconfig.app.json",

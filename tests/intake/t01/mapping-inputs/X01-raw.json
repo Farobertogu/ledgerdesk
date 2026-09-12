@@ -1,0 +1,1164 @@
+{
+  "sheetjs": "0.20.3",
+  "workbook": {
+    "Directory": {
+      "workbooks": [
+        "xl/workbook.xml"
+      ],
+      "sheets": [
+        "/xl/worksheets/sheet1.xml",
+        "/xl/worksheets/sheet2.xml"
+      ],
+      "charts": [],
+      "dialogs": [],
+      "macros": [],
+      "rels": [],
+      "strs": [
+        "/xl/sharedStrings.xml"
+      ],
+      "comments": [],
+      "threadedcomments": [],
+      "links": [],
+      "coreprops": [],
+      "extprops": [],
+      "custprops": [],
+      "themes": [
+        "/xl/theme/theme1.xml"
+      ],
+      "styles": [
+        "/xl/styles.xml"
+      ],
+      "vba": [],
+      "drawings": [],
+      "metadata": [],
+      "people": [],
+      "TODO": [],
+      "xmlns": "http://schemas.openxmlformats.org/package/2006/content-types",
+      "calcchain": "",
+      "sst": "/xl/sharedStrings.xml",
+      "style": "/xl/styles.xml",
+      "defaults": {
+        "xml": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml",
+        "rels": "application/vnd.openxmlformats-package.relationships+xml"
+      }
+    },
+    "Workbook": {
+      "AppVersion": {},
+      "WBProps": {
+        "allowRefreshQuery": false,
+        "autoCompressPictures": true,
+        "backupFile": false,
+        "checkCompatibility": false,
+        "CodeName": "",
+        "date1904": false,
+        "defaultThemeVersion": 0,
+        "filterPrivacy": false,
+        "hidePivotFieldList": false,
+        "promptedSolutions": false,
+        "publishItems": false,
+        "refreshAllConnections": false,
+        "saveExternalLinkValues": true,
+        "showBorderUnselectedTables": true,
+        "showInkAnnotation": true,
+        "showObjects": "all",
+        "showPivotChartFilter": false,
+        "updateLinks": "userSet"
+      },
+      "WBView": [],
+      "Sheets": [
+        {
+          "name": "Items",
+          "sheetId": "1",
+          "sheetid": "1",
+          "id": "R02eea5c5127a4634",
+          "xmlnsr": "http://schemas.openxmlformats.org/officeDocument/2006/relationships",
+          "Hidden": 0
+        },
+        {
+          "name": "Conditions",
+          "sheetId": "2",
+          "sheetid": "2",
+          "id": "Ra1447e027b1643e3",
+          "xmlnsr": "http://schemas.openxmlformats.org/officeDocument/2006/relationships",
+          "Hidden": 1
+        }
+      ],
+      "CalcPr": {
+        "calcCompleted": "true",
+        "calcMode": "auto",
+        "calcOnSave": "true",
+        "concurrentCalc": "true",
+        "fullCalcOnLoad": "false",
+        "fullPrecision": "true",
+        "iterate": "false",
+        "iterateCount": "100",
+        "iterateDelta": "0.001",
+        "refMode": "A1"
+      },
+      "Names": [],
+      "xmlns": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
+    },
+    "Props": {
+      "Worksheets": 2,
+      "SheetNames": [
+        "Items",
+        "Conditions"
+      ]
+    },
+    "Custprops": {},
+    "Deps": {},
+    "Sheets": {
+      "Items": {
+        "A1": {
+          "t": "s",
+          "v": "Item",
+          "z": "General",
+          "s": {
+            "patternType": "none"
+          }
+        },
+        "B1": {
+          "t": "s",
+          "v": "Quantity",
+          "z": "General",
+          "s": {
+            "patternType": "none"
+          }
+        },
+        "C1": {
+          "t": "s",
+          "v": "Unit price",
+          "z": "General",
+          "s": {
+            "patternType": "none"
+          }
+        },
+        "D1": {
+          "t": "s",
+          "v": "Amount",
+          "z": "General",
+          "s": {
+            "patternType": "none"
+          }
+        },
+        "A2": {
+          "t": "s",
+          "v": "001",
+          "z": "000",
+          "s": {
+            "patternType": "none"
+          }
+        },
+        "B2": {
+          "t": "n",
+          "v": 2,
+          "z": "General",
+          "s": {
+            "patternType": "none"
+          }
+        },
+        "C2": {
+          "t": "n",
+          "v": 12.5,
+          "z": "0.00",
+          "s": {
+            "patternType": "none"
+          }
+        },
+        "D2": {
+          "t": "n",
+          "v": 25,
+          "f": "B2*C2",
+          "z": "0.00",
+          "s": {
+            "patternType": "none"
+          }
+        },
+        "A3": {
+          "t": "s",
+          "v": "002",
+          "z": "000",
+          "s": {
+            "patternType": "none"
+          }
+        },
+        "B3": {
+          "t": "z",
+          "z": "0",
+          "s": {
+            "patternType": "none"
+          }
+        },
+        "C3": {
+          "t": "z",
+          "z": "General",
+          "s": {
+            "patternType": "none"
+          }
+        },
+        "D3": {
+          "t": "z",
+          "z": "General",
+          "s": {
+            "patternType": "none"
+          }
+        },
+        "A4": {
+          "t": "s",
+          "v": "003",
+          "z": "000",
+          "s": {
+            "patternType": "none"
+          }
+        },
+        "B4": {
+          "t": "n",
+          "v": 0,
+          "z": "General",
+          "s": {
+            "patternType": "none"
+          }
+        },
+        "C4": {
+          "t": "z",
+          "z": "General",
+          "s": {
+            "patternType": "none"
+          }
+        },
+        "D4": {
+          "t": "z",
+          "z": "General",
+          "s": {
+            "patternType": "none"
+          }
+        },
+        "A5": {
+          "t": "s",
+          "v": "004",
+          "z": "000",
+          "s": {
+            "patternType": "none"
+          }
+        },
+        "B5": {
+          "t": "e",
+          "v": 42,
+          "z": "General",
+          "s": {
+            "patternType": "none"
+          }
+        },
+        "C5": {
+          "t": "z",
+          "z": "General",
+          "s": {
+            "patternType": "none"
+          }
+        },
+        "D5": {
+          "t": "z",
+          "z": "General",
+          "s": {
+            "patternType": "none"
+          }
+        },
+        "A6": {
+          "t": "s",
+          "v": "005",
+          "z": "000",
+          "s": {
+            "patternType": "none"
+          }
+        },
+        "B6": {
+          "t": "n",
+          "v": 5,
+          "z": "General",
+          "s": {
+            "patternType": "none"
+          }
+        },
+        "C6": {
+          "t": "z",
+          "z": "General",
+          "s": {
+            "patternType": "none"
+          }
+        },
+        "D6": {
+          "t": "z",
+          "z": "General",
+          "s": {
+            "patternType": "none"
+          }
+        },
+        "A7": {
+          "t": "s",
+          "v": "Amounts are in USD and exclude tax.",
+          "z": "General",
+          "s": {
+            "patternType": "none"
+          }
+        },
+        "B7": {
+          "t": "z",
+          "z": "General",
+          "s": {
+            "patternType": "none"
+          }
+        },
+        "C7": {
+          "t": "z",
+          "z": "General",
+          "s": {
+            "patternType": "none"
+          }
+        },
+        "D7": {
+          "t": "z",
+          "z": "General",
+          "s": {
+            "patternType": "none"
+          }
+        },
+        "A8": {
+          "t": "s",
+          "v": "Applicable condition",
+          "z": "General",
+          "s": {
+            "patternType": "none"
+          }
+        },
+        "B8": {
+          "t": "s",
+          "v": "Under condition Z, receipt R replaces receipt Q.",
+          "f": "'Conditions'!B2",
+          "z": "General",
+          "s": {
+            "patternType": "none"
+          }
+        },
+        "C8": {
+          "t": "z",
+          "z": "General",
+          "s": {
+            "patternType": "none"
+          }
+        },
+        "D8": {
+          "t": "z",
+          "z": "General",
+          "s": {
+            "patternType": "none"
+          }
+        },
+        "!rows": [
+          {
+            "hpt": 24,
+            "hpx": 24
+          },
+          {
+            "hpt": 24,
+            "hpx": 24
+          },
+          {
+            "hpt": 24,
+            "hpx": 24
+          },
+          {
+            "hpt": 24,
+            "hpx": 24
+          },
+          {
+            "hpt": 24,
+            "hpx": 24
+          },
+          {
+            "hpt": 24,
+            "hpx": 24,
+            "hidden": true
+          },
+          {
+            "hpt": 24,
+            "hpx": 24
+          },
+          {
+            "hpt": 48,
+            "hpx": 48
+          }
+        ],
+        "!margins": {
+          "left": 0.7,
+          "right": 0.7,
+          "top": 0.75,
+          "bottom": 0.75,
+          "header": 0.3,
+          "footer": 0.3
+        },
+        "!ref": "A1:D8",
+        "!cols": [
+          {
+            "width": 19,
+            "hidden": false,
+            "customwidth": "1",
+            "wpx": 114,
+            "wch": 18.17,
+            "MDW": 6
+          },
+          {
+            "width": 19,
+            "hidden": false,
+            "customwidth": "1",
+            "wpx": 114,
+            "wch": 18.17,
+            "MDW": 6
+          },
+          {
+            "width": 19,
+            "hidden": false,
+            "customwidth": "1",
+            "wpx": 114,
+            "wch": 18.17,
+            "MDW": 6
+          },
+          {
+            "width": 19,
+            "hidden": false,
+            "customwidth": "1",
+            "wpx": 114,
+            "wch": 18.17,
+            "MDW": 6
+          }
+        ],
+        "!merges": [
+          {
+            "s": {
+              "c": 0,
+              "r": 6
+            },
+            "e": {
+              "c": 3,
+              "r": 6
+            }
+          },
+          {
+            "s": {
+              "c": 1,
+              "r": 7
+            },
+            "e": {
+              "c": 3,
+              "r": 7
+            }
+          }
+        ]
+      },
+      "Conditions": {
+        "A1": {
+          "t": "s",
+          "v": "Scope",
+          "z": "General",
+          "s": {
+            "patternType": "none"
+          }
+        },
+        "B1": {
+          "t": "s",
+          "v": "Condition",
+          "z": "General",
+          "s": {
+            "patternType": "none"
+          }
+        },
+        "A2": {
+          "t": "s",
+          "v": "AZ-17",
+          "z": "General",
+          "s": {
+            "patternType": "none"
+          }
+        },
+        "B2": {
+          "t": "s",
+          "v": "Under condition Z, receipt R replaces receipt Q.",
+          "z": "General",
+          "s": {
+            "patternType": "none"
+          }
+        },
+        "!rows": [
+          {
+            "hpt": 24,
+            "hpx": 24
+          },
+          {
+            "hpt": 44,
+            "hpx": 44
+          }
+        ],
+        "!margins": {
+          "left": 0.7,
+          "right": 0.7,
+          "top": 0.75,
+          "bottom": 0.75,
+          "header": 0.3,
+          "footer": 0.3
+        },
+        "!ref": "A1:B2",
+        "!cols": [
+          {
+            "width": 19,
+            "hidden": false,
+            "customwidth": "1",
+            "wpx": 114,
+            "wch": 18.17,
+            "MDW": 6
+          },
+          {
+            "width": 55,
+            "hidden": false,
+            "customwidth": "1",
+            "wpx": 330,
+            "wch": 54.17,
+            "MDW": 6
+          }
+        ]
+      }
+    },
+    "SheetNames": [
+      "Items",
+      "Conditions"
+    ],
+    "Strings": [],
+    "Styles": {
+      "NumberFmt": [
+        "General",
+        "0",
+        "0.00",
+        "#,##0",
+        "#,##0.00",
+        null,
+        null,
+        null,
+        null,
+        "0%",
+        "0.00%",
+        "0.00E+00",
+        "# ?/?",
+        "# ??/??",
+        "m/d/yy",
+        "d-mmm-yy",
+        "d-mmm",
+        "mmm-yy",
+        "h:mm AM/PM",
+        "h:mm:ss AM/PM",
+        "h:mm",
+        "h:mm:ss",
+        "m/d/yy h:mm",
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        "#,##0 ;(#,##0)",
+        "#,##0 ;[Red](#,##0)",
+        "#,##0.00;(#,##0.00)",
+        "#,##0.00;[Red](#,##0.00)",
+        null,
+        null,
+        null,
+        null,
+        "mm:ss",
+        "[h]:mm:ss",
+        "mmss.0",
+        "##0.0E+0",
+        "@",
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        "\"上午/下午 \"hh\"時\"mm\"分\"ss\"秒 \"",
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        "@",
+        "0.00",
+        "0",
+        "000"
+      ],
+      "Fonts": [
+        {
+          "sz": 11,
+          "name": "Carlito"
+        },
+        {
+          "sz": 11,
+          "name": "Arial"
+        },
+        {
+          "bold": 1,
+          "sz": 11,
+          "name": "Arial"
+        }
+      ],
+      "Fills": [
+        {
+          "patternType": "none"
+        },
+        {
+          "patternType": "gray125"
+        }
+      ],
+      "Borders": [
+        {}
+      ],
+      "CellXf": [
+        {
+          "numFmtId": 0,
+          "numfmtid": "0",
+          "fontId": 0,
+          "fontid": "0",
+          "fillId": 0,
+          "fillid": "0",
+          "borderId": 0,
+          "borderid": "0",
+          "xfId": 0,
+          "xfid": "0"
+        },
+        {
+          "numFmtId": 200,
+          "numfmtid": "200",
+          "fontId": 0,
+          "fontid": "0",
+          "fillId": 0,
+          "fillid": "0",
+          "borderId": 0,
+          "borderid": "0",
+          "xfId": 0,
+          "xfid": "0",
+          "applyNumberFormat": true,
+          "applynumberformat": "1",
+          "applyFont": true,
+          "applyfont": "1",
+          "applyFill": true,
+          "applyfill": "1",
+          "applyBorder": true,
+          "applyborder": "1"
+        },
+        {
+          "numFmtId": 201,
+          "numfmtid": "201",
+          "fontId": 0,
+          "fontid": "0",
+          "fillId": 0,
+          "fillid": "0",
+          "borderId": 0,
+          "borderid": "0",
+          "xfId": 0,
+          "xfid": "0",
+          "applyNumberFormat": true,
+          "applynumberformat": "1",
+          "applyFont": true,
+          "applyfont": "1",
+          "applyFill": true,
+          "applyfill": "1",
+          "applyBorder": true,
+          "applyborder": "1"
+        },
+        {
+          "numFmtId": 202,
+          "numfmtid": "202",
+          "fontId": 0,
+          "fontid": "0",
+          "fillId": 0,
+          "fillid": "0",
+          "borderId": 0,
+          "borderid": "0",
+          "xfId": 0,
+          "xfid": "0",
+          "applyNumberFormat": true,
+          "applynumberformat": "1",
+          "applyFont": true,
+          "applyfont": "1",
+          "applyFill": true,
+          "applyfill": "1",
+          "applyBorder": true,
+          "applyborder": "1"
+        },
+        {
+          "numFmtId": 0,
+          "numfmtid": "0",
+          "fontId": 1,
+          "fontid": "1",
+          "fillId": 0,
+          "fillid": "0",
+          "borderId": 0,
+          "borderid": "0",
+          "xfId": 0,
+          "xfid": "0",
+          "applyNumberFormat": true,
+          "applynumberformat": "1",
+          "applyFont": true,
+          "applyfont": "1",
+          "applyFill": true,
+          "applyfill": "1",
+          "applyBorder": true,
+          "applyborder": "1"
+        },
+        {
+          "numFmtId": 200,
+          "numfmtid": "200",
+          "fontId": 1,
+          "fontid": "1",
+          "fillId": 0,
+          "fillid": "0",
+          "borderId": 0,
+          "borderid": "0",
+          "xfId": 0,
+          "xfid": "0",
+          "applyNumberFormat": true,
+          "applynumberformat": "1",
+          "applyFont": true,
+          "applyfont": "1",
+          "applyFill": true,
+          "applyfill": "1",
+          "applyBorder": true,
+          "applyborder": "1"
+        },
+        {
+          "numFmtId": 201,
+          "numfmtid": "201",
+          "fontId": 1,
+          "fontid": "1",
+          "fillId": 0,
+          "fillid": "0",
+          "borderId": 0,
+          "borderid": "0",
+          "xfId": 0,
+          "xfid": "0",
+          "applyNumberFormat": true,
+          "applynumberformat": "1",
+          "applyFont": true,
+          "applyfont": "1",
+          "applyFill": true,
+          "applyfill": "1",
+          "applyBorder": true,
+          "applyborder": "1"
+        },
+        {
+          "numFmtId": 202,
+          "numfmtid": "202",
+          "fontId": 1,
+          "fontid": "1",
+          "fillId": 0,
+          "fillid": "0",
+          "borderId": 0,
+          "borderid": "0",
+          "xfId": 0,
+          "xfid": "0",
+          "applyNumberFormat": true,
+          "applynumberformat": "1",
+          "applyFont": true,
+          "applyfont": "1",
+          "applyFill": true,
+          "applyfill": "1",
+          "applyBorder": true,
+          "applyborder": "1"
+        },
+        {
+          "numFmtId": 0,
+          "numfmtid": "0",
+          "fontId": 1,
+          "fontid": "1",
+          "fillId": 0,
+          "fillid": "0",
+          "borderId": 0,
+          "borderid": "0",
+          "xfId": 0,
+          "xfid": "0",
+          "applyNumberFormat": true,
+          "applynumberformat": "1",
+          "applyFont": true,
+          "applyfont": "1",
+          "applyFill": true,
+          "applyfill": "1",
+          "applyBorder": true,
+          "applyborder": "1",
+          "applyAlignment": true,
+          "applyalignment": "1",
+          "alignment": {
+            "wrapText": true
+          }
+        },
+        {
+          "numFmtId": 200,
+          "numfmtid": "200",
+          "fontId": 1,
+          "fontid": "1",
+          "fillId": 0,
+          "fillid": "0",
+          "borderId": 0,
+          "borderid": "0",
+          "xfId": 0,
+          "xfid": "0",
+          "applyNumberFormat": true,
+          "applynumberformat": "1",
+          "applyFont": true,
+          "applyfont": "1",
+          "applyFill": true,
+          "applyfill": "1",
+          "applyBorder": true,
+          "applyborder": "1",
+          "applyAlignment": true,
+          "applyalignment": "1",
+          "alignment": {
+            "wrapText": true
+          }
+        },
+        {
+          "numFmtId": 201,
+          "numfmtid": "201",
+          "fontId": 1,
+          "fontid": "1",
+          "fillId": 0,
+          "fillid": "0",
+          "borderId": 0,
+          "borderid": "0",
+          "xfId": 0,
+          "xfid": "0",
+          "applyNumberFormat": true,
+          "applynumberformat": "1",
+          "applyFont": true,
+          "applyfont": "1",
+          "applyFill": true,
+          "applyfill": "1",
+          "applyBorder": true,
+          "applyborder": "1",
+          "applyAlignment": true,
+          "applyalignment": "1",
+          "alignment": {
+            "wrapText": true
+          }
+        },
+        {
+          "numFmtId": 202,
+          "numfmtid": "202",
+          "fontId": 1,
+          "fontid": "1",
+          "fillId": 0,
+          "fillid": "0",
+          "borderId": 0,
+          "borderid": "0",
+          "xfId": 0,
+          "xfid": "0",
+          "applyNumberFormat": true,
+          "applynumberformat": "1",
+          "applyFont": true,
+          "applyfont": "1",
+          "applyFill": true,
+          "applyfill": "1",
+          "applyBorder": true,
+          "applyborder": "1",
+          "applyAlignment": true,
+          "applyalignment": "1",
+          "alignment": {
+            "wrapText": true
+          }
+        },
+        {
+          "numFmtId": 0,
+          "numfmtid": "0",
+          "fontId": 2,
+          "fontid": "2",
+          "fillId": 0,
+          "fillid": "0",
+          "borderId": 0,
+          "borderid": "0",
+          "xfId": 0,
+          "xfid": "0",
+          "applyNumberFormat": true,
+          "applynumberformat": "1",
+          "applyFont": true,
+          "applyfont": "1",
+          "applyFill": true,
+          "applyfill": "1",
+          "applyBorder": true,
+          "applyborder": "1",
+          "applyAlignment": true,
+          "applyalignment": "1",
+          "alignment": {
+            "wrapText": true
+          }
+        },
+        {
+          "numFmtId": 203,
+          "numfmtid": "203",
+          "fontId": 1,
+          "fontid": "1",
+          "fillId": 0,
+          "fillid": "0",
+          "borderId": 0,
+          "borderid": "0",
+          "xfId": 0,
+          "xfid": "0",
+          "applyNumberFormat": true,
+          "applynumberformat": "1",
+          "applyFont": true,
+          "applyfont": "1",
+          "applyFill": true,
+          "applyfill": "1",
+          "applyBorder": true,
+          "applyborder": "1",
+          "applyAlignment": true,
+          "applyalignment": "1",
+          "alignment": {
+            "wrapText": true
+          }
+        }
+      ]
+    },
+    "Themes": {
+      "themeElements": {
+        "clrScheme": [
+          {
+            "name": "lt1",
+            "rgb": "FFFFFF"
+          },
+          {
+            "name": "dk1",
+            "rgb": "000000"
+          },
+          {
+            "name": "lt2",
+            "rgb": "E8E8E8"
+          },
+          {
+            "name": "dk2",
+            "rgb": "0E2841"
+          },
+          {
+            "name": "accent1",
+            "rgb": "156082"
+          },
+          {
+            "name": "accent2",
+            "rgb": "E97132"
+          },
+          {
+            "name": "accent3",
+            "rgb": "196B24"
+          },
+          {
+            "name": "accent4",
+            "rgb": "0F9ED5"
+          },
+          {
+            "name": "accent5",
+            "rgb": "A02B93"
+          },
+          {
+            "name": "accent6",
+            "rgb": "4EA72E"
+          },
+          {
+            "name": "hlink",
+            "rgb": "467886"
+          },
+          {
+            "name": "folHlink",
+            "rgb": "96607D"
+          }
+        ]
+      },
+      "raw": "<?xml version=\"1.0\" encoding=\"utf-8\"?><a:theme name=\"ChatGPT\" xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><a:themeElements><a:clrScheme name=\"ChatGPT\"><a:dk1><a:sysClr val=\"windowText\" lastClr=\"000000\" /></a:dk1><a:lt1><a:sysClr val=\"window\" lastClr=\"FFFFFF\" /></a:lt1><a:dk2><a:srgbClr val=\"0E2841\" /></a:dk2><a:lt2><a:srgbClr val=\"E8E8E8\" /></a:lt2><a:accent1><a:srgbClr val=\"156082\" /></a:accent1><a:accent2><a:srgbClr val=\"E97132\" /></a:accent2><a:accent3><a:srgbClr val=\"196B24\" /></a:accent3><a:accent4><a:srgbClr val=\"0F9ED5\" /></a:accent4><a:accent5><a:srgbClr val=\"A02B93\" /></a:accent5><a:accent6><a:srgbClr val=\"4EA72E\" /></a:accent6><a:hlink><a:srgbClr val=\"467886\" /></a:hlink><a:folHlink><a:srgbClr val=\"96607D\" /></a:folHlink></a:clrScheme><a:fontScheme name=\"Office\"><a:majorFont><a:latin typeface=\"Calibri Light\" /><a:ea typeface=\"Calibri Light\" /><a:cs typeface=\"Calibri Light\" /></a:majorFont><a:minorFont><a:latin typeface=\"Calibri\" /><a:ea typeface=\"Calibri\" /><a:cs typeface=\"Calibri\" /></a:minorFont></a:fontScheme><a:fmtScheme name=\"ChatGPT\"><a:fillStyleLst><a:solidFill><a:schemeClr val=\"phClr\" /></a:solidFill><a:gradFill><a:gsLst><a:gs pos=\"0\"><a:schemeClr val=\"phClr\"><a:tint val=\"67000\" /><a:lumMod val=\"110000\" /><a:satMod val=\"105000\" /></a:schemeClr></a:gs><a:gs pos=\"50000\"><a:schemeClr val=\"phClr\"><a:tint val=\"73000\" /><a:lumMod val=\"105000\" /><a:satMod val=\"103000\" /></a:schemeClr></a:gs><a:gs pos=\"100000\"><a:schemeClr val=\"phClr\"><a:tint val=\"81000\" /><a:lumMod val=\"105000\" /><a:satMod val=\"109000\" /></a:schemeClr></a:gs></a:gsLst><a:lin ang=\"5400000\" scaled=\"0\" /></a:gradFill><a:gradFill><a:gsLst><a:gs pos=\"0\"><a:schemeClr val=\"phClr\"><a:tint val=\"94000\" /><a:lumMod val=\"102000\" /><a:satMod val=\"103000\" /></a:schemeClr></a:gs><a:gs pos=\"50000\"><a:schemeClr val=\"phClr\"><a:shade val=\"100000\" /><a:lumMod val=\"100000\" /><a:satMod val=\"110000\" /></a:schemeClr></a:gs><a:gs pos=\"100000\"><a:schemeClr val=\"phClr\"><a:shade val=\"78000\" /><a:lumMod val=\"99000\" /><a:satMod val=\"120000\" /></a:schemeClr></a:gs></a:gsLst><a:lin ang=\"5400000\" scaled=\"0\" /></a:gradFill></a:fillStyleLst><a:lnStyleLst><a:ln w=\"12700\"><a:solidFill><a:schemeClr val=\"phClr\" /></a:solidFill><a:prstDash val=\"solid\" /></a:ln><a:ln w=\"19050\"><a:solidFill><a:schemeClr val=\"phClr\" /></a:solidFill><a:prstDash val=\"solid\" /></a:ln><a:ln w=\"25400\"><a:solidFill><a:schemeClr val=\"phClr\" /></a:solidFill><a:prstDash val=\"solid\" /></a:ln></a:lnStyleLst><a:effectStyleLst><a:effectStyle><a:effectLst /></a:effectStyle><a:effectStyle><a:effectLst /></a:effectStyle><a:effectStyle><a:effectLst><a:outerShdw blurRad=\"57150\" dist=\"19050\" dir=\"5400000\"><a:srgbClr val=\"000000\"><a:alpha val=\"63000\" /></a:srgbClr></a:outerShdw></a:effectLst></a:effectStyle></a:effectStyleLst><a:bgFillStyleLst><a:solidFill><a:schemeClr val=\"phClr\" /></a:solidFill><a:solidFill><a:schemeClr val=\"phClr\"><a:tint val=\"95000\" /><a:satMod val=\"170000\" /></a:schemeClr></a:solidFill><a:gradFill><a:gsLst><a:gs pos=\"0\"><a:schemeClr val=\"phClr\"><a:tint val=\"93000\" /><a:shade val=\"98000\" /><a:lumMod val=\"102000\" /><a:satMod val=\"150000\" /></a:schemeClr></a:gs><a:gs pos=\"50000\"><a:schemeClr val=\"phClr\"><a:tint val=\"98000\" /><a:shade val=\"90000\" /><a:lumMod val=\"103000\" /><a:satMod val=\"130000\" /></a:schemeClr></a:gs><a:gs pos=\"100000\"><a:schemeClr val=\"phClr\"><a:shade val=\"63000\" /><a:satMod val=\"120000\" /></a:schemeClr></a:gs></a:gsLst><a:lin ang=\"5400000\" scaled=\"0\" /></a:gradFill></a:bgFillStyleLst></a:fmtScheme></a:themeElements></a:theme>"
+    },
+    "SSF": {
+      "0": "General",
+      "1": "0",
+      "2": "0.00",
+      "3": "#,##0",
+      "4": "#,##0.00",
+      "9": "0%",
+      "10": "0.00%",
+      "11": "0.00E+00",
+      "12": "# ?/?",
+      "13": "# ??/??",
+      "14": "m/d/yy",
+      "15": "d-mmm-yy",
+      "16": "d-mmm",
+      "17": "mmm-yy",
+      "18": "h:mm AM/PM",
+      "19": "h:mm:ss AM/PM",
+      "20": "h:mm",
+      "21": "h:mm:ss",
+      "22": "m/d/yy h:mm",
+      "37": "#,##0 ;(#,##0)",
+      "38": "#,##0 ;[Red](#,##0)",
+      "39": "#,##0.00;(#,##0.00)",
+      "40": "#,##0.00;[Red](#,##0.00)",
+      "45": "mm:ss",
+      "46": "[h]:mm:ss",
+      "47": "mmss.0",
+      "48": "##0.0E+0",
+      "49": "@",
+      "56": "\"上午/下午 \"hh\"時\"mm\"分\"ss\"秒 \"",
+      "200": "@",
+      "201": "0.00",
+      "202": "0",
+      "203": "000"
+    },
+    "bookType": "xlsx"
+  }
+}

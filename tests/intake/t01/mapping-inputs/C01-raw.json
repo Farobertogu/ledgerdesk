@@ -1,0 +1,90 @@
+[
+  {
+    "record": [
+      "Code",
+      "Value",
+      "Value",
+      "Note"
+    ],
+    "raw": "Code,Value,Value,Note\r",
+    "info": {
+      "bytes": 23,
+      "bytes_records": 23,
+      "comment_lines": 0,
+      "empty_lines": 0,
+      "invalid_field_length": 0,
+      "lines": 1,
+      "records": 1,
+      "columns": false,
+      "header": false,
+      "index": 4,
+      "raw": "Code,Value,Value,Note\r"
+    }
+  },
+  {
+    "record": [
+      "001",
+      "0",
+      "",
+      "USD, excludes tax"
+    ],
+    "raw": "001,0,,\"USD, excludes tax\"\r",
+    "info": {
+      "bytes": 51,
+      "bytes_records": 51,
+      "comment_lines": 0,
+      "empty_lines": 0,
+      "invalid_field_length": 0,
+      "lines": 2,
+      "records": 2,
+      "columns": false,
+      "header": false,
+      "index": 4,
+      "raw": "001,0,,\"USD, excludes tax\"\r"
+    }
+  },
+  {
+    "record": [
+      "002",
+      "12.50",
+      "=B2*C2",
+      "Line one\r\nLine two"
+    ],
+    "raw": "002,12.50,=B2*C2,\"Line one\r\nLine two\"\r",
+    "info": {
+      "bytes": 90,
+      "bytes_records": 90,
+      "comment_lines": 0,
+      "empty_lines": 0,
+      "invalid_field_length": 0,
+      "lines": 5,
+      "records": 3,
+      "columns": false,
+      "header": false,
+      "index": 4,
+      "raw": "002,12.50,=B2*C2,\"Line one\r\nLine two\"\r"
+    }
+  },
+  {
+    "record": [
+      "003",
+      "#N/A",
+      "",
+      " final space "
+    ],
+    "raw": "003,#N/A,\"\", final space \r",
+    "info": {
+      "bytes": 117,
+      "bytes_records": 117,
+      "comment_lines": 0,
+      "empty_lines": 0,
+      "invalid_field_length": 0,
+      "lines": 6,
+      "records": 4,
+      "columns": false,
+      "header": false,
+      "index": 4,
+      "raw": "003,#N/A,\"\", final space \r"
+    }
+  }
+]

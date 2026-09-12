@@ -1,0 +1,1 @@
+{"kind":"table","sheet":"Items","address":"A1:D8","rows":8,"cols":4,"values":[["Item","Quantity","Unit price","Amount"],["001",2,12.5,25],["002",null,null,null],["003",0,null,null],["004","#N/A",null,null],["005",5,null,null],["Amounts are in USD and exclude tax.",null,null,null],["Applicable condition","Under condition Z, receipt R replaces receipt Q.",null,null]]}

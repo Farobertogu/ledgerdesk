@@ -1,0 +1,40 @@
+{
+  "schema": "extraction-trial/1",
+  "profile": "text",
+  "original": {
+    "name": "bom.txt",
+    "bytes": 17,
+    "sha256": "8ab8151d61e1d71204824d7cbc2cfa3f2718028368ac812a260bc86ea26b42f9"
+  },
+  "outcome": "completed",
+  "coverage": {
+    "claim": "declared syntactic profile only",
+    "unsupported": []
+  },
+  "inventory": {
+    "bytes": 17,
+    "decodedCodePoints": 13,
+    "elements": 1,
+    "bomBytes": 3
+  },
+  "elements": [
+    {
+      "id": "line-1",
+      "type": "text",
+      "text": "Información\r\n",
+      "locator": {
+        "original": "8ab8151d61e1d71204824d7cbc2cfa3f2718028368ac812a260bc86ea26b42f9",
+        "byteRange": [
+          3,
+          17
+        ],
+        "codePointRange": [
+          0,
+          13
+        ]
+      }
+    }
+  ],
+  "relations": [],
+  "resources": []
+}

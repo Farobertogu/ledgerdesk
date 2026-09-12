@@ -1,0 +1,83 @@
+{
+  "scope": "Exact physical sheet/cell boundary fixtures; no formulas, images or semantic dependencies",
+  "valueRule": "Part i (zero-based): A row has numeric value i*100000+row, one-based row",
+  "cases": [
+    {
+      "id": "XLS01",
+      "file": "sheets-at.xlsx",
+      "counts": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "expected": "completed",
+      "bytes": 6560,
+      "sha256": "358a779a06740b1bf623641cfdb8f270bb7c1ff542b8aba0be73ff50aaeceb52"
+    },
+    {
+      "id": "XLS02",
+      "file": "sheets-over.xlsx",
+      "counts": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "expected": "sheet_limit",
+      "bytes": 6999,
+      "sha256": "3a3b6e5c5ae02a9b31e526f6bce534eed783ae0a5beef0449524a8c60e0289af"
+    },
+    {
+      "id": "XLS03",
+      "file": "cells-at.xlsx",
+      "counts": [
+        10000
+      ],
+      "expected": "completed",
+      "bytes": 74253,
+      "sha256": "8df2e502344f02c4faa4bd221a1324ec040baad3bfc1067fafec521f57cbd5ee"
+    },
+    {
+      "id": "XLS04",
+      "file": "cells-over.xlsx",
+      "counts": [
+        10001
+      ],
+      "expected": "cell_limit",
+      "bytes": 74262,
+      "sha256": "cd6f25f7d6ef19103d13b7b7517b74e8020feea82dcf7dda42acd3abd563e652"
+    },
+    {
+      "id": "XLS05",
+      "file": "cells-distributed-at.xlsx",
+      "counts": [
+        5000,
+        5000
+      ],
+      "expected": "completed",
+      "bytes": 75184,
+      "sha256": "1c7ebde3a81b3fa60085511d743d7dfb0c6f9de5cafd3bc8d636de40fdf6fc0b"
+    },
+    {
+      "id": "XLS06",
+      "file": "cells-distributed-over.xlsx",
+      "counts": [
+        5000,
+        5001
+      ],
+      "expected": "cell_limit",
+      "bytes": 75191,
+      "sha256": "fd4aca1b427b73837301fb286739a7c7ef79a528aa2b3bee34206c161568d566"
+    }
+  ]
+}

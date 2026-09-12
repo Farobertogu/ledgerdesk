@@ -1,0 +1,36 @@
+{
+  "schema": "candidate-trial/1",
+  "candidate": {
+    "unit": "U-T",
+    "version": 1,
+    "preparationId": "P-T",
+    "preparationRevision": 2,
+    "selected": [
+      "figure"
+    ],
+    "canonicalSha256": "b39489ce696c0b259a57338ab9d2c693967433328b9fd99b62f275849848c124",
+    "state": "synthetic_candidate_only"
+  },
+  "preparation": {
+    "id": "P-T",
+    "revision": 2
+  },
+  "canonical": {
+    "elements": [
+      {
+        "id": "figure",
+        "type": "resource",
+        "resource": "R-1"
+      }
+    ],
+    "relations": [],
+    "resources": [
+      {
+        "id": "R-1",
+        "file": "figure.svg",
+        "bytes": 70,
+        "sha256": "0bf3e7a5a26b50ee941d1230529a283ba3e6801444c1c6d5100812e81d256c1e"
+      }
+    ]
+  }
+}

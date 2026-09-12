@@ -1,0 +1,120 @@
+{
+  "schema": "extraction-trial/1",
+  "profile": "text",
+  "original": {
+    "name": "text.txt",
+    "bytes": 197,
+    "sha256": "eca7253801e939ccdf6ea63e5bf1b1b59dbed50c27ebf4281b8abb5e4100bf3b"
+  },
+  "outcome": "completed",
+  "coverage": {
+    "claim": "declared syntactic profile only",
+    "unsupported": []
+  },
+  "inventory": {
+    "bytes": 197,
+    "decodedCodePoints": 191,
+    "elements": 6,
+    "bomBytes": 0
+  },
+  "elements": [
+    {
+      "id": "line-1",
+      "type": "text",
+      "text": "AZ-17\r\n",
+      "locator": {
+        "original": "eca7253801e939ccdf6ea63e5bf1b1b59dbed50c27ebf4281b8abb5e4100bf3b",
+        "byteRange": [
+          0,
+          7
+        ],
+        "codePointRange": [
+          0,
+          7
+        ]
+      }
+    },
+    {
+      "id": "line-2",
+      "type": "text",
+      "text": "For procedure AZ-17, receipt Q is required.\r\n",
+      "locator": {
+        "original": "eca7253801e939ccdf6ea63e5bf1b1b59dbed50c27ebf4281b8abb5e4100bf3b",
+        "byteRange": [
+          7,
+          52
+        ],
+        "codePointRange": [
+          7,
+          52
+        ]
+      }
+    },
+    {
+      "id": "line-3",
+      "type": "text",
+      "text": "Under condition Z, receipt R replaces receipt Q.\r\n",
+      "locator": {
+        "original": "eca7253801e939ccdf6ea63e5bf1b1b59dbed50c27ebf4281b8abb5e4100bf3b",
+        "byteRange": [
+          52,
+          102
+        ],
+        "codePointRange": [
+          52,
+          102
+        ]
+      }
+    },
+    {
+      "id": "line-4",
+      "type": "text",
+      "text": "AZ-18\r\n",
+      "locator": {
+        "original": "eca7253801e939ccdf6ea63e5bf1b1b59dbed50c27ebf4281b8abb5e4100bf3b",
+        "byteRange": [
+          102,
+          109
+        ],
+        "codePointRange": [
+          102,
+          109
+        ]
+      }
+    },
+    {
+      "id": "line-5",
+      "type": "text",
+      "text": "Under condition Z, receipt S replaces receipt Q.\r\n",
+      "locator": {
+        "original": "eca7253801e939ccdf6ea63e5bf1b1b59dbed50c27ebf4281b8abb5e4100bf3b",
+        "byteRange": [
+          109,
+          159
+        ],
+        "codePointRange": [
+          109,
+          159
+        ]
+      }
+    },
+    {
+      "id": "line-6",
+      "type": "text",
+      "text": "Español: información. Café. 😀\r\n",
+      "locator": {
+        "original": "eca7253801e939ccdf6ea63e5bf1b1b59dbed50c27ebf4281b8abb5e4100bf3b",
+        "byteRange": [
+          159,
+          197
+        ],
+        "codePointRange": [
+          159,
+          191
+        ]
+      }
+    }
+  ],
+  "relations": [],
+  "resources": []
+}

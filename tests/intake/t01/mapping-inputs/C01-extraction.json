@@ -1,0 +1,95 @@
+{
+  "schema": "extraction-trial/1",
+  "profile": "csv",
+  "original": {
+    "name": "table.csv",
+    "bytes": 117,
+    "sha256": "947da2ccc6b51f26df323a294f913b527393bfbec8c84e7349a3a407662b3be3"
+  },
+  "outcome": "completed",
+  "coverage": {
+    "claim": "declared syntactic profile only",
+    "unsupported": []
+  },
+  "inventory": {
+    "records": 4,
+    "bomBytes": 0,
+    "headerMode": "first record retained; labels do not replace column positions"
+  },
+  "elements": [
+    {
+      "id": "table-1",
+      "type": "table",
+      "headers": [
+        "Code",
+        "Value",
+        "Value",
+        "Note"
+      ],
+      "rows": [
+        {
+          "index": 0,
+          "fields": [
+            "Code",
+            "Value",
+            "Value",
+            "Note"
+          ],
+          "raw": "Code,Value,Value,Note\r\n",
+          "originalByteRange": [
+            0,
+            23
+          ]
+        },
+        {
+          "index": 1,
+          "fields": [
+            "001",
+            "0",
+            "",
+            "USD, excludes tax"
+          ],
+          "raw": "001,0,,\"USD, excludes tax\"\r\n",
+          "originalByteRange": [
+            23,
+            51
+          ]
+        },
+        {
+          "index": 2,
+          "fields": [
+            "002",
+            "12.50",
+            "=B2*C2",
+            "Line one\r\nLine two"
+          ],
+          "raw": "002,12.50,=B2*C2,\"Line one\r\nLine two\"\r\n",
+          "originalByteRange": [
+            51,
+            90
+          ]
+        },
+        {
+          "index": 3,
+          "fields": [
+            "003",
+            "#N/A",
+            "",
+            " final space "
+          ],
+          "raw": "003,#N/A,\"\", final space \r\n",
+          "originalByteRange": [
+            90,
+            117
+          ]
+        }
+      ],
+      "locator": {
+        "original": "947da2ccc6b51f26df323a294f913b527393bfbec8c84e7349a3a407662b3be3",
+        "coordinate": "record/field indexes; record ranges in original UTF-8 bytes"
+      }
+    }
+  ],
+  "relations": [],
+  "resources": []
+}

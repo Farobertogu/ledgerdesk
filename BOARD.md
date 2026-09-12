@@ -16,6 +16,10 @@ Source of truth for build order: the specification's build plan, as amended — 
 
 ## In progress
 
+| Card | Increment | Closing evidence |
+|---|---|---|
+| INC-03 | I03-T01: intake contracts and bounded feasibility | [Experimental foundation and G1–G4 independently reviewed](docs/INC-03-T01.md#independent-closure-and-later-documentary-update); initial format target approved on 2026-09-12. Publication prepared; pinned-fixture Git representation locally verified; ADR-038 proposed. No operational intake, candidate constitution or real data. |
+
 Active access follow-up: [tracked browser failures and closure criteria](docs/INC-02-T03.md#tracked-browser-follow-up).
 
 INC-02's implemented synthetic journey is accepted under ADR-037 and recorded
