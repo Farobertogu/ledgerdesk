@@ -4,3 +4,9 @@
 * text=auto eol=lf
 quality/templates/*.json text eol=lf
 quality/params/*.json text eol=lf
+
+# Preserve the byte-exact originals used by intake fixture references.
+tests/intake/t01/fixtures/bom.txt -text
+tests/intake/t01/fixtures/table.csv -text
+tests/intake/t01/fixtures/text.txt -text
+tests/intake/t01/fixtures/unicode-records.csv -text

@@ -12,9 +12,7 @@
 !src/app/layout.tsx
 !src/app/globals.css
 !src/contracts/
-!src/contracts/access*.ts
-!src/contracts/material_reading.ts
-!src/contracts/reading_origin.ts
+!src/contracts/**
 !src/server/
 !src/server/access/
 !src/server/access/**

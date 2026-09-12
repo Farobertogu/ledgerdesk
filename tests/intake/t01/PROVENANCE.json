@@ -1,0 +1,810 @@
+{
+  "profile": "intake-copy-manifest/1",
+  "meaning": "Byte equality with the retained trial; integrity is not source authentication or operational adoption.",
+  "files": [
+    {
+      "path": "reviewed/adapter.mjs",
+      "source": "adapter.mjs",
+      "bytes": 12072,
+      "sha256": "f6fdbf24d2a5801b45ede2c31ebeed457ef561ae2bb07f2c06845bfe2a6f3100"
+    },
+    {
+      "path": "reviewed/consumer.mjs",
+      "source": "consumer.mjs",
+      "bytes": 3273,
+      "sha256": "6fd4f1553c8c94e77b6648d831228ab148b1fe04af407800949b468b57079f28"
+    },
+    {
+      "path": "reviewed/csv-reference.mjs",
+      "source": "csv-reference.mjs",
+      "bytes": 2271,
+      "sha256": "706ffc34195b4377fbe4af1222a5f90a97e4c4276da7f313d950c10a30da93c4"
+    },
+    {
+      "path": "reviewed/package-lock.json",
+      "source": "package-lock.json",
+      "bytes": 5768,
+      "sha256": "0f39315f91f5c1bd475b7f88e017e3a2a7f5852065240bcee02ace162285ece7"
+    },
+    {
+      "path": "reviewed/package.json",
+      "source": "package.json",
+      "bytes": 287,
+      "sha256": "63539a4001e1e1a46f66c1f0beae9e89b9b7572937135bb16561f3e8d127c0c9"
+    },
+    {
+      "path": "reviewed/permission-probe.mjs",
+      "source": "permission-probe.mjs",
+      "bytes": 724,
+      "sha256": "018cdb5310fe345ce2e64fb59cf3dbf140e01e93f7a130416726c2e861d30e55"
+    },
+    {
+      "path": "reviewed/process-output.mjs",
+      "source": "process-output.mjs",
+      "bytes": 3084,
+      "sha256": "9e9bc35490000ebadc44512021d0df6aaa7365af2a6a55f4eee814a01646e6f9"
+    },
+    {
+      "path": "reviewed/producer.mjs",
+      "source": "producer.mjs",
+      "bytes": 329,
+      "sha256": "0407599f0f3b32256c137650e4da2e6ac583f29abffa85e9ff4371c20a47c808"
+    },
+    {
+      "path": "reviewed/profile.mjs",
+      "source": "profile.mjs",
+      "bytes": 1566,
+      "sha256": "28d6a0ec16d49d7834243f5264018d904892fcb982ded1958aba32041a2a96f0"
+    },
+    {
+      "path": "reviewed/vendor/provenance.json",
+      "source": "vendor/provenance.json",
+      "bytes": 648,
+      "sha256": "4a8ea1d1a0a8552383d5444b302a45fd1077e6344861aeaa04c3977fd657c58e"
+    },
+    {
+      "path": "reviewed/vendor/xlsx-0.20.3.tgz",
+      "source": "vendor/xlsx-0.20.3.tgz",
+      "bytes": 2409319,
+      "sha256": "8dc73fc3b00203e72d176e85b50938627c7b086e607c682e8d3c22c02bb99fe8"
+    },
+    {
+      "path": "reviewed/worker-probe.mjs",
+      "source": "worker-probe.mjs",
+      "bytes": 302,
+      "sha256": "2dd772132f9a27407ba7820652891adcc36ca20bbc9c17613a32a4f858e507bd"
+    },
+    {
+      "path": "fixtures/Conditions-base.png",
+      "source": "outputs/fixtures-2026-09-11T07-47-32-518Z-0cd8d8d5/Conditions-base.png",
+      "bytes": 10356,
+      "sha256": "a72d11129e49ffc7490fc301b227e5c2c51f360a04fb686c69e942c3133baee3"
+    },
+    {
+      "path": "fixtures/Items-base.png",
+      "source": "outputs/fixtures-2026-09-11T07-47-32-518Z-0cd8d8d5/Items-base.png",
+      "bytes": 29969,
+      "sha256": "49ffb2d49cfa5037d296f7403d556fd824f7761cc629ad2e8136524a839b5c53"
+    },
+    {
+      "path": "fixtures/at-byte-limit.txt",
+      "source": "outputs/fixtures-2026-09-11T07-47-32-518Z-0cd8d8d5/at-byte-limit.txt",
+      "bytes": 1048576,
+      "sha256": "8f990ba0b577b51cf009ea049368c16bbda1b21e1b93be07a824758bb253c39b"
+    },
+    {
+      "path": "fixtures/authoring-base.xlsx",
+      "source": "outputs/fixtures-2026-09-11T07-47-32-518Z-0cd8d8d5/authoring-base.xlsx",
+      "bytes": 4478,
+      "sha256": "e7fb7726dfb7183af0c142226edb4aa030c48c02189902ac6838a3e13e7cd2fa"
+    },
+    {
+      "path": "fixtures/authoring-base.xlsx.inspect.ndjson",
+      "source": "outputs/fixtures-2026-09-11T07-47-32-518Z-0cd8d8d5/authoring-base.xlsx.inspect.ndjson",
+      "bytes": 7562,
+      "sha256": "830047d49baecffd75030370ded4dd40d39533a2a96463b336401c7ba85de875"
+    },
+    {
+      "path": "fixtures/authoring-error-scan.ndjson",
+      "source": "outputs/fixtures-2026-09-11T07-47-32-518Z-0cd8d8d5/authoring-error-scan.ndjson",
+      "bytes": 93,
+      "sha256": "337b40c61169e4f586de6dc149ecb3ce48f1f8f940d384fc8842e3a8593ab21a"
+    },
+    {
+      "path": "fixtures/authoring-inspection.ndjson",
+      "source": "outputs/fixtures-2026-09-11T07-47-32-518Z-0cd8d8d5/authoring-inspection.ndjson",
+      "bytes": 368,
+      "sha256": "74135d71568583615209e2ed8fa1cb4abb361a931c7cb8063e0f93ccda3e571e"
+    },
+    {
+      "path": "fixtures/baseline.xlsx",
+      "source": "outputs/fixtures-2026-09-11T07-47-32-518Z-0cd8d8d5/baseline.xlsx",
+      "bytes": 4564,
+      "sha256": "41667ef76c98f71f8add0d4058c287b6a8b3965b87b3f23904c455cbd6410093"
+    },
+    {
+      "path": "fixtures/bom.csv",
+      "source": "outputs/fixtures-2026-09-11T07-47-32-518Z-0cd8d8d5/bom.csv",
+      "bytes": 30,
+      "sha256": "81a3033aa2727d32d2156216c9ea54c241b09ac1caceb8fb45feb97bf6841b0a"
+    },
+    {
+      "path": "fixtures/bom.txt",
+      "source": "outputs/fixtures-2026-09-11T07-47-32-518Z-0cd8d8d5/bom.txt",
+      "bytes": 17,
+      "sha256": "8ab8151d61e1d71204824d7cbc2cfa3f2718028368ac812a260bc86ea26b42f9"
+    },
+    {
+      "path": "fixtures/broken-quotes.csv",
+      "source": "outputs/fixtures-2026-09-11T07-47-32-518Z-0cd8d8d5/broken-quotes.csv",
+      "bytes": 20,
+      "sha256": "dcb9fbf7e5aefe74a496c2a133ba62a1bbe9c36f5bb8c7492ccfa8d444a62079"
+    },
+    {
+      "path": "fixtures/cache-discrepant.xlsx",
+      "source": "outputs/fixtures-2026-09-11T07-47-32-518Z-0cd8d8d5/cache-discrepant.xlsx",
+      "bytes": 4564,
+      "sha256": "069e6f5817c12c780c6013207b7d23e351cfc6cb0b7b6a8540a21522ef9c2136"
+    },
+    {
+      "path": "fixtures/cache-missing.xlsx",
+      "source": "outputs/fixtures-2026-09-11T07-47-32-518Z-0cd8d8d5/cache-missing.xlsx",
+      "bytes": 4560,
+      "sha256": "ab5874f106bd541f89f344752537e9820e8010aaaaaf851435e7d484a35e6b7e"
+    },
+    {
+      "path": "fixtures/cache-zero.xlsx",
+      "source": "outputs/fixtures-2026-09-11T07-47-32-518Z-0cd8d8d5/cache-zero.xlsx",
+      "bytes": 4561,
+      "sha256": "6802f9d9f4fd61c78508b89474a5477c50012052484d5f688fc5dd177fcae783"
+    },
+    {
+      "path": "fixtures/columns-at-limit.csv",
+      "source": "outputs/fixtures-2026-09-11T07-47-32-518Z-0cd8d8d5/columns-at-limit.csv",
+      "bytes": 576,
+      "sha256": "7ab3e1bfdba5d8bf120bd272bfea40304c8df0a4e2b0be04d166883a7b7393b1"
+    },
+    {
+      "path": "fixtures/columns-over-limit.csv",
+      "source": "outputs/fixtures-2026-09-11T07-47-32-518Z-0cd8d8d5/columns-over-limit.csv",
+      "bytes": 585,
+      "sha256": "4422c116059ee24fc82359a11fc61f8c255eb0483a3fd2a0bae09173cf5d3d2c"
+    },
+    {
+      "path": "fixtures/external-link.xlsx",
+      "source": "outputs/fixtures-2026-09-11T07-47-32-518Z-0cd8d8d5/external-link.xlsx",
+      "bytes": 4931,
+      "sha256": "c46761b1679792e4d15e8914923f3c81bb32eb797ebfa1dcc18903577e7bff84"
+    },
+    {
+      "path": "fixtures/incorrect-dimension.xlsx",
+      "source": "outputs/fixtures-2026-09-11T07-47-32-518Z-0cd8d8d5/incorrect-dimension.xlsx",
+      "bytes": 4564,
+      "sha256": "00afc69cefe11d445af8e0f7d4c4c5acc22409671dbcc89cec60414de0ee9be3"
+    },
+    {
+      "path": "fixtures/inert.md",
+      "source": "outputs/fixtures-2026-09-11T07-47-32-518Z-0cd8d8d5/inert.md",
+      "bytes": 113,
+      "sha256": "c55670721c52a62da1442513846cf40f1a3d399a2d20a1420c603c459ace902d"
+    },
+    {
+      "path": "fixtures/invalid-sheet.xlsx",
+      "source": "outputs/fixtures-2026-09-11T07-47-32-518Z-0cd8d8d5/invalid-sheet.xlsx",
+      "bytes": 4224,
+      "sha256": "13ef7db0654638f626797e85b29e0c86513ffa2d7581119fa349e1177cc651a5"
+    },
+    {
+      "path": "fixtures/invalid-utf8.csv",
+      "source": "outputs/fixtures-2026-09-11T07-47-32-518Z-0cd8d8d5/invalid-utf8.csv",
+      "bytes": 8,
+      "sha256": "05fb00156e49da3702a3a26a5416ffc684483d45e36d4175a792a1928f1cc17a"
+    },
+    {
+      "path": "fixtures/invalid-utf8.txt",
+      "source": "outputs/fixtures-2026-09-11T07-47-32-518Z-0cd8d8d5/invalid-utf8.txt",
+      "bytes": 8,
+      "sha256": "05fb00156e49da3702a3a26a5416ffc684483d45e36d4175a792a1928f1cc17a"
+    },
+    {
+      "path": "fixtures/invalid-xml-utf8.xlsx",
+      "source": "outputs/fixtures-2026-09-11T07-47-32-518Z-0cd8d8d5/invalid-xml-utf8.xlsx",
+      "bytes": 4206,
+      "sha256": "3c6eb328200b52547d2df991c709bd75817aebf8108de4d43af822c29d23edb1"
+    },
+    {
+      "path": "fixtures/manifest.json",
+      "source": "outputs/fixtures-2026-09-11T07-47-32-518Z-0cd8d8d5/manifest.json",
+      "bytes": 6694,
+      "sha256": "16bb2bf1864c62f692457a909074250b41792dd4f3d6503b1798efb289803e34"
+    },
+    {
+      "path": "fixtures/multibyte-at-limit.csv",
+      "source": "outputs/fixtures-2026-09-11T07-47-32-518Z-0cd8d8d5/multibyte-at-limit.csv",
+      "bytes": 131079,
+      "sha256": "8aee98598234b77f4445e32a00490a24153a0280008e16e0d9121de0bfe0314e"
+    },
+    {
+      "path": "fixtures/multibyte-over-limit.csv",
+      "source": "outputs/fixtures-2026-09-11T07-47-32-518Z-0cd8d8d5/multibyte-over-limit.csv",
+      "bytes": 131081,
+      "sha256": "eb59a8be869189b092ef0a32c80b8912f1d8b93212baafa6574535bb2ad048a4"
+    },
+    {
+      "path": "fixtures/over-byte-limit.txt",
+      "source": "outputs/fixtures-2026-09-11T07-47-32-518Z-0cd8d8d5/over-byte-limit.txt",
+      "bytes": 1048577,
+      "sha256": "154b8ed3c2383ce429058768595935faf7851b5c38db2b1732594be1d88bc05a"
+    },
+    {
+      "path": "fixtures/record-at-limit.csv",
+      "source": "outputs/fixtures-2026-09-11T07-47-32-518Z-0cd8d8d5/record-at-limit.csv",
+      "bytes": 65543,
+      "sha256": "cf32fa4383818601d967af38b916792d35ba8e4bf80ebf82319a66f920e27adc"
+    },
+    {
+      "path": "fixtures/record-over-limit.csv",
+      "source": "outputs/fixtures-2026-09-11T07-47-32-518Z-0cd8d8d5/record-over-limit.csv",
+      "bytes": 65544,
+      "sha256": "306dd986c5b0714cefa6e64168acc7fad26edc47d5ff7ccdd053f317630db5ce"
+    },
+    {
+      "path": "fixtures/records-at-limit.csv",
+      "source": "outputs/fixtures-2026-09-11T07-47-32-518Z-0cd8d8d5/records-at-limit.csv",
+      "bytes": 4000,
+      "sha256": "d1d261cf07ee95251d4fd530b33a2bc96c5d7b8f982748797c1974ff257c208d"
+    },
+    {
+      "path": "fixtures/records-over-limit.csv",
+      "source": "outputs/fixtures-2026-09-11T07-47-32-518Z-0cd8d8d5/records-over-limit.csv",
+      "bytes": 4004,
+      "sha256": "2b2926135aa8c482f45d351a278653b3ea8faedce03bb990fceed929ab7b035c"
+    },
+    {
+      "path": "fixtures/short.txt",
+      "source": "outputs/fixtures-2026-09-11T07-47-32-518Z-0cd8d8d5/short.txt",
+      "bytes": 3,
+      "sha256": "38178a20b470cfd18299fb1593dd4ba706f1a83321dac051d01086efd8b7a96f"
+    },
+    {
+      "path": "fixtures/table.csv",
+      "source": "outputs/fixtures-2026-09-11T07-47-32-518Z-0cd8d8d5/table.csv",
+      "bytes": 117,
+      "sha256": "947da2ccc6b51f26df323a294f913b527393bfbec8c84e7349a3a407662b3be3"
+    },
+    {
+      "path": "fixtures/text.txt",
+      "source": "outputs/fixtures-2026-09-11T07-47-32-518Z-0cd8d8d5/text.txt",
+      "bytes": 197,
+      "sha256": "eca7253801e939ccdf6ea63e5bf1b1b59dbed50c27ebf4281b8abb5e4100bf3b"
+    },
+    {
+      "path": "fixtures/truncated-utf8.csv",
+      "source": "outputs/fixtures-2026-09-11T07-47-32-518Z-0cd8d8d5/truncated-utf8.csv",
+      "bytes": 4,
+      "sha256": "de1bec59ed84f24bf4cbf45ddb6838e06641fe5c8d23e248749a7f23bad5648b"
+    },
+    {
+      "path": "fixtures/truncated-utf8.txt",
+      "source": "outputs/fixtures-2026-09-11T07-47-32-518Z-0cd8d8d5/truncated-utf8.txt",
+      "bytes": 4,
+      "sha256": "de1bec59ed84f24bf4cbf45ddb6838e06641fe5c8d23e248749a7f23bad5648b"
+    },
+    {
+      "path": "fixtures/uneven.csv",
+      "source": "outputs/fixtures-2026-09-11T07-47-32-518Z-0cd8d8d5/uneven.csv",
+      "bytes": 10,
+      "sha256": "f47a33245cb42a1f42fe4c947d21bda44d5c97eb7cbdacd4112fdd859709cdbf"
+    },
+    {
+      "path": "fixtures/unicode-records.csv",
+      "source": "outputs/fixtures-2026-09-11T07-47-32-518Z-0cd8d8d5/unicode-records.csv",
+      "bytes": 64,
+      "sha256": "845ce7ee594e76dba1e7c49337f73170653921003dbf1fdcc9b77c7b6f0ed150"
+    },
+    {
+      "path": "fixtures/unsupported-part.xlsx",
+      "source": "outputs/fixtures-2026-09-11T07-47-32-518Z-0cd8d8d5/unsupported-part.xlsx",
+      "bytes": 4862,
+      "sha256": "147ef087a2f0e6f7fb708839390b26d1e727397ead28a3c14eaa0bc194da8e52"
+    },
+    {
+      "path": "fixtures/utf16.csv",
+      "source": "outputs/fixtures-2026-09-11T07-47-32-518Z-0cd8d8d5/utf16.csv",
+      "bytes": 18,
+      "sha256": "4d9e1053a454fa57405832f98db752a511f94abf075c00f4da49ea53ced04467"
+    },
+    {
+      "path": "fixtures/utf16.txt",
+      "source": "outputs/fixtures-2026-09-11T07-47-32-518Z-0cd8d8d5/utf16.txt",
+      "bytes": 18,
+      "sha256": "4d9e1053a454fa57405832f98db752a511f94abf075c00f4da49ea53ced04467"
+    },
+    {
+      "path": "fixtures/zip-expansion-limit.xlsx",
+      "source": "outputs/fixtures-2026-09-11T07-47-32-518Z-0cd8d8d5/zip-expansion-limit.xlsx",
+      "bytes": 12928,
+      "sha256": "f84101bed0a837125a3f214340b167b98c8e30c261693a8741b628e3dcfe9bc2"
+    },
+    {
+      "path": "fixtures/zip-member-limit.xlsx",
+      "source": "outputs/fixtures-2026-09-11T07-47-32-518Z-0cd8d8d5/zip-member-limit.xlsx",
+      "bytes": 18364,
+      "sha256": "278cecbdef5240882a5c9d20a0f98ccd7034fe510ad1de2bdb7f85786cfb2a4a"
+    },
+    {
+      "path": "fixtures/zip-traversal.xlsx",
+      "source": "outputs/fixtures-2026-09-11T07-47-32-518Z-0cd8d8d5/zip-traversal.xlsx",
+      "bytes": 4790,
+      "sha256": "6e806ea16c1fa8b358dd1b1da1c5273b63233d0f6fa758a16f3885109b17237c"
+    },
+    {
+      "path": "boundaries/XLS01-Part1-start.ndjson",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS01-Part1-start.ndjson",
+      "bytes": 80,
+      "sha256": "21428ee240907332fbb9dd1a74d913378234e8d581619d8780c3de1d3665e06e"
+    },
+    {
+      "path": "boundaries/XLS01-Part1-start.png",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS01-Part1-start.png",
+      "bytes": 702,
+      "sha256": "26443863ca894524fc0a59d8731c5d56a89b1fbfce6ad9f3238a990139384883"
+    },
+    {
+      "path": "boundaries/XLS01-Part2-start.ndjson",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS01-Part2-start.ndjson",
+      "bytes": 85,
+      "sha256": "855fcca52f26e96e7387c2edb78d9700e598df2a8a16baaa3a071c42e58e5aa5"
+    },
+    {
+      "path": "boundaries/XLS01-Part2-start.png",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS01-Part2-start.png",
+      "bytes": 1334,
+      "sha256": "006e568b2754baed146107b12aab4f0f940e6a3af697ea534b8e9ca25f25c590"
+    },
+    {
+      "path": "boundaries/XLS01-Part3-start.ndjson",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS01-Part3-start.ndjson",
+      "bytes": 85,
+      "sha256": "0f6658fd00c7f1e8de0b2dd798ab20b7bdc9ec505e7c816a1569e0aaf5aa5bc7"
+    },
+    {
+      "path": "boundaries/XLS01-Part3-start.png",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS01-Part3-start.png",
+      "bytes": 1393,
+      "sha256": "44d2711a9a59c2c9207f79bc29b07e1a539c1b7bcae7e47e7fb3e8a37b5869ec"
+    },
+    {
+      "path": "boundaries/XLS01-Part4-start.ndjson",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS01-Part4-start.ndjson",
+      "bytes": 85,
+      "sha256": "5f0c6e5970de1710aabcc75199c51481b43ff2380f5d9beaaca5b58f3ab675c4"
+    },
+    {
+      "path": "boundaries/XLS01-Part4-start.png",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS01-Part4-start.png",
+      "bytes": 1407,
+      "sha256": "a278ccb430ccab1aa80ab55e59dc71aa47b88dd11bfb709e7bf30ecee6c67584"
+    },
+    {
+      "path": "boundaries/XLS01-Part5-start.ndjson",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS01-Part5-start.ndjson",
+      "bytes": 85,
+      "sha256": "b52b2dcb7595dd5225b63266c9cf36ac45fcc42a184425212762e461d3fa27cb"
+    },
+    {
+      "path": "boundaries/XLS01-Part5-start.png",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS01-Part5-start.png",
+      "bytes": 1439,
+      "sha256": "537937616085d6295484b20c32256d630b9e5e5df6618f2b40c5d6315f242b94"
+    },
+    {
+      "path": "boundaries/XLS01-Part6-start.ndjson",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS01-Part6-start.ndjson",
+      "bytes": 85,
+      "sha256": "5b17628dcdaf20ba2dba3e6ab3875aaf90ce87244b83a9f38546623ad5ad33be"
+    },
+    {
+      "path": "boundaries/XLS01-Part6-start.png",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS01-Part6-start.png",
+      "bytes": 1459,
+      "sha256": "4ac0ceb12e411291e13f917349a5189900d3426e8c63938b33f49f86e182f66f"
+    },
+    {
+      "path": "boundaries/XLS01-Part7-start.ndjson",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS01-Part7-start.ndjson",
+      "bytes": 85,
+      "sha256": "66aa53a5e7d1c6899403c698108b8e4cfa6d45e8ac43d130c513e0697d6d544c"
+    },
+    {
+      "path": "boundaries/XLS01-Part7-start.png",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS01-Part7-start.png",
+      "bytes": 1458,
+      "sha256": "ce31d194732d3ed56cf6af9eb7b329aef347ac3be8169ce04df1c25642829934"
+    },
+    {
+      "path": "boundaries/XLS01-Part8-start.ndjson",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS01-Part8-start.ndjson",
+      "bytes": 85,
+      "sha256": "78b7b45c71682a88220f6a0c91519571cf71ec223ee1eeb41ea32c5ccf398c6c"
+    },
+    {
+      "path": "boundaries/XLS01-Part8-start.png",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS01-Part8-start.png",
+      "bytes": 1395,
+      "sha256": "067f54e9b578cf5243c63d3b3212a8dd1cfe51f9b236bae97dad3476fec7b7e0"
+    },
+    {
+      "path": "boundaries/XLS01-error-scan.ndjson",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS01-error-scan.ndjson",
+      "bytes": 60,
+      "sha256": "acc0111e19cf44d2753fc9ecd164bf1b27fbd65597463a25cf48bd1c65e90146"
+    },
+    {
+      "path": "boundaries/XLS02-Part1-start.ndjson",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS02-Part1-start.ndjson",
+      "bytes": 80,
+      "sha256": "21428ee240907332fbb9dd1a74d913378234e8d581619d8780c3de1d3665e06e"
+    },
+    {
+      "path": "boundaries/XLS02-Part1-start.png",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS02-Part1-start.png",
+      "bytes": 702,
+      "sha256": "26443863ca894524fc0a59d8731c5d56a89b1fbfce6ad9f3238a990139384883"
+    },
+    {
+      "path": "boundaries/XLS02-Part2-start.ndjson",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS02-Part2-start.ndjson",
+      "bytes": 85,
+      "sha256": "855fcca52f26e96e7387c2edb78d9700e598df2a8a16baaa3a071c42e58e5aa5"
+    },
+    {
+      "path": "boundaries/XLS02-Part2-start.png",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS02-Part2-start.png",
+      "bytes": 1334,
+      "sha256": "006e568b2754baed146107b12aab4f0f940e6a3af697ea534b8e9ca25f25c590"
+    },
+    {
+      "path": "boundaries/XLS02-Part3-start.ndjson",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS02-Part3-start.ndjson",
+      "bytes": 85,
+      "sha256": "0f6658fd00c7f1e8de0b2dd798ab20b7bdc9ec505e7c816a1569e0aaf5aa5bc7"
+    },
+    {
+      "path": "boundaries/XLS02-Part3-start.png",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS02-Part3-start.png",
+      "bytes": 1393,
+      "sha256": "44d2711a9a59c2c9207f79bc29b07e1a539c1b7bcae7e47e7fb3e8a37b5869ec"
+    },
+    {
+      "path": "boundaries/XLS02-Part4-start.ndjson",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS02-Part4-start.ndjson",
+      "bytes": 85,
+      "sha256": "5f0c6e5970de1710aabcc75199c51481b43ff2380f5d9beaaca5b58f3ab675c4"
+    },
+    {
+      "path": "boundaries/XLS02-Part4-start.png",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS02-Part4-start.png",
+      "bytes": 1407,
+      "sha256": "a278ccb430ccab1aa80ab55e59dc71aa47b88dd11bfb709e7bf30ecee6c67584"
+    },
+    {
+      "path": "boundaries/XLS02-Part5-start.ndjson",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS02-Part5-start.ndjson",
+      "bytes": 85,
+      "sha256": "b52b2dcb7595dd5225b63266c9cf36ac45fcc42a184425212762e461d3fa27cb"
+    },
+    {
+      "path": "boundaries/XLS02-Part5-start.png",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS02-Part5-start.png",
+      "bytes": 1439,
+      "sha256": "537937616085d6295484b20c32256d630b9e5e5df6618f2b40c5d6315f242b94"
+    },
+    {
+      "path": "boundaries/XLS02-Part6-start.ndjson",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS02-Part6-start.ndjson",
+      "bytes": 85,
+      "sha256": "5b17628dcdaf20ba2dba3e6ab3875aaf90ce87244b83a9f38546623ad5ad33be"
+    },
+    {
+      "path": "boundaries/XLS02-Part6-start.png",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS02-Part6-start.png",
+      "bytes": 1459,
+      "sha256": "4ac0ceb12e411291e13f917349a5189900d3426e8c63938b33f49f86e182f66f"
+    },
+    {
+      "path": "boundaries/XLS02-Part7-start.ndjson",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS02-Part7-start.ndjson",
+      "bytes": 85,
+      "sha256": "66aa53a5e7d1c6899403c698108b8e4cfa6d45e8ac43d130c513e0697d6d544c"
+    },
+    {
+      "path": "boundaries/XLS02-Part7-start.png",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS02-Part7-start.png",
+      "bytes": 1458,
+      "sha256": "ce31d194732d3ed56cf6af9eb7b329aef347ac3be8169ce04df1c25642829934"
+    },
+    {
+      "path": "boundaries/XLS02-Part8-start.ndjson",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS02-Part8-start.ndjson",
+      "bytes": 85,
+      "sha256": "78b7b45c71682a88220f6a0c91519571cf71ec223ee1eeb41ea32c5ccf398c6c"
+    },
+    {
+      "path": "boundaries/XLS02-Part8-start.png",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS02-Part8-start.png",
+      "bytes": 1395,
+      "sha256": "067f54e9b578cf5243c63d3b3212a8dd1cfe51f9b236bae97dad3476fec7b7e0"
+    },
+    {
+      "path": "boundaries/XLS02-Part9-start.ndjson",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS02-Part9-start.ndjson",
+      "bytes": 85,
+      "sha256": "77f33527d2968875bd1f05de7694c3363fcaac5225fc0f61416dce05f0bdab33"
+    },
+    {
+      "path": "boundaries/XLS02-Part9-start.png",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS02-Part9-start.png",
+      "bytes": 1439,
+      "sha256": "e8f26f02d73442ccc7d527eed02f8ce3994f700278700e2b6be121e2f22fdff6"
+    },
+    {
+      "path": "boundaries/XLS02-error-scan.ndjson",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS02-error-scan.ndjson",
+      "bytes": 60,
+      "sha256": "acc0111e19cf44d2753fc9ecd164bf1b27fbd65597463a25cf48bd1c65e90146"
+    },
+    {
+      "path": "boundaries/XLS03-Part1-end.ndjson",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS03-Part1-end.ndjson",
+      "bytes": 108,
+      "sha256": "7c47e2d09f06a34c0bab276052d1e8dfd51347066150b2fafc87e47fcfcc9289"
+    },
+    {
+      "path": "boundaries/XLS03-Part1-end.png",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS03-Part1-end.png",
+      "bytes": 3460,
+      "sha256": "e42323d9e7f596aee590537b6ee41075bbba823fc4b68db2ffe307659e36b55d"
+    },
+    {
+      "path": "boundaries/XLS03-Part1-start.ndjson",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS03-Part1-start.ndjson",
+      "bytes": 95,
+      "sha256": "0d8cd9e4938588c2fcf15bd2895c12d2f2a06f766c86d64f706ce0b404eca369"
+    },
+    {
+      "path": "boundaries/XLS03-Part1-start.png",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS03-Part1-start.png",
+      "bytes": 2084,
+      "sha256": "027f3fd55fd862605dbda84bf092d6460a5392095e6f31ca099c8e58b1f4361f"
+    },
+    {
+      "path": "boundaries/XLS03-error-scan.ndjson",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS03-error-scan.ndjson",
+      "bytes": 60,
+      "sha256": "acc0111e19cf44d2753fc9ecd164bf1b27fbd65597463a25cf48bd1c65e90146"
+    },
+    {
+      "path": "boundaries/XLS04-Part1-end.ndjson",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS04-Part1-end.ndjson",
+      "bytes": 109,
+      "sha256": "c86b52642232961071cc0c8f65b01e874f26d03db35251fa48b98743b3bfbe8e"
+    },
+    {
+      "path": "boundaries/XLS04-Part1-end.png",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS04-Part1-end.png",
+      "bytes": 3286,
+      "sha256": "7db7e671e89cd9a99c19a16040071782efad330beb6268d86126521a751b780f"
+    },
+    {
+      "path": "boundaries/XLS04-Part1-start.ndjson",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS04-Part1-start.ndjson",
+      "bytes": 95,
+      "sha256": "0d8cd9e4938588c2fcf15bd2895c12d2f2a06f766c86d64f706ce0b404eca369"
+    },
+    {
+      "path": "boundaries/XLS04-Part1-start.png",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS04-Part1-start.png",
+      "bytes": 2084,
+      "sha256": "027f3fd55fd862605dbda84bf092d6460a5392095e6f31ca099c8e58b1f4361f"
+    },
+    {
+      "path": "boundaries/XLS04-error-scan.ndjson",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS04-error-scan.ndjson",
+      "bytes": 60,
+      "sha256": "acc0111e19cf44d2753fc9ecd164bf1b27fbd65597463a25cf48bd1c65e90146"
+    },
+    {
+      "path": "boundaries/XLS05-Part1-end.ndjson",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS05-Part1-end.ndjson",
+      "bytes": 106,
+      "sha256": "8d4ce49d40aa9ddf1bf93bed7e22bf2cbaf3265dcca6bfc245567d5d148ba634"
+    },
+    {
+      "path": "boundaries/XLS05-Part1-end.png",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS05-Part1-end.png",
+      "bytes": 3634,
+      "sha256": "73d4f3b00404f32445bb35cd39dcd56ef37d02b4470f90bd0c043fc0863b2a9e"
+    },
+    {
+      "path": "boundaries/XLS05-Part1-start.ndjson",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS05-Part1-start.ndjson",
+      "bytes": 95,
+      "sha256": "0d8cd9e4938588c2fcf15bd2895c12d2f2a06f766c86d64f706ce0b404eca369"
+    },
+    {
+      "path": "boundaries/XLS05-Part1-start.png",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS05-Part1-start.png",
+      "bytes": 2084,
+      "sha256": "027f3fd55fd862605dbda84bf092d6460a5392095e6f31ca099c8e58b1f4361f"
+    },
+    {
+      "path": "boundaries/XLS05-Part2-end.ndjson",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS05-Part2-end.ndjson",
+      "bytes": 112,
+      "sha256": "431d727699102fcac1ba8a9868c7fdf2ca53b3676ca4e7abaeb2803191add730"
+    },
+    {
+      "path": "boundaries/XLS05-Part2-end.png",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS05-Part2-end.png",
+      "bytes": 3964,
+      "sha256": "6411c4287554650ae7f4c72e7b36cdceaae2b1075dc777bd9deb140fa920ab81"
+    },
+    {
+      "path": "boundaries/XLS05-Part2-start.ndjson",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS05-Part2-start.ndjson",
+      "bytes": 115,
+      "sha256": "aaa661fa282ad360596dec8186d6583ad55fc42d16051b51ab9703a2777fb8e0"
+    },
+    {
+      "path": "boundaries/XLS05-Part2-start.png",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS05-Part2-start.png",
+      "bytes": 3013,
+      "sha256": "eb6033cd8d4d14ecbddc0401d812996478ba6ec580bf664b2c6fb88714bc22d3"
+    },
+    {
+      "path": "boundaries/XLS05-error-scan.ndjson",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS05-error-scan.ndjson",
+      "bytes": 60,
+      "sha256": "acc0111e19cf44d2753fc9ecd164bf1b27fbd65597463a25cf48bd1c65e90146"
+    },
+    {
+      "path": "boundaries/XLS06-Part1-end.ndjson",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS06-Part1-end.ndjson",
+      "bytes": 106,
+      "sha256": "8d4ce49d40aa9ddf1bf93bed7e22bf2cbaf3265dcca6bfc245567d5d148ba634"
+    },
+    {
+      "path": "boundaries/XLS06-Part1-end.png",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS06-Part1-end.png",
+      "bytes": 3634,
+      "sha256": "73d4f3b00404f32445bb35cd39dcd56ef37d02b4470f90bd0c043fc0863b2a9e"
+    },
+    {
+      "path": "boundaries/XLS06-Part1-start.ndjson",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS06-Part1-start.ndjson",
+      "bytes": 95,
+      "sha256": "0d8cd9e4938588c2fcf15bd2895c12d2f2a06f766c86d64f706ce0b404eca369"
+    },
+    {
+      "path": "boundaries/XLS06-Part1-start.png",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS06-Part1-start.png",
+      "bytes": 2084,
+      "sha256": "027f3fd55fd862605dbda84bf092d6460a5392095e6f31ca099c8e58b1f4361f"
+    },
+    {
+      "path": "boundaries/XLS06-Part2-end.ndjson",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS06-Part2-end.ndjson",
+      "bytes": 112,
+      "sha256": "2f2292fe3a17ceb23d18c2c2141ef86978022bd433fa8d0ee1c38d5be9b0db59"
+    },
+    {
+      "path": "boundaries/XLS06-Part2-end.png",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS06-Part2-end.png",
+      "bytes": 3804,
+      "sha256": "2d188c469850e620066b397a71ea888d4844da87a438b7b9f11e7f308aa35c7a"
+    },
+    {
+      "path": "boundaries/XLS06-Part2-start.ndjson",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS06-Part2-start.ndjson",
+      "bytes": 115,
+      "sha256": "aaa661fa282ad360596dec8186d6583ad55fc42d16051b51ab9703a2777fb8e0"
+    },
+    {
+      "path": "boundaries/XLS06-Part2-start.png",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS06-Part2-start.png",
+      "bytes": 3013,
+      "sha256": "eb6033cd8d4d14ecbddc0401d812996478ba6ec580bf664b2c6fb88714bc22d3"
+    },
+    {
+      "path": "boundaries/XLS06-error-scan.ndjson",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/XLS06-error-scan.ndjson",
+      "bytes": 60,
+      "sha256": "acc0111e19cf44d2753fc9ecd164bf1b27fbd65597463a25cf48bd1c65e90146"
+    },
+    {
+      "path": "boundaries/builder.mjs",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/builder.mjs",
+      "bytes": 3220,
+      "sha256": "7f36a1d136529df35843536377719dce3a09ecb00b6bb3a6210e527c9cca6744"
+    },
+    {
+      "path": "boundaries/cells-at.xlsx",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/cells-at.xlsx",
+      "bytes": 74253,
+      "sha256": "8df2e502344f02c4faa4bd221a1324ec040baad3bfc1067fafec521f57cbd5ee"
+    },
+    {
+      "path": "boundaries/cells-at.xlsx.inspect.ndjson",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/cells-at.xlsx.inspect.ndjson",
+      "bytes": 2908271,
+      "sha256": "4069b50caec36fa674d88172b842e802e484cbee53c8bb929ee88c029c207f32"
+    },
+    {
+      "path": "boundaries/cells-distributed-at.xlsx",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/cells-distributed-at.xlsx",
+      "bytes": 75184,
+      "sha256": "1c7ebde3a81b3fa60085511d743d7dfb0c6f9de5cafd3bc8d636de40fdf6fc0b"
+    },
+    {
+      "path": "boundaries/cells-distributed-at.xlsx.inspect.ndjson",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/cells-distributed-at.xlsx.inspect.ndjson",
+      "bytes": 2917596,
+      "sha256": "f4c80db390501cd32b4672870cf37d7001317c074aad421ba7aab5f660da658c"
+    },
+    {
+      "path": "boundaries/cells-distributed-over.xlsx",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/cells-distributed-over.xlsx",
+      "bytes": 75191,
+      "sha256": "fd4aca1b427b73837301fb286739a7c7ef79a528aa2b3bee34206c161568d566"
+    },
+    {
+      "path": "boundaries/cells-distributed-over.xlsx.inspect.ndjson",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/cells-distributed-over.xlsx.inspect.ndjson",
+      "bytes": 2917889,
+      "sha256": "e8aed8b063c37796c5c09dd4b41e9189ee60e617f5927506ec9fb4f950a3951b"
+    },
+    {
+      "path": "boundaries/cells-over.xlsx",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/cells-over.xlsx",
+      "bytes": 74262,
+      "sha256": "cd6f25f7d6ef19103d13b7b7517b74e8020feea82dcf7dda42acd3abd563e652"
+    },
+    {
+      "path": "boundaries/cells-over.xlsx.inspect.ndjson",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/cells-over.xlsx.inspect.ndjson",
+      "bytes": 2908564,
+      "sha256": "3ca00031257ab207b7e2d108e0289eb1918250dfe2f54df581254de3b3b9adc4"
+    },
+    {
+      "path": "boundaries/expected.json",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/expected.json",
+      "bytes": 1884,
+      "sha256": "0e119aa3528e65cb853205837e4ae4b126ed1a2c3cb8d98d91cb4c3366fbf95c"
+    },
+    {
+      "path": "boundaries/sheets-at.xlsx",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/sheets-at.xlsx",
+      "bytes": 6560,
+      "sha256": "358a779a06740b1bf623641cfdb8f270bb7c1ff542b8aba0be73ff50aaeceb52"
+    },
+    {
+      "path": "boundaries/sheets-at.xlsx.inspect.ndjson",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/sheets-at.xlsx.inspect.ndjson",
+      "bytes": 3845,
+      "sha256": "16c81f0e25ce6ec6ddcaee5b13c069aa5adef15ed121704b6d2bf215d8c0e787"
+    },
+    {
+      "path": "boundaries/sheets-over.xlsx",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/sheets-over.xlsx",
+      "bytes": 6999,
+      "sha256": "3a3b6e5c5ae02a9b31e526f6bce534eed783ae0a5beef0449524a8c60e0289af"
+    },
+    {
+      "path": "boundaries/sheets-over.xlsx.inspect.ndjson",
+      "source": "outputs/xlsx-boundaries-2026-09-11T15-13-27-592Z-38d81711/sheets-over.xlsx.inspect.ndjson",
+      "bytes": 4319,
+      "sha256": "d92b835b9891bcaff5da0ebf4656ebb2016ac5f106fd0a1428e232ae970a521f"
+    }
+  ]
+}

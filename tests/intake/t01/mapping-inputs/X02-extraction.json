@@ -1,0 +1,655 @@
+{
+  "schema": "extraction-trial/1",
+  "profile": "xlsx",
+  "original": {
+    "name": "cache-discrepant.xlsx",
+    "bytes": 4564,
+    "sha256": "069e6f5817c12c780c6013207b7d23e351cfc6cb0b7b6a8540a21522ef9c2136"
+  },
+  "outcome": "completed",
+  "coverage": {
+    "claim": "declared syntactic profile only",
+    "unsupported": []
+  },
+  "inventory": {
+    "members": 11,
+    "declaredExpandedBytes": 12162,
+    "observedExpandedBytes": 12162,
+    "parts": [
+      "xl/workbook.xml",
+      "xl/styles.xml",
+      "xl/theme/theme1.xml",
+      "xl/sharedStrings.xml",
+      "xl/worksheets/sheet1.xml",
+      "xl/worksheets/sheet2.xml",
+      "_rels/.rels",
+      "xl/_rels/workbook.xml.rels",
+      "[Content_Types].xml",
+      "xl/",
+      "xl/worksheets/"
+    ],
+    "sheets": 2,
+    "cells": 36,
+    "dateSystem": "1900",
+    "semantics": "Package structure only; not a proof of all workbook meaning or dependencies."
+  },
+  "elements": [
+    {
+      "id": "sheet-1",
+      "type": "sheet",
+      "name": "Items",
+      "sourceSheetId": "1",
+      "visibility": "visible",
+      "cells": [
+        {
+          "address": "A1",
+          "sourceType": "str",
+          "storedLexical": "Item",
+          "availability": "present",
+          "adapterType": "s",
+          "value": "Item",
+          "numberFormat": "General",
+          "locator": {
+            "original": "069e6f5817c12c780c6013207b7d23e351cfc6cb0b7b6a8540a21522ef9c2136",
+            "part": "xl/worksheets/sheet1.xml",
+            "sheetId": "1",
+            "cell": "A1"
+          }
+        },
+        {
+          "address": "B1",
+          "sourceType": "str",
+          "storedLexical": "Quantity",
+          "availability": "present",
+          "adapterType": "s",
+          "value": "Quantity",
+          "numberFormat": "General",
+          "locator": {
+            "original": "069e6f5817c12c780c6013207b7d23e351cfc6cb0b7b6a8540a21522ef9c2136",
+            "part": "xl/worksheets/sheet1.xml",
+            "sheetId": "1",
+            "cell": "B1"
+          }
+        },
+        {
+          "address": "C1",
+          "sourceType": "str",
+          "storedLexical": "Unit price",
+          "availability": "present",
+          "adapterType": "s",
+          "value": "Unit price",
+          "numberFormat": "General",
+          "locator": {
+            "original": "069e6f5817c12c780c6013207b7d23e351cfc6cb0b7b6a8540a21522ef9c2136",
+            "part": "xl/worksheets/sheet1.xml",
+            "sheetId": "1",
+            "cell": "C1"
+          }
+        },
+        {
+          "address": "D1",
+          "sourceType": "str",
+          "storedLexical": "Amount",
+          "availability": "present",
+          "adapterType": "s",
+          "value": "Amount",
+          "numberFormat": "General",
+          "locator": {
+            "original": "069e6f5817c12c780c6013207b7d23e351cfc6cb0b7b6a8540a21522ef9c2136",
+            "part": "xl/worksheets/sheet1.xml",
+            "sheetId": "1",
+            "cell": "D1"
+          }
+        },
+        {
+          "address": "A2",
+          "sourceType": "str",
+          "storedLexical": "001",
+          "availability": "present",
+          "adapterType": "s",
+          "value": "001",
+          "numberFormat": "000",
+          "locator": {
+            "original": "069e6f5817c12c780c6013207b7d23e351cfc6cb0b7b6a8540a21522ef9c2136",
+            "part": "xl/worksheets/sheet1.xml",
+            "sheetId": "1",
+            "cell": "A2"
+          }
+        },
+        {
+          "address": "B2",
+          "sourceType": "n",
+          "storedLexical": "2",
+          "availability": "present",
+          "adapterType": "n",
+          "value": 2,
+          "numberFormat": "General",
+          "locator": {
+            "original": "069e6f5817c12c780c6013207b7d23e351cfc6cb0b7b6a8540a21522ef9c2136",
+            "part": "xl/worksheets/sheet1.xml",
+            "sheetId": "1",
+            "cell": "B2"
+          }
+        },
+        {
+          "address": "C2",
+          "sourceType": "n",
+          "storedLexical": "12.5",
+          "availability": "present",
+          "adapterType": "n",
+          "value": 12.5,
+          "numberFormat": "0.00",
+          "locator": {
+            "original": "069e6f5817c12c780c6013207b7d23e351cfc6cb0b7b6a8540a21522ef9c2136",
+            "part": "xl/worksheets/sheet1.xml",
+            "sheetId": "1",
+            "cell": "C2"
+          }
+        },
+        {
+          "address": "D2",
+          "sourceType": "n",
+          "storedLexical": "24.00",
+          "availability": "present",
+          "adapterType": "n",
+          "value": 24,
+          "numberFormat": "0.00",
+          "formula": {
+            "storedExpression": "B2*C2",
+            "attributes": {},
+            "cached": {
+              "availability": "observed",
+              "lexical": "24.00",
+              "sourceType": "n"
+            }
+          },
+          "locator": {
+            "original": "069e6f5817c12c780c6013207b7d23e351cfc6cb0b7b6a8540a21522ef9c2136",
+            "part": "xl/worksheets/sheet1.xml",
+            "sheetId": "1",
+            "cell": "D2"
+          }
+        },
+        {
+          "address": "A3",
+          "sourceType": "str",
+          "storedLexical": "002",
+          "availability": "present",
+          "adapterType": "s",
+          "value": "002",
+          "numberFormat": "000",
+          "locator": {
+            "original": "069e6f5817c12c780c6013207b7d23e351cfc6cb0b7b6a8540a21522ef9c2136",
+            "part": "xl/worksheets/sheet1.xml",
+            "sheetId": "1",
+            "cell": "A3"
+          }
+        },
+        {
+          "address": "B3",
+          "sourceType": "n",
+          "availability": "no_stored_value",
+          "adapterType": "z",
+          "numberFormat": "0",
+          "locator": {
+            "original": "069e6f5817c12c780c6013207b7d23e351cfc6cb0b7b6a8540a21522ef9c2136",
+            "part": "xl/worksheets/sheet1.xml",
+            "sheetId": "1",
+            "cell": "B3"
+          }
+        },
+        {
+          "address": "C3",
+          "sourceType": "n",
+          "availability": "no_stored_value",
+          "adapterType": "z",
+          "numberFormat": "General",
+          "locator": {
+            "original": "069e6f5817c12c780c6013207b7d23e351cfc6cb0b7b6a8540a21522ef9c2136",
+            "part": "xl/worksheets/sheet1.xml",
+            "sheetId": "1",
+            "cell": "C3"
+          }
+        },
+        {
+          "address": "D3",
+          "sourceType": "n",
+          "availability": "no_stored_value",
+          "adapterType": "z",
+          "numberFormat": "General",
+          "locator": {
+            "original": "069e6f5817c12c780c6013207b7d23e351cfc6cb0b7b6a8540a21522ef9c2136",
+            "part": "xl/worksheets/sheet1.xml",
+            "sheetId": "1",
+            "cell": "D3"
+          }
+        },
+        {
+          "address": "A4",
+          "sourceType": "str",
+          "storedLexical": "003",
+          "availability": "present",
+          "adapterType": "s",
+          "value": "003",
+          "numberFormat": "000",
+          "locator": {
+            "original": "069e6f5817c12c780c6013207b7d23e351cfc6cb0b7b6a8540a21522ef9c2136",
+            "part": "xl/worksheets/sheet1.xml",
+            "sheetId": "1",
+            "cell": "A4"
+          }
+        },
+        {
+          "address": "B4",
+          "sourceType": "n",
+          "storedLexical": "0",
+          "availability": "present",
+          "adapterType": "n",
+          "value": 0,
+          "numberFormat": "General",
+          "locator": {
+            "original": "069e6f5817c12c780c6013207b7d23e351cfc6cb0b7b6a8540a21522ef9c2136",
+            "part": "xl/worksheets/sheet1.xml",
+            "sheetId": "1",
+            "cell": "B4"
+          }
+        },
+        {
+          "address": "C4",
+          "sourceType": "n",
+          "availability": "no_stored_value",
+          "adapterType": "z",
+          "numberFormat": "General",
+          "locator": {
+            "original": "069e6f5817c12c780c6013207b7d23e351cfc6cb0b7b6a8540a21522ef9c2136",
+            "part": "xl/worksheets/sheet1.xml",
+            "sheetId": "1",
+            "cell": "C4"
+          }
+        },
+        {
+          "address": "D4",
+          "sourceType": "n",
+          "availability": "no_stored_value",
+          "adapterType": "z",
+          "numberFormat": "General",
+          "locator": {
+            "original": "069e6f5817c12c780c6013207b7d23e351cfc6cb0b7b6a8540a21522ef9c2136",
+            "part": "xl/worksheets/sheet1.xml",
+            "sheetId": "1",
+            "cell": "D4"
+          }
+        },
+        {
+          "address": "A5",
+          "sourceType": "str",
+          "storedLexical": "004",
+          "availability": "present",
+          "adapterType": "s",
+          "value": "004",
+          "numberFormat": "000",
+          "locator": {
+            "original": "069e6f5817c12c780c6013207b7d23e351cfc6cb0b7b6a8540a21522ef9c2136",
+            "part": "xl/worksheets/sheet1.xml",
+            "sheetId": "1",
+            "cell": "A5"
+          }
+        },
+        {
+          "address": "B5",
+          "sourceType": "e",
+          "storedLexical": "#N/A",
+          "availability": "present",
+          "adapterType": "e",
+          "value": 42,
+          "numberFormat": "General",
+          "locator": {
+            "original": "069e6f5817c12c780c6013207b7d23e351cfc6cb0b7b6a8540a21522ef9c2136",
+            "part": "xl/worksheets/sheet1.xml",
+            "sheetId": "1",
+            "cell": "B5"
+          }
+        },
+        {
+          "address": "C5",
+          "sourceType": "n",
+          "availability": "no_stored_value",
+          "adapterType": "z",
+          "numberFormat": "General",
+          "locator": {
+            "original": "069e6f5817c12c780c6013207b7d23e351cfc6cb0b7b6a8540a21522ef9c2136",
+            "part": "xl/worksheets/sheet1.xml",
+            "sheetId": "1",
+            "cell": "C5"
+          }
+        },
+        {
+          "address": "D5",
+          "sourceType": "n",
+          "availability": "no_stored_value",
+          "adapterType": "z",
+          "numberFormat": "General",
+          "locator": {
+            "original": "069e6f5817c12c780c6013207b7d23e351cfc6cb0b7b6a8540a21522ef9c2136",
+            "part": "xl/worksheets/sheet1.xml",
+            "sheetId": "1",
+            "cell": "D5"
+          }
+        },
+        {
+          "address": "A6",
+          "sourceType": "str",
+          "storedLexical": "005",
+          "availability": "present",
+          "adapterType": "s",
+          "value": "005",
+          "numberFormat": "000",
+          "locator": {
+            "original": "069e6f5817c12c780c6013207b7d23e351cfc6cb0b7b6a8540a21522ef9c2136",
+            "part": "xl/worksheets/sheet1.xml",
+            "sheetId": "1",
+            "cell": "A6"
+          }
+        },
+        {
+          "address": "B6",
+          "sourceType": "n",
+          "storedLexical": "5",
+          "availability": "present",
+          "adapterType": "n",
+          "value": 5,
+          "numberFormat": "General",
+          "locator": {
+            "original": "069e6f5817c12c780c6013207b7d23e351cfc6cb0b7b6a8540a21522ef9c2136",
+            "part": "xl/worksheets/sheet1.xml",
+            "sheetId": "1",
+            "cell": "B6"
+          }
+        },
+        {
+          "address": "C6",
+          "sourceType": "n",
+          "availability": "no_stored_value",
+          "adapterType": "z",
+          "numberFormat": "General",
+          "locator": {
+            "original": "069e6f5817c12c780c6013207b7d23e351cfc6cb0b7b6a8540a21522ef9c2136",
+            "part": "xl/worksheets/sheet1.xml",
+            "sheetId": "1",
+            "cell": "C6"
+          }
+        },
+        {
+          "address": "D6",
+          "sourceType": "n",
+          "availability": "no_stored_value",
+          "adapterType": "z",
+          "numberFormat": "General",
+          "locator": {
+            "original": "069e6f5817c12c780c6013207b7d23e351cfc6cb0b7b6a8540a21522ef9c2136",
+            "part": "xl/worksheets/sheet1.xml",
+            "sheetId": "1",
+            "cell": "D6"
+          }
+        },
+        {
+          "address": "A7",
+          "sourceType": "str",
+          "storedLexical": "Amounts are in USD and exclude tax.",
+          "availability": "present",
+          "adapterType": "s",
+          "value": "Amounts are in USD and exclude tax.",
+          "numberFormat": "General",
+          "locator": {
+            "original": "069e6f5817c12c780c6013207b7d23e351cfc6cb0b7b6a8540a21522ef9c2136",
+            "part": "xl/worksheets/sheet1.xml",
+            "sheetId": "1",
+            "cell": "A7"
+          }
+        },
+        {
+          "address": "B7",
+          "sourceType": "n",
+          "availability": "no_stored_value",
+          "adapterType": "z",
+          "numberFormat": "General",
+          "locator": {
+            "original": "069e6f5817c12c780c6013207b7d23e351cfc6cb0b7b6a8540a21522ef9c2136",
+            "part": "xl/worksheets/sheet1.xml",
+            "sheetId": "1",
+            "cell": "B7"
+          }
+        },
+        {
+          "address": "C7",
+          "sourceType": "n",
+          "availability": "no_stored_value",
+          "adapterType": "z",
+          "numberFormat": "General",
+          "locator": {
+            "original": "069e6f5817c12c780c6013207b7d23e351cfc6cb0b7b6a8540a21522ef9c2136",
+            "part": "xl/worksheets/sheet1.xml",
+            "sheetId": "1",
+            "cell": "C7"
+          }
+        },
+        {
+          "address": "D7",
+          "sourceType": "n",
+          "availability": "no_stored_value",
+          "adapterType": "z",
+          "numberFormat": "General",
+          "locator": {
+            "original": "069e6f5817c12c780c6013207b7d23e351cfc6cb0b7b6a8540a21522ef9c2136",
+            "part": "xl/worksheets/sheet1.xml",
+            "sheetId": "1",
+            "cell": "D7"
+          }
+        },
+        {
+          "address": "A8",
+          "sourceType": "str",
+          "storedLexical": "Applicable condition",
+          "availability": "present",
+          "adapterType": "s",
+          "value": "Applicable condition",
+          "numberFormat": "General",
+          "locator": {
+            "original": "069e6f5817c12c780c6013207b7d23e351cfc6cb0b7b6a8540a21522ef9c2136",
+            "part": "xl/worksheets/sheet1.xml",
+            "sheetId": "1",
+            "cell": "A8"
+          }
+        },
+        {
+          "address": "B8",
+          "sourceType": "str",
+          "storedLexical": "Under condition Z, receipt R replaces receipt Q.",
+          "availability": "present",
+          "adapterType": "s",
+          "value": "Under condition Z, receipt R replaces receipt Q.",
+          "numberFormat": "General",
+          "formula": {
+            "storedExpression": "'Conditions'!B2",
+            "attributes": {},
+            "cached": {
+              "availability": "observed",
+              "lexical": "Under condition Z, receipt R replaces receipt Q.",
+              "sourceType": "str"
+            }
+          },
+          "locator": {
+            "original": "069e6f5817c12c780c6013207b7d23e351cfc6cb0b7b6a8540a21522ef9c2136",
+            "part": "xl/worksheets/sheet1.xml",
+            "sheetId": "1",
+            "cell": "B8"
+          }
+        },
+        {
+          "address": "C8",
+          "sourceType": "n",
+          "availability": "no_stored_value",
+          "adapterType": "z",
+          "numberFormat": "General",
+          "locator": {
+            "original": "069e6f5817c12c780c6013207b7d23e351cfc6cb0b7b6a8540a21522ef9c2136",
+            "part": "xl/worksheets/sheet1.xml",
+            "sheetId": "1",
+            "cell": "C8"
+          }
+        },
+        {
+          "address": "D8",
+          "sourceType": "n",
+          "availability": "no_stored_value",
+          "adapterType": "z",
+          "numberFormat": "General",
+          "locator": {
+            "original": "069e6f5817c12c780c6013207b7d23e351cfc6cb0b7b6a8540a21522ef9c2136",
+            "part": "xl/worksheets/sheet1.xml",
+            "sheetId": "1",
+            "cell": "D8"
+          }
+        }
+      ],
+      "merged": [
+        "A7:D7",
+        "B8:D8"
+      ],
+      "hiddenRows": [
+        "6"
+      ],
+      "columns": [
+        {
+          "@_min": "1",
+          "@_max": "1",
+          "@_width": "19",
+          "@_hidden": "0",
+          "@_customWidth": "1"
+        },
+        {
+          "@_min": "2",
+          "@_max": "2",
+          "@_width": "19",
+          "@_hidden": "0",
+          "@_customWidth": "1"
+        },
+        {
+          "@_min": "3",
+          "@_max": "3",
+          "@_width": "19",
+          "@_hidden": "0",
+          "@_customWidth": "1"
+        },
+        {
+          "@_min": "4",
+          "@_max": "4",
+          "@_width": "19",
+          "@_hidden": "0",
+          "@_customWidth": "1"
+        }
+      ],
+      "autoFilter": null,
+      "declaredDimension": "A1:D8",
+      "locator": {
+        "original": "069e6f5817c12c780c6013207b7d23e351cfc6cb0b7b6a8540a21522ef9c2136",
+        "part": "xl/worksheets/sheet1.xml"
+      }
+    },
+    {
+      "id": "sheet-2",
+      "type": "sheet",
+      "name": "Conditions",
+      "sourceSheetId": "2",
+      "visibility": "hidden",
+      "cells": [
+        {
+          "address": "A1",
+          "sourceType": "str",
+          "storedLexical": "Scope",
+          "availability": "present",
+          "adapterType": "s",
+          "value": "Scope",
+          "numberFormat": "General",
+          "locator": {
+            "original": "069e6f5817c12c780c6013207b7d23e351cfc6cb0b7b6a8540a21522ef9c2136",
+            "part": "xl/worksheets/sheet2.xml",
+            "sheetId": "2",
+            "cell": "A1"
+          }
+        },
+        {
+          "address": "B1",
+          "sourceType": "str",
+          "storedLexical": "Condition",
+          "availability": "present",
+          "adapterType": "s",
+          "value": "Condition",
+          "numberFormat": "General",
+          "locator": {
+            "original": "069e6f5817c12c780c6013207b7d23e351cfc6cb0b7b6a8540a21522ef9c2136",
+            "part": "xl/worksheets/sheet2.xml",
+            "sheetId": "2",
+            "cell": "B1"
+          }
+        },
+        {
+          "address": "A2",
+          "sourceType": "str",
+          "storedLexical": "AZ-17",
+          "availability": "present",
+          "adapterType": "s",
+          "value": "AZ-17",
+          "numberFormat": "General",
+          "locator": {
+            "original": "069e6f5817c12c780c6013207b7d23e351cfc6cb0b7b6a8540a21522ef9c2136",
+            "part": "xl/worksheets/sheet2.xml",
+            "sheetId": "2",
+            "cell": "A2"
+          }
+        },
+        {
+          "address": "B2",
+          "sourceType": "str",
+          "storedLexical": "Under condition Z, receipt R replaces receipt Q.",
+          "availability": "present",
+          "adapterType": "s",
+          "value": "Under condition Z, receipt R replaces receipt Q.",
+          "numberFormat": "General",
+          "locator": {
+            "original": "069e6f5817c12c780c6013207b7d23e351cfc6cb0b7b6a8540a21522ef9c2136",
+            "part": "xl/worksheets/sheet2.xml",
+            "sheetId": "2",
+            "cell": "B2"
+          }
+        }
+      ],
+      "merged": [],
+      "hiddenRows": [],
+      "columns": [
+        {
+          "@_min": "1",
+          "@_max": "1",
+          "@_width": "19",
+          "@_hidden": "0",
+          "@_customWidth": "1"
+        },
+        {
+          "@_min": "2",
+          "@_max": "2",
+          "@_width": "55",
+          "@_hidden": "0",
+          "@_customWidth": "1"
+        }
+      ],
+      "autoFilter": null,
+      "declaredDimension": null,
+      "locator": {
+        "original": "069e6f5817c12c780c6013207b7d23e351cfc6cb0b7b6a8540a21522ef9c2136",
+        "part": "xl/worksheets/sheet2.xml"
+      }
+    }
+  ],
+  "relations": [],
+  "resources": []
+}

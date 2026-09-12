@@ -1,0 +1,5 @@
+Code,Value,Value,Note
+001,0,,"USD, excludes tax"
+002,12.50,=B2*C2,"Line one
+Line two"
+003,#N/A,"", final space 

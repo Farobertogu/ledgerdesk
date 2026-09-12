@@ -1,0 +1,88 @@
+{
+  "schema": "extraction-trial/1",
+  "profile": "text",
+  "original": {
+    "name": "inert.md",
+    "bytes": 113,
+    "sha256": "c55670721c52a62da1442513846cf40f1a3d399a2d20a1420c603c459ace902d"
+  },
+  "outcome": "completed",
+  "coverage": {
+    "claim": "declared syntactic profile only",
+    "unsupported": []
+  },
+  "inventory": {
+    "bytes": 113,
+    "decodedCodePoints": 113,
+    "elements": 4,
+    "bomBytes": 0
+  },
+  "elements": [
+    {
+      "id": "line-1",
+      "type": "text",
+      "text": "# Procedure\n",
+      "locator": {
+        "original": "c55670721c52a62da1442513846cf40f1a3d399a2d20a1420c603c459ace902d",
+        "byteRange": [
+          0,
+          12
+        ],
+        "codePointRange": [
+          0,
+          12
+        ]
+      }
+    },
+    {
+      "id": "line-2",
+      "type": "text",
+      "text": "<script>doNotExecute()</script>\n",
+      "locator": {
+        "original": "c55670721c52a62da1442513846cf40f1a3d399a2d20a1420c603c459ace902d",
+        "byteRange": [
+          12,
+          44
+        ],
+        "codePointRange": [
+          12,
+          44
+        ]
+      }
+    },
+    {
+      "id": "line-3",
+      "type": "text",
+      "text": "![remote](https://example.invalid/image.png)\n",
+      "locator": {
+        "original": "c55670721c52a62da1442513846cf40f1a3d399a2d20a1420c603c459ace902d",
+        "byteRange": [
+          44,
+          89
+        ],
+        "codePointRange": [
+          44,
+          89
+        ]
+      }
+    },
+    {
+      "id": "line-4",
+      "type": "text",
+      "text": "Short substantive rule.\n",
+      "locator": {
+        "original": "c55670721c52a62da1442513846cf40f1a3d399a2d20a1420c603c459ace902d",
+        "byteRange": [
+          89,
+          113
+        ],
+        "codePointRange": [
+          89,
+          113
+        ]
+      }
+    }
+  ],
+  "relations": [],
+  "resources": []
+}

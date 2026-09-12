@@ -55,6 +55,19 @@ jobs:
       - run: npm run test:access:administration
       - run: npm run test:access:journey:unit
       - run: npm run test:access:journey
+      - run: node ci/intake_boundary_check.mjs
+      - run: npm run test:intake
+      - run: npm run test:intake:storage
+      - run: npm run test:intake:recovery
+      - run: npm run test:intake:isolation
+      - run: npm run test:intake:limits
+      - run: npm run test:intake:lifecycle
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: intake-foundation-evidence
+          path: test-results/intake-t01/
+          if-no-files-found: ignore
       # This owns a fresh, separately named PG16 Compose project; no historical DB scripts.
       - run: npm run test:reading:service
       - run: npm run typecheck:app

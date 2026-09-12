@@ -1,0 +1,6 @@
+AZ-17
+For procedure AZ-17, receipt Q is required.
+Under condition Z, receipt R replaces receipt Q.
+AZ-18
+Under condition Z, receipt S replaces receipt Q.
+Español: información. Café. 😀
