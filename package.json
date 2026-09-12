@@ -46,7 +46,7 @@
     "test:access:administration:unit": "node --experimental-strip-types --test tests/access/test_administration_units.mjs tests/access/test_evidence.mjs",
     "test:access:administration": "node ci/access_runtime_check.mjs --administration",
     "test:access:journey:unit": "node --experimental-strip-types --test tests/access/test_bootstrap_units.mjs",
-    "test:access:journey": "node ci/access_runtime_check.mjs --journey"
+    "test:access:journey": "node --test --test-concurrency=1 tests/access/test_runtime_packaging.mjs && node ci/access_runtime_check.mjs --journey"
   },
   "devDependencies": {
     "@playwright/test": "1.63.0",

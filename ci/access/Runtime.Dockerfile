@@ -6,8 +6,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends libnss3-tools o
 WORKDIR /work
 COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund
-COPY src/contracts/access*.ts ./src/contracts/
-COPY src/contracts/material_reading.ts src/contracts/reading_origin.ts ./src/contracts/
+# The pre-filter composition includes the complete contract directory.
+COPY src/contracts/ ./src/contracts/
 COPY src/server/access ./src/server/access
 COPY src/server/reading ./src/server/reading
 COPY src/server/kb/reading.ts ./src/server/kb/reading.ts
