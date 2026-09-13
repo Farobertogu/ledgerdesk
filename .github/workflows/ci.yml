@@ -21,16 +21,17 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     needs: [reading-foundations, intake-reception-behavior, intake-reception-recovery, intake-reception-mutations]
-    if: ${{ always() }}
+    if: ${{ !cancelled() }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
       - name: Require every producer result
+        if: ${{ always() }}
         env:
           READING_NEEDS: ${{ toJSON(needs) }}
-          READING_CANCELLED: ${{ cancelled() }}
+          READING_JOB_STATUS: ${{ job.status }}
         run: node ci/reading_result_gate.mjs
   reading-foundations:
     runs-on: ubuntu-latest

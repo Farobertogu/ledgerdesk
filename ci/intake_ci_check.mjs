@@ -24,6 +24,31 @@ const requiredRecovery=[['fence-sql'],['fence-loss','--loss-kind','sql','--witho
 const requiredMutations=['original-selection','actual-digest','actual-chunk-cap','type-recognition','compatible-payload','sealed-as-receipt','whole-original-faculty','delivery-evidence','deferred-dispatch','runtime-source'];
 const same=(a,b,label)=>assert.deepEqual(a,b,label);
 const commands=job=>job.steps.filter(s=>Object.hasOwn(s,'run')).map(s=>s.run);
+// Bounded profile, not a general GitHub expression parser or remote validator.
+// Source: docs.github.com/en/actions/reference/workflows-and-actions/contexts
+// Only whole-scalar expressions used by the reading aggregator are supported.
+export const readingExpressionProfile='reading-expression-context/2';
+export function verifyReadingExpressionContexts(workflow){
+  const gate=workflow.jobs.reading,statusFunctions=['always','cancelled','success','failure'];
+  function expression(value,where,kind){
+    if(typeof value!=='string'||!value.includes('${{'))return;
+    const match=/^\$\{\{\s*(.*?)\s*\}\}$/.exec(value);
+    assert.ok(match,`${where}: outside ${readingExpressionProfile}`);
+    const body=match[1],call=/^(!\s*)?([a-zA-Z]+)\s*\(\s*\)$/.exec(body);
+    if(call&&statusFunctions.includes(call[2].toLowerCase())&&(!call[1]||call[2].toLowerCase()==='cancelled')){
+      assert.ok(kind==='if',`${where}: status function ${call[2]} is unavailable in this expression context`);return;
+    }
+    if(kind==='env'&&(body==='job.status'||/^toJSON\(\s*needs\s*\)$/i.test(body)))return;
+    assert.fail(`${where}: unsupported expression in ${readingExpressionProfile}`);
+  }
+  function visit(value,parts=[]){
+    if(value!==null&&typeof value==='object'){for(const [key,child]of Object.entries(value))visit(child,[...parts,key]);return;}
+    const isIf=parts.join('.')==='if'||(parts.length===3&&parts[0]==='steps'&&parts[2]==='if');
+    const isEnv=parts.length===4&&parts[0]==='steps'&&parts[2]==='env';
+    expression(value,'jobs.reading.'+parts.join('.'),isIf?'if':isEnv?'env':'unsupported');
+  }
+  visit(gate);return true;
+}
 export function verifyCoupledInventory(text){
   const ast=ts.createSourceFile('intake_t02_check.mjs',text,ts.ScriptTarget.Latest,true,ts.ScriptKind.JS);let value;
   function visit(node){if(ts.isVariableDeclaration(node)&&ts.isIdentifier(node.name)&&node.name.text==='coupledSuites'){
@@ -33,6 +58,7 @@ export function verifyCoupledInventory(text){
   same(value,{runtime:'test_runtime.mjs',invitations:'test_invitations.mjs',reading:'test_authorized_reading.mjs',administration:'test_administration.mjs',journey:'test_whole_journey.mjs'},'all five actual coupled consumers');return true;
 }
 export function verifyWiring(workflow,executedPlans=plans,mutations=producerFaultGroups){
+  verifyReadingExpressionContexts(workflow);
   verifyCoupledInventory(fs.readFileSync(path.join(root,'ci/intake_t02_check.mjs'),'utf8'));
   const scripts=JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8')).scripts;
   const baselineScripts=JSON.parse(fs.readFileSync(path.join(root,'tests/intake/t02/ci_previous_scripts.json'),'utf8'));
@@ -41,9 +67,11 @@ export function verifyWiring(workflow,executedPlans=plans,mutations=producerFaul
   }
   same(workflow.on,previous.on,'unchanged triggers');same(workflow.concurrency,previous.concurrency,'unchanged concurrency');
   for(const name of ['check','db','app'])same(workflow.jobs[name],previous.jobs[name],name+' remains unchanged');
-  const gate=workflow.jobs.reading;assert.ok(gate);same(gate.needs,[...readingDependencies]);same(gate.if,'${{ always() }}');
-  same(commands(gate),['node ci/reading_result_gate.mjs']);same(gate.steps.at(-1).env,{READING_NEEDS:'${{ toJSON(needs) }}',READING_CANCELLED:'${{ cancelled() }}'});
-  assert.ok(!Object.hasOwn(gate,'continue-on-error'));assert.ok(gate.steps.every(s=>!Object.hasOwn(s,'if')&&!Object.hasOwn(s,'continue-on-error')));
+  const gate=workflow.jobs.reading;assert.ok(gate);same(gate.needs,[...readingDependencies]);same(gate.if,'${{ !cancelled() }}','running aggregate must be cancellable');
+  same(gate.steps,[{uses:'actions/checkout@v4'},{uses:'actions/setup-node@v4',with:{'node-version':'22'}},
+    {name:'Require every producer result',if:'${{ always() }}',env:{READING_NEEDS:'${{ toJSON(needs) }}',READING_JOB_STATUS:'${{ job.status }}'},run:'node ci/reading_result_gate.mjs'}],
+    'explicit always gate and supported current-job status transport');
+  assert.ok(!Object.hasOwn(gate,'continue-on-error'));assert.ok(gate.steps.every(s=>!Object.hasOwn(s,'continue-on-error')));
   const moved=['runtime','invitations','reading','administration','journey'].map(n=>'npm run test:access:'+n);
   const baselineCommands=commands(previous.jobs.reading).filter(c=>!moved.includes(c));
   const base=workflow.jobs['reading-foundations'];assert.ok(base);
