@@ -18,7 +18,8 @@ Source of truth for build order: the specification's build plan, as amended — 
 
 | Card | Increment | Closing evidence |
 |---|---|---|
-| INC-03 | Material intake: I03-T02 through I03-T06 pending | I03-T01 is accepted within its tested, synthetic foundation scope; see the completed task below and [PR #30](https://github.com/Farobertogu/ledgerdesk/pull/30). [ADR-038](adr/ADR-038-intake-foundation.md) is accepted on 2026-09-13. T02 has not started; the increment remains open. No operational intake, candidate constitution or real data. |
+| INC-03 | Material intake: I03-T02 in development; I03-T03 through I03-T06 pending | I03-T01 remains accepted within its tested synthetic foundation scope; see [PR #30](https://github.com/Farobertogu/ledgerdesk/pull/30) and accepted [ADR-038](adr/ADR-038-intake-foundation.md). I03-T02 implements bounded durable reception and protected original recovery. Implementation and independent evidence are in progress, not accepted. No extraction worker, candidate constitution, real data or production activation. |
+| I03-T02 | Durable reception and protected originals | Local B0–B5 implementation and finite P01–P08 qualification delivered for review: [producer evidence](docs/INC-03-T02.md), [21-obligation/53-variant map](docs/INC-03-T02-coverage.md), four mandatory CI producers and fail-closed reading aggregator. No remote CI, publication or acceptance. R24 remains observed, same-original fragment lineage unexercised, and the localized ADR-038 amendment proposed. |
 
 Active access follow-up: [tracked browser failures and closure criteria](docs/INC-02-T03.md#tracked-browser-follow-up).
 

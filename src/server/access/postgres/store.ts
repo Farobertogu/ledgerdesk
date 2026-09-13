@@ -8,11 +8,11 @@ export class AccessStore {
   private exclusive = false;
   private transaction = false;
   healthy = true;
-  readonly role: 'inc02_runtime' | 'inc02_reader';
-  constructor(config: AccessConfig, onLoss: () => void, role: 'inc02_runtime' | 'inc02_reader' = 'inc02_runtime') {
+  readonly role: 'inc02_runtime' | 'inc02_reader' | 'inc03_intake_runtime' | 'inc03_intake_reader';
+  constructor(config: Pick<AccessConfig, 'connectionString'>, onLoss: () => void, role: 'inc02_runtime' | 'inc02_reader' | 'inc03_intake_runtime' | 'inc03_intake_reader' = 'inc02_runtime') {
     this.role = role;
     const url = new URL(config.connectionString);
-    if (url.username !== role || url.pathname !== '/inc02_synthetic' || url.hostname !== '127.0.0.1') throw new Error('DB_CONFIG_IDENTITY');
+    if (!['inc02_runtime', 'inc02_reader', 'inc03_intake_runtime', 'inc03_intake_reader'].includes(role) || url.username !== role || url.pathname !== '/inc02_synthetic' || url.hostname !== '127.0.0.1') throw new Error('DB_CONFIG_IDENTITY');
     this.client = new Client({
       connectionString: config.connectionString,
       connectionTimeoutMillis: 3000,

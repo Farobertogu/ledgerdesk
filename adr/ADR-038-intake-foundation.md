@@ -70,3 +70,46 @@ remain an additional scoped control, not the hostile-code boundary.
 
 See [the contract](../docs/intake-contract.md) and
 [the evidence and remaining work](../docs/INC-03-T01.md).
+
+## Amendments
+
+### 2026-09-13 — Bounded durable reception
+
+**Amendment status:** proposed
+**Amendment decision date:** pending acceptance
+
+This localized proposal changes the unmounted boundary for nine reception/query
+operations only. The foundation decision above remains the accepted historical
+decision; this proposal is not its automatic acceptance.
+
+Compose the isolated reception terminal explicitly behind the existing access
+terminal's current session transport. Keep it absent by default and synthetic
+only. Use intake-reception/1 and intake-availability/1 without modifying access/1,
+session/1, reading/1 or the retained foundation envelopes. Do not mount worker,
+preparation, constitution or editorial operations.
+
+Retain the exact original in a private object service. Separate reservation,
+staging/seal, SQL receipt commit, subsequent unstarted work and protected response
+handoff. There is no file/SQL atomicity or implicit retry. Preserve the stable
+intention namespace and current query authorization when recovering known effects.
+
+Use the existing authority evaluator and source-coordinated SQL admission, plus
+durable private-phase control outside restored receipt data. Keep dependent
+authority/control writes closed while private work remains unresolved. Observe
+actual child closure, retain closed phase identities, and check the source epoch
+in the new effect snapshot after retiring a phase. SQL/HTTP connection loss is
+not proof that private work stopped. Controlled recovery is deliberately narrow;
+the trusted broker/host and recovery supervisor are not claimed to be hostile.
+
+The minimum form verifier is separate from substantive extraction and needs
+current treatment before input. A receipt does not certify workbook extraction
+coverage, semantic fidelity, a candidate or editorial approval. Retain current
+whole-original authorization and separate pre-read and pre-handoff evidence.
+
+This proposal preserves the observed R24 violation and the two browser diagnostic
+follow-ups. It authorizes no real data, public deployment, automatic failover or
+new format. Its review requires the identified actual service, coupling, failure,
+recovery and resource evidence; offline checker self-tests are not service tests.
+
+See [the reception contract](../docs/intake-contract.md) and
+[its implementation/evidence status](../docs/INC-03-T02.md).

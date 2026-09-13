@@ -16,6 +16,8 @@
 !src/server/
 !src/server/access/
 !src/server/access/**
+!src/server/intake/
+!src/server/intake/**
 !src/server/reading/
 !src/server/reading/**
 !src/server/kb/

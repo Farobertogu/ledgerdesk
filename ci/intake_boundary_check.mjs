@@ -2,16 +2,30 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {moduleReferences} from './reading_boundary_check.mjs';
+const contract = name => /^src\/contracts\/intake(?:_artifact|_bindings|_mapping|_reception)?\.ts$/.test(name);
+const server = name => name.startsWith('src/server/intake/');
+const shared = new Map([
+  ['src/server/intake/protocol.ts', new Set(['src/contracts/access_transport.ts','src/contracts/access_canonical.ts'])],
+  ['src/server/intake/reception.ts', new Set(['src/contracts/access_canonical.ts'])],
+  ['src/server/intake/authority.ts', new Set(['src/server/access/invitation_authority.ts','src/server/access/postgres/store.ts','src/server/access/service.ts','src/server/access/transport.ts','src/server/access/config.ts','src/contracts/access_canonical.ts'])],
+  ['src/server/intake/postgres/store.ts', new Set(['src/server/access/postgres/store.ts'])],
+  ['src/server/intake/terminal.ts', new Set(['src/server/access/transport.ts','src/server/access/config.ts','src/contracts/access_transport.ts'])],
+  ['src/server/access/terminal.ts', new Set(['src/server/intake/terminal.ts','src/server/intake/config.ts'])],
+]);
 export function intakeViolations(file,source){
-  const inside=/^src\/contracts\/intake(?:_artifact|_bindings|_mapping)?\.ts$/.test(file);
+  const inside=contract(file);
   const {references,computed}=moduleReferences(source,{jsx:/[jt]sx$/.test(file)});
   const errors=[];
-  if(inside&&computed.length)errors.push('Computed intake import');
+  if((inside||server(file))&&computed.length)errors.push('Computed intake import');
   for(const {specifier} of references){
     let target=specifier.startsWith('@/')?'src/'+specifier.slice(2):specifier.startsWith('.')?path.posix.normalize(path.posix.join(path.posix.dirname(file),specifier)):null;
     if(target&&!/\.[cm]?[jt]sx?$/.test(target))target+='.ts';
-    if(inside && (!target || !/^src\/contracts\/intake(?:_artifact|_bindings|_mapping)?\.ts$/.test(target)))errors.push('Intake contract imports implementation: '+specifier);
-    if(!inside&&target&&(/^src\/contracts\/intake/.test(target)||target.startsWith('tests/intake/')))errors.push('Intake is not operational: '+specifier);
+    if(inside && (!target || !contract(target)))errors.push('Intake contract imports implementation: '+specifier);
+    if(server(file)) {
+      const builtins = new Set(['node:crypto','node:buffer','node:http','node:net']);
+      if (!(target ? contract(target)||server(target)||shared.get(file)?.has(target) : builtins.has(specifier))) errors.push('Forbidden intake runtime import: '+specifier);
+    }
+    if(!inside&&!server(file)&&target&&(contract(target)||server(target))&&!shared.get(file)?.has(target))errors.push('Intake is not operational outside its admitted composition: '+specifier);
     if(/tests\/intake|intake_profile_trial|csv-parse|fast-xml-parser|yauzl|(^|\/)xlsx($|\/)/.test(specifier))errors.push('Experimental dependency in production source');
   }
   return errors;

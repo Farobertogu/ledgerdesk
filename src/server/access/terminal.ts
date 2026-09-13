@@ -8,6 +8,8 @@ import {
   type AccessRoute,
 } from '../../contracts/access.ts';
 import { SESSION_COOKIE } from '../../contracts/access_transport.ts';
+import { createIntakeTerminal } from '../intake/terminal.ts';
+import type { IntakeConfig } from '../intake/config.ts';
 import { resolveAccessPath } from '../../contracts/access_canonical.ts';
 import { accessConfig, type AccessConfig } from './config.ts';
 import { AuthenticatedReading, type ReadingHooks, type ProtectedRequest } from './authenticated_reading.ts';
@@ -93,11 +95,14 @@ export async function startAccessTerminal(options: {
   hooks?: AccessHooks;
   reading?: AuthenticatedReadingConfig;
   readingHooks?: ReadingHooks;
+  intake?: IntakeConfig;
+  intakeHooks?: Parameters<typeof createIntakeTerminal>[3];
 }) {
   const config = accessConfig(options.config);
   const readingConfig = options.reading ? authenticatedReadingConfig(options.reading) : undefined;
   const service = new AccessService(config, options.mailbox, options.hooks, readingConfig?.generation);
   const reading = readingConfig ? new AuthenticatedReading(service, readingConfig, options.readingHooks) : null;
+  const intake = options.intake ? createIntakeTerminal(config, options.intake, value => service.digest(value), options.intakeHooks) : null;
   await service.initialize();
   const running = new Set<Promise<void>>();
   let active = 0;
@@ -136,6 +141,10 @@ export async function startAccessTerminal(options: {
     res.end(body === null ? '' : JSON.stringify(body));
   }
   async function handle(req: IncomingMessage, res: ServerResponse) {
+    if (/^\/api\/intake(?:\/|\?|$)/.test(req.url ?? '')) {
+      if (!intake) { respond(res,403,accessProblem('forbidden')); return; }
+      await intake.handle(req,res); return;
+    }
     const material = materialPath(req.url);
     const envelope = {
       method: req.method ?? '',
