@@ -3,10 +3,23 @@ import {createHash} from 'node:crypto';
 export const SOURCE_SHA='4acd0e63a24939cc93da594273b51b5696679ed1392bfe41cdb4e72865d7ae63';
 export const sha=b=>createHash('sha256').update(b).digest('hex');
 export const PROFILE={A:'systemd',B:'cgroupfs'};
-// Seven paired slots; first-in-pair alternates. Each profile receives exactly
-// five memory cases and two distinct controls. Every case has its own restart.
-export const CASES=Object.freeze(['external','memory','memory','watchdog','memory','memory','memory'].flatMap((kind,i)=>(i%2?['B','A']:['A','B']).map(profile=>Object.freeze({id:profile+'-'+(i+1),profile,kind}))));
-export const BUDGET=Object.freeze({cases:14,memory:10,external:2,watchdog:2,restarts:15,readinessCalls:150,journalCalls:28,journalBytes:14*65536,projectionBytes:14*16384,caseMs:30000,totalMs:18*60000,restoreMs:60000});
+// Two profile blocks reuse the verified initial A configuration. This reduces
+// restarts, but does not counterbalance time/order effects or reset between cases.
+export const CASES=Object.freeze(['A','B'].flatMap(profile=>['external','memory','memory','watchdog','memory','memory','memory'].map((kind,i)=>Object.freeze({id:profile+'-'+(i+1),profile,kind}))));
+export const BUDGET=Object.freeze({cases:14,memory:10,external:2,watchdog:2,restarts:2,readinessCalls:150,journalCalls:28,journalBytes:14*65536,projectionBytes:14*16384,caseMs:30000,totalMs:18*60000,restoreMs:60000});
+export function correctedOpportunity(event){
+ return event.event==='pull_request'&&event.action==='synchronize'&&event.number===32&&event.before==='ad466b40cbd41c418199b8f2cd5d9894198d58c3'&&event.after===event.headSha&&/^[a-f0-9]{40}$/.test(event.after??'')&&event.parent===event.before&&event.attempt==='1'&&event.repository==='Farobertogu/ledgerdesk'&&event.headRepository===event.repository&&event.branch==='card/INC-03-l03-single-profile-comparison';
+}
+// Only these fixed service/inventory commands may export bounded failure stderr.
+// No configuration, environment, command stdout or journal is copied here.
+export function fixedHostDiagnostic(bin,args,result){
+ const restart=privilegedCommand('systemctl',['restart','docker'],15);
+ const inventory=['--host','unix:///var/run/docker.sock','ps','-a','--no-trunc','--format','{{.ID}}'];
+ const operation=bin===restart.bin&&JSON.stringify(args)===JSON.stringify(restart.args)?'docker-service-restart':bin==='/usr/bin/docker'&&JSON.stringify(args)===JSON.stringify(inventory)?'docker-inventory':null;
+ if(!operation||result.code===0&&!result.reason&&!result.error)return null;
+ let stderr='',bytes=0;for(const char of result.stderr??''){const n=Buffer.byteLength(char);if(bytes+n>1024)break;stderr+=char;bytes+=n;}
+ return {operation,code:result.code,reason:result.reason??null,error:result.error??null,closed:result.closed,stderr,retainedBytes:bytes,receivedBytes:result.stderrBytes??Buffer.byteLength(result.stderr??''),truncated:bytes<Buffer.byteLength(result.stderr??''),stderrEncodingError:result.stderrEncodingError??false};
+}
 export function privilegedCommand(tool,args,seconds=4){
  assert(['cp','install','rm','dockerd','systemctl'].includes(tool),'PRIVILEGED_TOOL');assert([4,15].includes(seconds),'PRIVILEGED_BOUND');
  return {bin:'/usr/bin/sudo',args:['-n','/usr/bin/timeout','--signal=KILL',seconds+'s','/usr/bin/'+tool,...args],timeout:(seconds+1)*1000};
@@ -46,6 +59,7 @@ export function hostGate(facts){
  assert.equal(facts.platform,'linux');assert.equal(facts.provider,'github-hosted');assert.equal(facts.imageOS,'ubuntu24');
  assert.equal(facts.event,'pull_request');assert.equal(facts.attempt,'1');assert.equal(facts.repository,'Farobertogu/ledgerdesk');
  assert.equal(facts.branch,'card/INC-03-l03-single-profile-comparison');assert.equal(facts.workflow,'l03-profile-comparison');
+ assert(correctedOpportunity(facts),'CORRECTED_OPPORTUNITY_REQUIRED');
  assert.match(facts.vm,/^(microsoft|kvm)$/);assert.equal(facts.socket,'/run/docker.sock');assert.equal(facts.socketType,'socket');
  assert.equal(facts.rootless,false);assert.equal(facts.cgroupVersion,'2');assert.equal(facts.driver,'systemd');
  assert.deepEqual(facts.containers,[],'NONEMPTY_DAEMON');assert(facts.imageVersion&&facts.commit===facts.checkout,'UNVERIFIED_JOB');
@@ -59,7 +73,9 @@ export function verdict(rows){
  return rows.some(r=>r.profile==='A'&&r.kind==='memory'&&!r.passed)?'limited_mitigation_supported':'no_discrimination';
 }
 export async function compare(ports,{clock=Date.now}={}){
- const start=clock(),result={profile:'l03-comparison/1',budget:BUDGET,order:CASES,rows:[],status:'setup_or_measurement_failure',restoration:'not_needed',errors:[],caseFailures:[],switches:0};
+ const start=clock(),result={profile:'l03-comparison/1',design:'grouped-profiles/1',budget:BUDGET,order:CASES,rows:[],status:'setup_or_measurement_failure',restoration:'not_needed',cleanup:'not_attempted',errors:[],hostFailures:[],caseFailures:[],switches:0};
+ const retainHostFailure=(phase,error)=>{if(error?.commandRecord)result.hostFailures.push({phase,code:error.code??'HOST_ERROR',commandRecord:error.commandRecord});};
+ const emptyInventory=async()=>{let found;try{found=await ports.containers();}catch(error){throw Object.assign(Error('INVENTORY_UNAVAILABLE'),{code:'INVENTORY_UNAVAILABLE',commandRecord:error.commandRecord});}assert.deepEqual(found,[],'UNEXPECTED_RESOURCES');};
  const retainCaseFailure=(entry,phase,error)=>{
   const value=error?.code??error?.message;
   const code=typeof value==='string'&&/^[A-Z0-9_]{1,40}$/.test(value)?value:'CASE_ERROR';
@@ -68,13 +84,15 @@ export async function compare(ports,{clock=Date.now}={}){
  let snapshot,prepared=false,changed=false;
  try{
   const facts=await ports.inventory();hostGate(facts);await ports.record('host',facts);
-  snapshot=await ports.snapshot();prepared=true;await ports.prepare();
+  snapshot=await ports.snapshot();configuration(snapshot.text,PROFILE.A,snapshot.argv);prepared=true;await ports.prepare();
   for(const entry of CASES){
    assert(clock()-start<BUDGET.totalMs,'COMPARISON_DEADLINE');
-   assert.deepEqual(await ports.containers(),[],'NONEMPTY_DAEMON');
-   const merged=configuration(snapshot.text,PROFILE[entry.profile],snapshot.argv);
-   await ports.validate(merged);changed=true;result.switches++;
-   await ports.install(merged);await ports.restart();
+   await emptyInventory();
+   if(entry.profile==='B'&&!changed){
+    const merged=configuration(snapshot.text,PROFILE.B,snapshot.argv);
+    await ports.validate(merged);changed=true;result.switches++;
+    await ports.install(merged);await ports.restart();
+   }
    const effective=await ports.ready(PROFILE[entry.profile]);assert.equal(effective.driver,PROFILE[entry.profile]);assert.equal(effective.cgroupVersion,'2');
    await ports.record(entry.id+'-profile',effective);
    let row,completed=false,caseFailed=false;
@@ -99,14 +117,18 @@ export async function compare(ports,{clock=Date.now}={}){
    if(entry.profile==='B'&&!row.passed)throw Error('CANDIDATE_FAILED');
   }
   if(result.caseFailures.length===0)result.status=verdict(result.rows);
- }catch(e){result.errors.push(e.code??e.message);if(e.message==='CANDIDATE_FAILED'||e.message==='CONTROL_FAILED')result.status='candidate_unqualified';}
+ }catch(e){result.errors.push(e.code??e.message);retainHostFailure('primary',e);if(e.message==='CANDIDATE_FAILED'||e.message==='CONTROL_FAILED')result.status='candidate_unqualified';}
  finally{
   let clean=true;
-  if(prepared)try{await ports.cleanupCase();assert.deepEqual(await ports.containers(),[],'UNEXPECTED_RESOURCES');}catch(e){clean=false;result.errors.push('CLEANUP_UNCONFIRMED');}
+  if(prepared){
+   try{await ports.cleanupCase();}catch(e){clean=false;result.cleanup='owned_cleanup_failed';result.errors.push('CLEANUP_UNCONFIRMED');retainHostFailure('cleanup',e);}
+   if(clean)try{await emptyInventory();result.cleanup='confirmed';}catch(e){clean=false;result.cleanup=e.code==='INVENTORY_UNAVAILABLE'?'inventory_unknown':'unexpected_resources';result.errors.push('CLEANUP_UNCONFIRMED');retainHostFailure('cleanup',e);}
+  }
+  if(!clean)result.status='setup_or_measurement_failure';
   if(changed){
-   if(!clean){result.restoration='blocked_unexpected_resources';result.status='setup_or_measurement_failure';}
+   if(!clean){result.restoration=result.cleanup==='inventory_unknown'?'blocked_inventory_unknown':result.cleanup==='unexpected_resources'?'blocked_unexpected_resources':'blocked_cleanup_failure';result.status='setup_or_measurement_failure';}
    else try{await ports.restore(snapshot);await ports.restart();await ports.ready(snapshot.driver);await ports.verifyRestored(snapshot);result.restoration='confirmed';}
-   catch(e){result.restoration='unconfirmed';result.errors.push('RESTORE_UNCONFIRMED');result.status='setup_or_measurement_failure';}
+   catch(e){result.restoration='unconfirmed';result.errors.push('RESTORE_UNCONFIRMED');retainHostFailure('restoration',e);result.status='setup_or_measurement_failure';}
   }
   if(prepared&&clean)try{await ports.releaseImage();}catch{result.errors.push('IMAGE_RELEASE_UNCONFIRMED');result.status='setup_or_measurement_failure';}
   if(ports.finalize)try{await ports.finalize();}catch{result.errors.push('LEASE_RELEASE_UNCONFIRMED');result.status='setup_or_measurement_failure';}

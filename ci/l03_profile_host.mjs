@@ -6,7 +6,7 @@ import {createHash} from 'node:crypto';
 import assert from 'node:assert/strict';
 import {collectProcessOutput} from '../tests/intake/t01/reviewed/process-output.mjs';
 import {observeL03} from './intake_l03_observer.mjs';
-import {compare,loadOriginal,sha,BUDGET,privilegedCommand} from './l03_profile_comparison.mjs';
+import {compare,loadOriginal,sha,BUDGET,privilegedCommand,fixedHostDiagnostic} from './l03_profile_comparison.mjs';
 const root=fileURLToPath(new URL('../',import.meta.url));
 const fault=code=>{throw Object.assign(Error(code),{code});};
 async function bounded(file,limit=65536){const h=await fs.open(file,'r');try{const b=Buffer.alloc(limit+1),r=await h.read(b,0,b.length,0);if(r.bytesRead>limit)fault('FILE_LIMIT');return b.subarray(0,r.bytesRead);}finally{await h.close();}}
@@ -33,12 +33,13 @@ export async function linuxPorts(){
    const timer=setTimeout(()=>collector.terminate('worker_timeout'),timeout);child.on('error',()=>finish(null,null,'COMMAND_UNAVAILABLE'));child.on('close',(code,signal)=>finish(code,signal));
   });
   const name='command-'+String(++sequence).padStart(4,'0');commands.push({name,bin:path.basename(bin),argsSha256:sha(JSON.stringify(args)),code:result.code,reason:result.reason??null,error:result.error??null,closed:result.closed,stdoutBytes:result.stdoutBytes,stderrBytes:result.stderrBytes,milliseconds:result.milliseconds});
-  await record(name,commands.at(-1));if(!result.closed||result.error){hostPoisoned=true;fault('HOST_CHILD_UNCONFIRMED');}return {...result,commandRecord:name};
+  const failureDiagnostic=fixedHostDiagnostic(bin,args,result);if(failureDiagnostic)commands.at(-1).diagnostic=failureDiagnostic;
+  await record(name,commands.at(-1));if(!result.closed||result.error){hostPoisoned=true;throw Object.assign(Error('HOST_CHILD_UNCONFIRMED'),{code:'HOST_CHILD_UNCONFIRMED',commandRecord:name});}return {...result,commandRecord:name};
  }
- const required=async(bin,args,options)=>{const r=await exec(bin,args,options);if(r.code!==0||r.reason)fault('HOST_COMMAND_FAILED');return r.stdout.trim();};
+ const required=async(bin,args,options)=>{const r=await exec(bin,args,options);if(r.code!==0||r.reason)throw Object.assign(Error('HOST_COMMAND_FAILED'),{code:'HOST_COMMAND_FAILED',commandRecord:r.commandRecord});return r.stdout.trim();};
  const privileged=async(tool,args,seconds)=>{const command=privilegedCommand(tool,args,seconds);return required(command.bin,command.args,{timeout:command.timeout});};
  const docker=(args,options)=>exec('/usr/bin/docker',['--host','unix:///var/run/docker.sock',...args],options);
- const requireDocker=async(args,options)=>{const r=await docker(args,options);if(r.code!==0||r.reason)fault('DOCKER_COMMAND_FAILED');return r.stdout.trim();};
+ const requireDocker=async(args,options)=>{const r=await docker(args,options);if(r.code!==0||r.reason)throw Object.assign(Error('DOCKER_COMMAND_FAILED'),{code:'DOCKER_COMMAND_FAILED',commandRecord:r.commandRecord});return r.stdout.trim();};
  const json=r=>{assert.equal(r.code,0);assert.equal(r.reason,undefined);return JSON.parse(r.stdout);};
  const containers=async()=>{const s=await requireDocker(['ps','-a','--no-trunc','--format','{{.ID}}']);return s?s.split('\n'):[];};
  const daemonInfo=async()=>JSON.parse(await requireDocker(['info','--format','{{json .}}']));
@@ -50,7 +51,10 @@ export async function linuxPorts(){
   const context=JSON.parse(await required('/usr/bin/docker',['context','inspect']));assert.equal(context.length,1);assert.equal(context[0].Endpoints?.docker?.Host,'unix:///var/run/docker.sock','NONLOCAL_DEFAULT_CONTEXT');
   const vm=await required('/usr/bin/systemd-detect-virt',['--vm']);
   const checkout=await required('git',['rev-parse','HEAD']);
-  return {platform:process.platform,provider:process.env.RUNNER_ENVIRONMENT,imageOS:process.env.ImageOS,imageVersion:process.env.ImageVersion,event:process.env.GITHUB_EVENT_NAME,attempt:process.env.GITHUB_RUN_ATTEMPT,repository:process.env.GITHUB_REPOSITORY,branch:process.env.GITHUB_HEAD_REF,workflow:process.env.GITHUB_WORKFLOW,commit:process.env.GITHUB_SHA,checkout,vm,socket,socketType:'socket',rootless:info.SecurityOptions?.some(v=>v.includes('rootless'))??true,containers:existing,...infoProjection(info)};
+  const event=JSON.parse((await bounded(process.env.GITHUB_EVENT_PATH,1048576)).toString());
+  assert(/^[a-f0-9]{40}$/.test(event.after??''),'EVENT_HEAD_REQUIRED');
+  const parent=await required('git',['rev-parse',event.after+'^']);
+  return {platform:process.platform,provider:process.env.RUNNER_ENVIRONMENT,imageOS:process.env.ImageOS,imageVersion:process.env.ImageVersion,event:process.env.GITHUB_EVENT_NAME,action:event.action,number:event.number,before:event.before,after:event.after,headSha:event.pull_request?.head?.sha,parent,headRepository:event.pull_request?.head?.repo?.full_name,attempt:process.env.GITHUB_RUN_ATTEMPT,repository:process.env.GITHUB_REPOSITORY,branch:process.env.GITHUB_HEAD_REF,workflow:process.env.GITHUB_WORKFLOW,commit:process.env.GITHUB_SHA,checkout,vm,socket,socketType:'socket',rootless:info.SecurityOptions?.some(v=>v.includes('rootless'))??true,containers:existing,...infoProjection(info)};
  }
  async function snapshot(){
   await guardConfig();const daemonPid=await required('/usr/bin/systemctl',['show','docker','--property=MainPID','--value']);assert(/^\d+$/.test(daemonPid)&&Number(daemonPid)>0);
