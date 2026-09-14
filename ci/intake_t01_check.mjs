@@ -236,7 +236,7 @@ try{
   if(stat.isDirectory()){await fs.mkdir(to,{recursive:true});for(const name of await fs.readdir(from))if(name!=='node_modules')await snapshot(path.join(from,name),path.join(to,name));}
   else {await fs.mkdir(path.dirname(to),{recursive:true});const data=await fs.readFile(from);await fs.writeFile(to,data,{flag:'wx'});sourceManifest.push({name:path.relative(sourceRoot,to).split(path.sep).join('/'),bytes:data.length,sha256:hash(data)});}
  }
- for(const name of ['tests/intake/t01','src/contracts/intake.ts','src/contracts/intake_artifact.ts','src/contracts/intake_bindings.ts','src/contracts/intake_mapping.ts','ci/intake/T01.Dockerfile','ci/intake_t01_check.mjs','ci/intake_l03_observer.mjs','ci/intake_test_summary.mjs','ci/intake_boundary_check.mjs'])
+ for(const name of ['tests/intake/t01','src/contracts/intake.ts','src/contracts/intake_artifact.ts','src/contracts/intake_bindings.ts','src/contracts/intake_mapping.ts','ci/intake/T01.Dockerfile','ci/intake_t01_check.mjs','ci/intake_l03_observer.mjs','ci/intake_kernel_origin.mjs','ci/l03_profile_hierarchy.mjs','ci/intake_test_summary.mjs','ci/intake_boundary_check.mjs'])
   await snapshot(path.join(root,name),path.join(sourceRoot,name));
  await save('source-manifest.json',sourceManifest);
  if(group==='contracts'){

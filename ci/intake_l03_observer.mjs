@@ -3,6 +3,8 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
+import {createKernelCase,readLiveIdentity} from './intake_kernel_origin.mjs';
+import {readHierarchy} from './l03_profile_hierarchy.mjs';
 
 // Diagnostics only. No observer result authorizes or changes an L03 assertion.
 export const L03_CAPTURE = Object.freeze({commandMs:2000, closeMs:250, eventMs:15000,
@@ -135,11 +137,12 @@ export function observationAssessment(record){
 
 export async function observeL03({target,save,expectedProbeSha256,onFailure=()=>{},run=command,
   openEvents,
-  leafReader=leafSamples},work){
+  leafReader=leafSamples,
+  kernelFactory=process.env.LEDGERDESK_L03_KERNEL_ORIGIN==='1'?createKernelCase:null},work){
   const record={profile:'l03-observation/1',target,startedAt:now(),budget:L03_CAPTURE,
     calls:[],errors:[],events:{records:[],invalid:0},leaf:[],primary:null,
     missing:['ancestor counters','host pressure','kernel kill origin','executable binary hash']};
-  let stream,leafTask,leafStarted=false;
+  let stream,leafTask,leafStarted=false,kernel;
   const attempt=async(label,fn)=>{try{return await fn();}catch(error){record.errors.push({phase:label,code:safeCode(error.code??error.message)});return undefined;}};
   const call=async(label,args)=>{const r=await run(args);record.calls.push({phase:label,...meta(r)});return r;};
   const inspect=async label=>{const raw=decoded(await call(label,['inspect',target]))[0];if(raw?.Id!==target)throw Error('CONTAINER_ID_MISMATCH');return raw;};
@@ -149,7 +152,10 @@ export async function observeL03({target,save,expectedProbeSha256,onFailure=()=>
       if(event?.action==='start'&&!leafStarted){leafStarted=true;
         leafTask=attempt('leaf',async()=>{
           const running=await inspect('leaf-pid');
-          record.leaf=await leafReader(target,running.State?.Pid);
+          const read=await leafReader(target,running.State?.Pid);
+          record.leaf=Array.isArray(read)?read:read.samples;
+          if(kernel&&read.identity){kernel.bind(read.identity);}
+          if(read.hierarchy)record.hierarchy=read.hierarchy;
         });
       }
     }catch{record.events.invalid++;}
@@ -180,6 +186,7 @@ export async function observeL03({target,save,expectedProbeSha256,onFailure=()=>
     });
     record.identity.probeMatchesSource=record.expectedProbe.status==='observed'&&record.identity.probe
       ?record.identity.probe.sha256===record.expectedProbe.sha256:null;
+    if(kernelFactory)await attempt('kernel-before',async()=>{kernel=kernelFactory({target});await kernel.begin();});
     const since=String(Math.floor(Date.now()/1000));record.events.since=since;
     const eventArgs=['events','--since',since,'--filter','type=container','--filter','container='+target,'--format','{{json .}}'];
     stream=openEvents?openEvents(eventArgs,onLine):captureClient('docker',eventArgs,{timeoutMs:L03_CAPTURE.eventMs,bytes:L03_CAPTURE.eventBytes,onLine});
@@ -196,6 +203,11 @@ export async function observeL03({target,save,expectedProbeSha256,onFailure=()=>
     });
     if(stream)await attempt('events-close',async()=>{stream.stop('observer_stop');const result=await stream.done;record.events.capture=meta(result);});
     if(leafTask)await leafTask;
+    if(kernel)await attempt('kernel-after',async()=>{
+      if(!record.later){record.kernelOrigin=kernel.cancel('REQUIRED_LATER_INSPECTION_MISSING');return;}
+      const from=Date.parse(record.primary?.state?.StartedAt);
+      record.kernelOrigin=await kernel.finish({fromUs:Number.isFinite(from)?String(BigInt(from)*1000n):'invalid',toUs:String(BigInt(Date.parse(record.later.at))*1000n)});
+    });
     if(!record.leaf.length)record.leaf.push({status:'unavailable',reason:'NO_OBSERVED_LIVE_TARGET'});
     record.assessment=observationAssessment(record);record.finishedAt=now();
     record.integrity={sha256:sha(JSON.stringify(record)),meaning:'Digest of this record before the integrity field; not source authentication.'};
@@ -205,10 +217,15 @@ export async function observeL03({target,save,expectedProbeSha256,onFailure=()=>
 
 if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url)){
   if(process.argv[2]!=='--leaf'||!idOK(process.argv[3])||!/^\d{1,10}$/.test(process.argv[4]??''))throw Error('Invalid leaf observation target');
+  let identity,hierarchy;
+  if(process.env.LEDGERDESK_L03_KERNEL_ORIGIN==='1'){
+    try{identity=await readLiveIdentity(process.argv[3],Number(process.argv[4]));}catch{}
+    if(process.env.LEDGERDESK_L03_PROFILE_COMPARISON==='1')try{hierarchy=await readHierarchy(identity);}catch{hierarchy={status:'unavailable',reason:'REQUIRED_HIERARCHY_UNAVAILABLE'};}
+  }
   const samples=[];for(let i=0;i<L03_CAPTURE.leafSamples;i++){
     const sample=await readLeaf(process.argv[3],Number(process.argv[4]));samples.push(sample);
     if(sample.status==='unavailable')break;
     if(i+1<L03_CAPTURE.leafSamples)await sleep(50);
   }
-  process.stdout.write(JSON.stringify(samples));
+  process.stdout.write(JSON.stringify(process.env.LEDGERDESK_L03_KERNEL_ORIGIN==='1'?{samples,identity,hierarchy}:samples));
 }
