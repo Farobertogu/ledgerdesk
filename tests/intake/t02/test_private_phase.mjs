@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {randomUUID} from 'node:crypto';
+import {randomUUID,createHash} from 'node:crypto';
 import {spawn} from 'node:child_process';
 import {PrivatePhaseJournal} from '/work/private_phase.mjs';
 import {supervisedOperation} from '/work/operation_supervisor.mjs';
@@ -77,9 +77,16 @@ test('an uncertain worker start cannot be classified as an empty phase',async()=
   assert.equal(JSON.parse(fs.readFileSync(journal.file)).rows[phase.id].state,'closing');
 });
 test('corrupt retained control is not rebuilt from an empty replacement',()=>{
-  const journal=make();fs.writeFileSync(journal.file,'{broken');
-  assert.throws(()=>PrivatePhaseJournal.reopen(journal.directory,'objects'));
+  // Retain deliberate corruption as private control, with a checked public observation.
+  fs.mkdirSync(folder+'/control',{mode:0o700});
+  const journal=new PrivatePhaseJournal(folder+'/control/corrupt-journal','objects');
+  const expected=Buffer.from('{broken');fs.writeFileSync(journal.file,expected);
+  assert.throws(()=>PrivatePhaseJournal.reopen(journal.directory,'objects'),SyntaxError);
   assert.throws(()=>new PrivatePhaseJournal(journal.directory,'objects'),{code:'EEXIST'});
+  const actual=fs.readFileSync(journal.file);assert.deepEqual(actual,expected);
+  fs.writeFileSync(folder+'/retained-corruption.json',JSON.stringify({profile:'intake-retained-corruption/1',scenario:'corrupt-retained-control',
+    fixture:folder.slice(folder.lastIndexOf('/')+1),member:'control/corrupt-journal/phases.json',bytes:actual.length,
+    sha256:createHash('sha256').update(actual).digest('hex'),reopen:'SyntaxError',replacement:'EEXIST',preserved:true}),{flag:'wx'});
 });
 test('a failing start observer still owns and terminates its actual child',async()=>{
   const phase=fixture(),request=command(phase);let starts=0;

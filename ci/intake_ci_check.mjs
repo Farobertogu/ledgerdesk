@@ -87,7 +87,8 @@ export function verifyWiring(workflow,executedPlans=plans,mutations=producerFaul
   }
   for(const [part,run]of [['behavior',['node ci/intake_t02_matrix.mjs --suite behavior']],['recovery',['node ci/intake_t02_matrix.mjs --suite recovery-with-access']],
     ['mutations',['node ci/intake_t02_producer_checks.mjs','node ci/intake_t02_guard_checks.mjs','node ci/intake_t02_failure_checks.mjs']]]){
-    const job=workflow.jobs['intake-reception-'+part];same(commands(job),['npm ci','node --test tests/intake/t02/test_ci_wiring.mjs','node ci/intake_ci_check.mjs',...run,'node ci/intake_t02_artifacts.mjs --job '+part]);
+    const job=workflow.jobs['intake-reception-'+part];same(commands(job),['npm ci',...(part==='behavior'?['npm ci --prefix ci/intake/reception --ignore-scripts --no-audit --no-fund']:[]),
+      'node --test tests/intake/t02/test_ci_wiring.mjs','node ci/intake_ci_check.mjs',...run,'node ci/intake_t02_artifacts.mjs --job '+part]);
     same(job.steps.at(-2).if,'always()');same(job.steps.at(-1),{uses:'actions/upload-artifact@v4',if:'always()',with:{name:'intake-reception-'+part+'-evidence',path:'test-results/intake-t02-public/'+part+'/','if-no-files-found':'error'}});
   }
   same(executedPlans.behavior.map(r=>r[1]),[...requiredNormal,...requiredFinite].map(g=>['--group',g]).concat([['--group','transactions','--receipt-commit-loss']]),'behavior obligation list');

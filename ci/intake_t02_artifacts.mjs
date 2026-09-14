@@ -2,6 +2,8 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
+import {publicCommandDiagnostic} from './intake/command_diagnostic.mjs';
+import {phaseEvidenceDirectory,corruptionObservationName,retainedCorruptionObservation} from './intake/corruption_evidence.mjs';
 const root=fileURLToPath(new URL('../',import.meta.url));
 const secretKey=/^(?:cookie|cookies|set-cookie|csrf(?:_token)?|authorization|token|password|verifier|connectionString|digestKey|ca|cert|key|privateKey|tls|headers|body|payload|declaration|Env|Config|Mounts|HostConfig|GraphDriver|args|stderr|original_value|original_text|text|proof|challenge|sessionToken)$/i;
 const redactString=value=>value.replace(/-----BEGIN [\s\S]*?-----END [^-]+-----/g,'[certificate-or-key]')
@@ -10,6 +12,7 @@ const redactString=value=>value.replace(/-----BEGIN [\s\S]*?-----END [^-]+-----/
   .replace(/\?[^\s"']*/g,'[query-omitted]');
 export function publicEvidence(value,key=''){
   if(secretKey.test(key))return '[omitted]';
+  if(key==='diagnostic')return publicCommandDiagnostic(value);
   if(key==='code'&&typeof value==='string'&&!/^(?:[0-9A-Z]{5}|ERR_[A-Z_]+)$/.test(value))return '[omitted]';
   if(key==='stdout')return typeof value==='string'?value.split('\n').filter(l=>/^\s*(?:not ok \d+ - |# (?:tests|pass|fail|cancelled|skipped|todo|duration_ms) )/.test(l)).map(redactString):'[omitted]';
   if(Array.isArray(value))return value.map(v=>publicEvidence(v,key));
@@ -22,16 +25,20 @@ export function eligibleEvidence(relative){return !relative.split('/').some(p=>p
 export async function collectPublicEvidence(input,output,job){
   await fs.mkdir(output,{recursive:true});const files=[],omitted=[],failures=[];
   async function visit(relative=''){
+    let corruption=null,isPhase=phaseEvidenceDirectory(relative);
+    if(isPhase){try{corruption=await retainedCorruptionObservation(path.join(input,relative));}
+      catch(e){failures.push({path:path.posix.join(relative,corruptionObservationName),reason:e.evidenceReason??'corruption-observation-invalid'});}}
     let entries;try{entries=await fs.readdir(path.join(input,relative),{withFileTypes:true});}catch(e){if(e.code==='ENOENT')return;throw e;}
     for(const e of entries){const name=path.posix.join(relative,e.name);if(e.isSymbolicLink())throw Error('EVIDENCE_LINK');
       if(e.isDirectory()){if(!['source','control'].includes(e.name)&&!e.name.startsWith('.'))await visit(name);else omitted.push({path:name,reason:'source-or-private-control'});continue;}
+      if(isPhase&&e.name===corruptionObservationName&&!corruption){omitted.push({path:name,reason:'unverified-corruption-observation'});continue;}
       if(!eligibleEvidence(name)){omitted.push({path:name,reason:'not-public-json'});continue;}
       const stat=await fs.stat(path.join(input,name));if(stat.size>8388608){failures.push({path:name,reason:'public-evidence-size'});continue;}
       try{const raw=await fs.readFile(path.join(input,name));let bytes,kind='sanitized-json';
         if(name.endsWith('.png')){
           if(!raw.subarray(0,8).equals(Buffer.from('89504e470d0a1a0a','hex')))throw Error('PUBLIC_PNG_SIGNATURE');
           bytes=raw;kind='synthetic-browser-png-unchanged';
-        }else bytes=Buffer.from(JSON.stringify(publicEvidence(JSON.parse(raw)),null,2)+'\n');
+        }else bytes=Buffer.from(JSON.stringify(isPhase&&e.name===corruptionObservationName?corruption:publicEvidence(JSON.parse(raw)),null,2)+'\n');
         const target=path.join(output,name);
         await fs.mkdir(path.dirname(target),{recursive:true});await fs.writeFile(target,bytes,{flag:'wx'});
         files.push({path:name,kind,rawBytes:raw.length,rawSha256:createHash('sha256').update(raw).digest('hex'),publicBytes:bytes.length,publicSha256:createHash('sha256').update(bytes).digest('hex')});

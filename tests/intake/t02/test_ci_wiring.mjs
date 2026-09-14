@@ -10,6 +10,8 @@ import {parseWorkflow,verifyWiring,verifyCoupledInventory,verifyReadingExpressio
 import {plans} from '../../../ci/intake/t02_plan.mjs';
 import {producerFaultGroups} from '../../../ci/intake/reception/producer_fault.mjs';
 import {publicEvidence,eligibleEvidence,collectPublicEvidence} from '../../../ci/intake_t02_artifacts.mjs';
+import {commandDiagnostic} from '../../../ci/intake/command_diagnostic.mjs';
+import {createHash,randomUUID} from 'node:crypto';
 const text=fs.readFileSync(new URL('../../../.github/workflows/ci.yml',import.meta.url),'utf8');
 const expectedProducers=['reading-foundations','intake-reception-behavior','intake-reception-recovery','intake-reception-mutations'];
 const success=()=>Object.fromEntries(expectedProducers.map(n=>[n,{result:'success'}]));
@@ -223,3 +225,63 @@ test('the real exporter retains failed results, coupled observations and an expl
     fs.rmSync(temp,{recursive:true});
   }
 });
+
+test('host minimum-form preparation is explicit and precedes its consumer',()=>{
+  const w=parseWorkflow(text),steps=w.jobs['intake-reception-behavior'].steps;
+  const preparation=steps.findIndex(s=>s.run==='npm ci --prefix ci/intake/reception --ignore-scripts --no-audit --no-fund');
+  assert.ok(preparation>=0);assert.equal(verifyWiring(w),true);
+  const omitted=structuredClone(w);omitted.jobs['intake-reception-behavior'].steps.splice(preparation,1);
+  assert.throws(()=>verifyWiring(omitted));
+  const late=structuredClone(w),lateSteps=late.jobs['intake-reception-behavior'].steps;
+  const [install]=lateSteps.splice(preparation,1);lateSteps.splice(lateSteps.findIndex(s=>s.run==='node ci/intake_t02_matrix.mjs --suite behavior')+1,0,install);
+  assert.throws(()=>verifyWiring(late));
+});
+
+test('pre-test load diagnostics retain a safe classification without private strings',()=>{
+  const secret='PRIVATE_LOAD_CANARY_564821',file='tests/intake/t02/test_minimum_form.mjs';
+  const input={code:1,signal:null,stdout:`# Error [ERR_MODULE_NOT_FOUND]: Cannot find package '${secret}' imported from /private/${secret}\n`+
+    `# at private stack ${secret}\nnot ok 1 - ${file}\n# tests 1\n# pass 0\n# fail 1\n`,stderr:`cookie=${secret} password=${secret}`};
+  const diagnostic=commandDiagnostic(['--test',file],input);
+  assert.deepEqual(diagnostic,{profile:'intake-command-diagnostic/1',reference:'minimum-form',stage:'module-load',code:'ERR_MODULE_NOT_FOUND'});
+  assert.deepEqual(commandDiagnostic(['--test',file],{...input,stdout:input.stdout.replace(file,file.replaceAll('/','\\\\'))}),diagnostic);
+  const exported=publicEvidence({...input,args:[secret],diagnostic:{...diagnostic,message:secret,stack:secret,body:secret}});
+  assert.equal(JSON.stringify(exported).includes(secret),false);assert.deepEqual(exported.diagnostic,diagnostic);assert.equal(exported.code,1);
+  assert.equal(commandDiagnostic(['--test',file],{...input,code:0}),null);
+  const failed=commandDiagnostic(['--test',file],{...input,stdout:`not ok 1 - ${file}\n# tests 1\n# fail 1\n`});
+  assert.equal(failed.stage,'test-failed');assert.equal(failed.code,'ERR_TEST_FAILURE');
+  assert.equal(commandDiagnostic(['--test',file],{...input,stdout:'unclassified '+secret}).stage,'unclassified');
+  assert.equal(commandDiagnostic(['--test','/private/'+secret],input),null);
+  assert.deepEqual(publicEvidence({diagnostic:{profile:'intake-command-diagnostic/1',reference:secret,stage:secret,code:secret}}).diagnostic,
+    {profile:'intake-command-diagnostic/1',stage:'unclassified'});
+});
+
+for(const fault of ['none','unexpected-json','missing-record','false-association','wrong-bytes','missing-fixture','private-canary']){
+  test('retained corruption export: '+fault,async()=>{
+    const temp=fs.mkdtempSync(path.join(os.tmpdir(),'intake-corruption-evidence-')),input=path.join(temp,'input'),output=path.join(temp,'output');
+    const fixture='phase-prototype-'+randomUUID(),relative='intake-t02-test/phase-prototype/'+fixture,folder=path.join(input,relative);
+    const member='control/corrupt-journal/phases.json',bytes=Buffer.from('{broken'),secret='PRIVATE_CORRUPTION_CANARY_738502';
+    try{
+      fs.mkdirSync(path.dirname(path.join(folder,member)),{recursive:true});fs.writeFileSync(path.join(folder,member),bytes);
+      const record={profile:'intake-retained-corruption/1',scenario:'corrupt-retained-control',fixture,member,bytes:7,
+        sha256:createHash('sha256').update(bytes).digest('hex'),reopen:'SyntaxError',replacement:'EEXIST',preserved:true};
+      if(fault==='false-association')record.fixture='phase-prototype-'+randomUUID();
+      if(fault==='private-canary')record.extra=secret;
+      if(fault!=='missing-record')fs.writeFileSync(path.join(folder,'retained-corruption.json'),JSON.stringify(record));
+      if(fault==='unexpected-json')fs.writeFileSync(path.join(folder,'unexpected.json'),'{');
+      if(fault==='wrong-bytes')fs.writeFileSync(path.join(folder,member),secret);
+      if(fault==='missing-fixture')fs.unlinkSync(path.join(folder,member));
+      const passed=await collectPublicEvidence(input,output,'mutations'),m=JSON.parse(fs.readFileSync(path.join(output,'PUBLIC-MANIFEST.json')));
+      assert.deepEqual({passed,complete:m.complete},{passed:fault==='none',complete:fault==='none'});
+      if(fault==='none'){
+        assert.deepEqual(JSON.parse(fs.readFileSync(path.join(output,relative,'retained-corruption.json'))),record);
+        assert.equal(m.omitted.some(r=>r.path===relative+'/control'&&r.reason==='source-or-private-control'),true);
+        assert.deepEqual(fs.readFileSync(path.join(folder,member)),bytes);
+      }else assert.ok(m.failures.length>0);
+      const publicText=m.files.map(r=>fs.readFileSync(path.join(output,r.path),'utf8')).join('\n')+JSON.stringify(m);
+      assert.equal(publicText.includes(secret),false);assert.equal(publicText.includes('{broken'),false);
+    }finally{
+      assert.equal(path.dirname(temp),path.resolve(os.tmpdir()));assert.ok(path.basename(temp).startsWith('intake-corruption-evidence-'));
+      fs.rmSync(temp,{recursive:true});
+    }
+  });
+}

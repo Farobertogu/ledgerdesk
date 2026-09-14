@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { randomUUID, createHash } from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { collectProcessOutput } from '../tests/intake/t01/reviewed/process-output.mjs';
-import { expectedStoppedPoll } from './intake/reception/bridge_status.mjs';
+import { expectedStoppedPoll,failedRuntimeStoppedPoll } from './intake/reception/bridge_status.mjs';
 import { suspendedAppendCopy,rejectRetainedIncarnationCopy } from './intake/reception/fencing_fault.mjs';
 import {coupledEnvironmentCopy,coupledDockerCopy,coupledIgnoreCopy,coupledLegacyLaunchCopy} from '../tests/intake/t02/access_fence_coupling.mjs';
 import {withSourceComposition} from './access_final_routes.mjs';
@@ -16,6 +16,7 @@ import {producerFaultCopy,producerFaultGroups} from './intake/reception/producer
 import {receiptCommitFaultCopy} from './intake/reception/receipt_commit_fault.mjs';
 import {observationActions,eventObservationTarget} from './intake/reception/admin_observation.mjs';
 import {observationFaultCopy} from './intake/reception/observation_fault.mjs';
+import {commandDiagnostic} from './intake/command_diagnostic.mjs';
 
 const root=fileURLToPath(new URL('../',import.meta.url));
 const group=process.argv[process.argv.indexOf('--group')+1];
@@ -157,7 +158,8 @@ async function run(program,args,{timeout=60000,limit=8388608}={}) {
     child.once('close',(code,signal)=>{clearTimeout(timer);resolve({code,signal,...collector.finish(),milliseconds:Date.now()-start});});
   });
   const file=String(++index).padStart(3,'0')+'-command.json';
-  await save(file,{program:path.basename(program),args,...result});commands.push({file,code:result.code,reason:result.reason??null});
+  const diagnostic=program===process.execPath?commandDiagnostic(args,result):null;
+  await save(file,{program:path.basename(program),args,...result,...(diagnostic?{diagnostic}:{})});commands.push({file,code:result.code,reason:result.reason??null});
   console.log(JSON.stringify({command:index,program:path.basename(program),code:result.code,reason:result.reason??null,milliseconds:result.milliseconds}));
   return result;
 }
@@ -242,7 +244,11 @@ async function runtimeGroup() {
     const poll=await run('docker',['exec',runtime.name,'node','-e',"const f=require('fs');const p='/work/output/admin-request.json';process.stdout.write(f.existsSync(p)?f.readFileSync(p):'null')"]);
     if(!running&&poll.code!==0){
       const record=commands.at(-1),observed=JSON.parse(await docker(['inspect',runtime.name]))[0];
-      if(observed.Id===runtime.id&&expectedStoppedPoll(poll,runtime.id,observed.State))record.expectedExit='runtime-ended';
+      const attached=await executionPromise;
+      // A corroborated failed runtime explains this poll, not the runtime failure.
+      // Its nonzero command and inspected exit still fail the complete run below.
+      if(observed.Id===runtime.id&&(expectedStoppedPoll(poll,runtime.id,observed.State)||
+        failedRuntimeStoppedPoll(poll,runtime.id,observed.State,attached)))record.expectedExit='runtime-ended';
       else bridgeFailure='ADMIN_BRIDGE_UNRELATED_FAILURE';
       break;
     }

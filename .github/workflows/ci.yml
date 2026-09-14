@@ -111,6 +111,7 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
+      - run: npm ci --prefix ci/intake/reception --ignore-scripts --no-audit --no-fund
       - run: node --test tests/intake/t02/test_ci_wiring.mjs
       - run: node ci/intake_ci_check.mjs
       - run: node ci/intake_t02_matrix.mjs --suite behavior
