@@ -1,5 +1,11 @@
 # Material viewer
 
+This guide describes the INC-01 T03 component and its deliberately isolated mocked harness.
+The actual database-backed viewer is integrated: use [INC-01 T05](INC-01-T05.md) for the
+credential-free journey and [INC-02 T04](INC-02-T04.md) for authenticated reading. The local
+verification sections below preserve the initial T03 and 9 September correction checkpoints;
+their then-pending CI or ADR wording is historical, not the current delivery state.
+
 The isolated `/material` surface implements the `reading/1` list/detail consumer.
 It is read-only and uses only received references for local filtering. Originals
 are fetched on selection, rendered as inert text and never translated by the
@@ -23,8 +29,8 @@ instead of the Playwright download, still with an isolated test browser profile.
 Screenshots are written under ignored `test-results/` for visual inspection.
 
 Positive browser cases intercept HTTP with synthetic projections. The production
-viewer has no fixture imports or fallback content. An unmocked request returns
-the existing service failure until the reading service is implemented. Passing
+viewer has no fixture imports or fallback content. This harness intentionally does not
+provide a live reading service, so an unmocked request fails in this test setup. Passing
 this suite is not acceptance of database persistence or server authorization.
 
 ## State and failure boundaries
@@ -76,7 +82,7 @@ startup, not cause reuse of the other process.
 
 The browser suite still uses an unused database address rather than a counted
 sentinel. It must not be cited as physical database-isolation evidence. A counted
-browser/server integration check belongs to the database-backed T04/T05 work.
+browser/server integration check is separate database-backed T04/T05 evidence.
 
 This step does not add publication, editing, cached answers, access requests,
 background polling, authentication or the service's temporal delivery mechanism.

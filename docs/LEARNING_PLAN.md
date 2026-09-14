@@ -1,3 +1,5 @@
+> **Historical academic baseline — August 2026.** The original body below is preserved, including its personal statements and approval wording. This scope note does not renew an approval or revise the academic assessment. For the current system and implementation status, see the [system overview](SYSTEM_OVERVIEW.md) and [documentation index](README.md).
+
 # Individual Learning Plan
 
 Individual learning plan for the LedgerDesk capstone (COIT20273). Content dates: plan approved August 2026; this copy is maintained in the delivery repository.

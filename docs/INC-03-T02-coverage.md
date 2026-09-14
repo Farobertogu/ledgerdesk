@@ -5,11 +5,15 @@
 I03-T02 is accepted on 2026-09-14 within its bounded synthetic
 experimental scope, under the localized [ADR-038 amendment](../adr/ADR-038-intake-foundation.md#amendments).
 The complementary implementation reviews are complete in their identified
-scopes. [Current implementation CI](https://github.com/Farobertogu/ledgerdesk/actions/runs/34810451606)
+scopes. [Initial implementation CI](https://github.com/Farobertogu/ledgerdesk/actions/runs/34810451606)
 passed all eight jobs on attempt 1 for head 299f3dbe17919f0359f0db27a002a0df98261c51;
 [the reception report](INC-03-T02.md#status) records the actual checkout, parents
-and tree. The later documentary commit still needs its own final-head CI before
-merge and an observed post-merge main result. No future run is credited here.
+and tree. [PR #31](https://github.com/Farobertogu/ledgerdesk/pull/31) is merged;
+[final-head CI 34814803912](https://github.com/Farobertogu/ledgerdesk/actions/runs/34814803912)
+passed, while [actual-main CI 34815842388](https://github.com/Farobertogu/ledgerdesk/actions/runs/34815842388)
+failed. The later [PR #32 retained-reference repair](L03-exclusive-reference.md) passed its
+own final-PR and actual-main runs. These are separate observations; the original failure and
+unknown historical cause remain, not a retroactive success or a coverage upgrade.
 
 The 21 obligations and 53 variants below keep their evidence categories. In
 particular, IC14/fragment-only stays P/R: permission separation was exercised,
@@ -103,7 +107,7 @@ claim for these consumers, without invalidating earlier evidence for its source.
 The preserved independent inventory contains 53 variants: nine composed packets,
 34 separately exercised producers and ten previously pending rows at its
 checkpoint. These are evidence categories, not percentages or 53 new runs.
-The following additions do not rewrite that inventory or pretend that each
+The following additions do not rewrite that inventory or imply that each
 separate test was fed to the independent packet checker.
 
 C = existing composed packet, within its identified window. R = a separately
@@ -245,13 +249,13 @@ trigger scoped to the exact paused delivery evidence. Its positive logs and
 allows the INSERT; the negative logs the same attempted handed_off/17-byte row
 and raises P0001. Before release: durable evidence, idle SQL/no transaction,
 zero client bytes and an actual blocked writer. After release: actual 200 and
-exact17 bytes, one end, unchanged receipt/work and prior evidence, zero transport
+exact 17 bytes, one end, unchanged receipt/work and prior evidence, zero transport
 rows on failure, received safe diagnostics, closed backend and released writer.
 The following real GET succeeds without repeating reception effects.
 
 The existing installed hook was not silent. The demonstrated correction is the
 missing/failing receiver and separation from response-error handling. A technical
-status503 does not mean a second503 was sent. This is a bounded statement-failure
+status 503 does not mean a second 503 was sent. This is a bounded statement-failure
 experiment, not universal log durability, total database outage, arbitrary
 asynchronous receiver support or a new temporal guarantee. R24, fragment lineage,
 BROWSER-I03 and BROWSER-J19 remain open. Focused independent review is pending.

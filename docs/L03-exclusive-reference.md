@@ -1,11 +1,16 @@
 # L03 exclusive kernel reference
 
-Status: the reviewed failure-path correction reached physical run `34851780203`
-at `5edb69ae461121e855c08a908dd116bb22aa3bea`. Namespace qualification failed
-with `EACCES` before slice reservation and before the memory case. The bounded
-namespace-read correction below is pending focused review and physical validation.
-No result below resolves the historical intermittent failure. The completed
-profile comparison remains `no_discrimination`; it does not select another driver.
+Status at 15 September 2026: the bounded correction is reviewed, physically qualified
+within the profile below and merged in [PR #32](https://github.com/Farobertogu/ledgerdesk/pull/32)
+as `70c7c18971c1e2cc6306f489f3c68a653fa568b3`. The final PR and actual-main workflows
+each passed all eight jobs on attempt 1; their exact executions are recorded below.
+These results do not establish a unique cause for the historical intermittent false/137 observation.
+The completed profile comparison remains `no_discrimination`; it does not select another driver.
+
+The earlier physical [run 34851780203](https://github.com/Farobertogu/ledgerdesk/actions/runs/34851780203)
+at `5edb69ae461121e855c08a908dd116bb22aa3bea` remains failed: namespace qualification
+returned `EACCES` before slice reservation and before the memory case. The bounded
+namespace read described here corrects that specific access failure, not the historical OOM cause.
 
 ## Property and reference
 
@@ -154,10 +159,30 @@ failure-path protections; the previously reviewed oracle is unchanged.
 
 ## Evidence still required
 
-The current correction has not produced a physical Linux result. Required before
-claiming L03 solved: actual positive and both negative controls, retained kernel
-reference after exit, correct effective bounds and process identity, and confirmed
-container/slice cleanup on the authorized runner. The partial/failure paths of the
-Linux adapter also need review; synthetic ports do not certify their physical
-execution. A timeout, unavailable reference or unexplained cleanup outcome stays
-failed, not accepted by Docker's flag or by a later green run.
+The required current-profile positive, both negative controls, retained reference, effective
+bounds, identity and cleanup observations are now available. The reviewed failure-path tests
+remain synthetic where explicitly stated above; a successful physical sequence does not
+exercise every possible failure path or certify another host/profile.
+
+| Execution | Source and result |
+|---|---|
+| [Final PR run 34864464479](https://github.com/Farobertogu/ledgerdesk/actions/runs/34864464479) | Attempt 1; head `48768b15e9b29edfbda728ce193b5ebb06ba9b9a`; all eight jobs passed |
+| [Actual-main run 34865598354](https://github.com/Farobertogu/ledgerdesk/actions/runs/34865598354) | Attempt 1; merge `70c7c18971c1e2cc6306f489f3c68a653fa568b3`; all eight jobs passed |
+
+The final PR test merge and actual-main merge share tree
+`60224f8fedf5ddb8dc02da9f73547526d42e8cdf`. Each physical record binds 189 retained
+source files to its executed tree and preserves image/probe identity. The native-memory
+case recorded hierarchical `max/oom/oom_kill/oom_group_kill` of `20/1/1/0` in the PR
+and `21/1/1/0` on main, with exit 137 and no intervention. Docker's true OOM flag is
+recorded but is not the oracle. Each KILL and watchdog control had zero memory events
+and was rejected by the same OOM predicate despite exit 137.
+
+Both executions confirmed the retained inode/invocation, effective limits, process
+membership, final inventory and removal of the three owned containers and slices.
+The [closure record](https://github.com/Farobertogu/ledgerdesk/pull/32#issuecomment-5667010901)
+identifies the artifact checks and scope. This documentary update does not rerun them.
+
+A timeout, unavailable reference or unexplained cleanup outcome still fails. Later success
+does not erase a failed run. Reproduction outside this qualified Linux/systemd/cgroup-v2
+environment, universal containment, the historical cause, R24 and the browser follow-ups
+remain outside this closure; Docker Desktop availability does not qualify this physical test.

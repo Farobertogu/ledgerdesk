@@ -1,22 +1,69 @@
 # LedgerDesk
 
-## New-system construction · INC-01
+LedgerDesk is an open-source web system for working with governed knowledge within a declared
+organizational scope. Its design connects exact, versioned material with people's information
+needs, authorized human case handling and a separate editorial path into the reusable corpus.
+Receiving a file, preparing content, approving a version, publishing it and closing a case are
+distinct operations; none silently performs the next.
 
-This repository keeps its history while the newly defined system is implemented by increments.
-The description and commands below document the retained **legacy** system; they are not the
-requirements or safe trial setup for the new reading route. The active card is in [BOARD](BOARD.md).
-See [ADR-029](adr/ADR-029-isolated-reading-foundation.md) for T01/T02, scope, source contracts,
-safe verification and the remaining T03–T05 work. No historical database is needed for this delivery.
+The system is being built through end-to-end increments in this repository. Earlier code,
+academic documents, commits and pull requests remain part of its history, not an alternative
+definition of the current product.
 
-The public [reading contract](docs/reading-contract.md) uses the English `reading/1` profile.
-Its source equivalence is tested without changing original document text or opaque identifiers.
+## Current implementation
 
-`/material` is a preparation surface, not yet the integrated viewer. The new reading endpoints
-fail closed: no trial context gives 403; valid trial context still gives 503 until T04 supplies
-the real service. They never substitute legacy or demo material. This increment makes no model
-calls and uses no real data.
+Status at 15 September 2026:
 
-## Retained legacy system
+| Delivery | Available within its accepted experimental scope |
+|---|---|
+| INC-01 | Integrated synthetic material reading: browser, HTTP terminal, PostgreSQL, permitted projections and prior evidence |
+| INC-02 | Synthetic activation, sessions, invitations, scoped authority, census, authenticated material reading and administration |
+| INC-03 T01–T02 | Intake contracts and bounded profile experiments; isolated synthetic reception, conservation and recovery of originals |
+
+`/material` is the integrated credential-free trial viewer; `/access/material` is the
+session-bearing viewer. Their profiles are explicit and never selected by automatic fallback.
+The terminal performs the protected handoff, without a Next proxy or legacy material.
+Intake's accepted reception routes require their own
+explicit synthetic configuration. Worker processing, preparation and constitution are not
+enabled merely because their contracts exist.
+
+These deliveries do **not** authorize real data or production use. Writer-free expiry has an
+observed temporal nonconformity (R24); the two tracked browser failures remain open. Successful
+checks do not close them. PDF/OCR, the full knowledge-response journey and later editorial/case
+capabilities are not claimed as implemented here.
+
+## Start here
+
+- [System overview](docs/SYSTEM_OVERVIEW.md): purpose, current capabilities, pending work and the transition from the earlier implementation.
+- [Documentation index](docs/README.md): current contracts, reproduction guides, dated evidence and academic baseline.
+- [Build board](BOARD.md): current increment and retained historical cards.
+- [Architecture decisions](adr/README.md): decisions and dated amendments, each with its own status and scope.
+- [Provenance](docs/PROVENANCE.md): retained sources, manifests and attribution limits.
+
+For isolated reproduction, use [integrated reading](docs/INC-01-T05.md#reproduction),
+[the access whole journey](docs/INC-02-T06.md#execution-and-evidence) or
+[synthetic intake reception](docs/INC-03-T02.md). Their configurations are separate from the
+historical database and identity selector below. Do not use that historical setup to start
+the new system. These journeys use synthetic documents and accounts; they require neither
+external mail nor model calls.
+
+## Development conventions
+
+- One branch per board card; review the diff and the final commit's required checks before an authorized merge.
+- Preserve merged history. Corrections are new commits, not rewritten evidence.
+- Keep contract validity, implementation, measured evidence and acceptance separate. A green test does not expand the accepted scope.
+
+## Historical implementation reference
+
+<details>
+<summary>August 2026 implementation, setup and rehearsal notes</summary>
+
+The following records the earlier system. Its roadmap, multi-organization seed, identity
+selector, model provider and rehearsal are historical, not the setup or requirements of
+the current increments. The database-check commands can drop cluster-wide roles: do not
+run them against a shared or historical database as part of a new-system trial.
+
+### Earlier system description
 
 A grounded-answer platform over versioned knowledge corpora. Three commitments define the system:
 
@@ -28,7 +75,7 @@ Built generic, demonstrated specific: the demonstration instance is customer sup
 
 Capstone project — COIT20273 Software Design and Development Project, CQUniversity, Term 2 2026.
 
-## Repository layout
+### Historical repository layout
 
 | Path | Contents |
 |---|---|
@@ -46,7 +93,7 @@ Capstone project — COIT20273 Software Design and Development Project, CQUniver
 | `BOARD.md` | build board — verifiable increments I0–I18 (+ I2b) |
 | `ci/` | repository and database checks (run locally and in CI) |
 
-## Running the consoles
+### Historical console setup
 
 A PostgreSQL 16 instance is the only prerequisite. The port below is the one the development
 container publishes; adjust it for another instance.
@@ -86,7 +133,7 @@ database that holds grants on those roles has to be dropped before any of them w
 
 **Every check runs on the fixture provider, always** — determinism and no network. See below.
 
-## Which model answers
+### Historical model provider
 
 `LEDGERDESK_PROVIDER` selects the far side of the one path to a model:
 
@@ -96,13 +143,12 @@ database that holds grants on those roles has to be dropped before any of them w
 | `real` | the vendor's API, through `agents/providers/anthropic.ts` | a rehearsal and the demonstration |
 
 `real` requires `ANTHROPIC_API_KEY` in the environment and refuses to start without it. The key is
-read by the SDK from the environment; it is never passed through this tree, so it cannot reach a
-stack frame, a log line, a detail bag or a row. An unrecognised value for `LEDGERDESK_PROVIDER` is
-refused at startup rather than treated as the default — a typo that silently produced a
-fixture-answering production process is a failure nobody finds until a customer reads an answer no
-model wrote. ADR-025 carries the decision, the models and the prices.
+read by the SDK from the environment. This configuration is not a general proof that secrets
+cannot appear in diagnostics. An unrecognised value for `LEDGERDESK_PROVIDER` is refused at
+startup rather than treated as the default. ADR-025 records the historical provider decision,
+models and prices; it is not a current pricing reference.
 
-## Rehearsing the demonstration without a network
+### Historical offline rehearsal
 
 Replay reads its answers from the chain: under `LEDGERDESK_REPLAY=1` the provider is never invoked,
 and a lookup that misses is `E_REPLAY_CACHE_MISS` rather than a call. That is what makes "replay
@@ -124,8 +170,7 @@ LEDGERDESK_REPLAY=1 npm run dev
 The closing act is a question the corpus cannot answer, material admitted, and the same question
 answered — **one chain with two `state_hash` values and the admission row between them by `seq`**.
 Rehearsing against a chain that holds only the first half fails by design, with
-`E_REPLAY_CACHE_MISS`, and it fails at the point in the evening where there is no time to work out
-why. Run step 2 through both halves before relying on step 3.
+`E_REPLAY_CACHE_MISS`. Run step 2 through both halves before relying on step 3.
 
 The branch that runs entirely on fixtures does not get this for free either: a fixture is
 deterministic, so a replay of a fixture run reproduces perfectly — but what it reproduces is a chain
@@ -135,7 +180,7 @@ of fixture answers. Whichever provider is chosen, a chain has to exist before it
 holds, which snapshot each organisation reads under, and **how much SLA margin is left on the
 tightest beat**.
 
-### The clock, and it is not a recommendation
+#### Dataset age
 
 **Load the dataset within twenty minutes of the first beat.** `created_at` is stamped at load time
 and the escalation rule reads the clock: the shortest first-response policy a demonstration ticket
@@ -143,18 +188,16 @@ can land on is thirty minutes, so a dataset loaded an hour early has already bre
 written to show a knowledge gap shows an SLA breach instead — correctly, and for a reason that has
 nothing to do with what is being demonstrated.
 
-**No test can catch this and none pretends to.** The dataset test freezes the instant to one minute
-after creation, which is the right thing for it to do and makes it structurally incapable of seeing
-an aged dataset. **The defence is the procedure, and `--status` measures the one thing that decides
-whether the procedure was followed: the AGE of the dataset**, alarming past twenty minutes — the same
-twenty this section is about. It reports an age rather than a margin for any beat that has not been
+The dataset test freezes the instant to one minute after creation; that test does not exercise
+an aged dataset. The rehearsal procedure therefore checks dataset age with `--status`, which
+alarms past twenty minutes. It reports an age rather than a margin for any beat that has not been
 triaged, because until triage assigns a policy there is no margin to report: an earlier version
 computed one against the tightest policy the tier could land on, which on the premium tier is
 fifteen minutes against an alarm floor of fifteen, so the alarm sat at its own threshold from the
 moment of a correct load and could never warn. Once a beat is triaged the policy is real and the
 column shows the margin against it, with the fifteen-minute floor doing what a floor is for.
 
-### A rehearsal spends a variant
+#### Rehearsal variants
 
 An admission cannot be repeated — the advance refuses a snapshot that already exists — and a gap
 record cannot be reopened, because its uniqueness is over the ticket, the query and the corpus, and
@@ -180,14 +223,16 @@ and no subject — cannot admit anything at all. Somebody signed in as a supervi
 control on the ticket screen, which is what makes the approver on the panel afterwards mean
 something.
 
-## Conventions
+### Historical conventions
 
 - One branch per board card; a card merges to `main` only after its named tests are green and the owner has reviewed the diff (merge `--no-ff`).
 - Tags mark plan gates: `baseline-v1.0`, `demo-w7`, freeze tag. History is never rewritten once a card is merged; corrections land as new dated commits.
 
-## Status
+### Historical status
 
 Build order: **31 verifiable increments** on `BOARD.md`. Thirteen cards are merged: the repo spine and process gate, the documentary baseline (sealed with the immutable tag `baseline-v1.0`), the data spine with its append-only ledger, the app skeleton, the LLM gateway, the pure algorithm, the triage agent, retrieval and drafting, the complete knowledge-gap cycle — rehearsed end to end — the `adr_gate` hardening whose red case fires on every build, and the Act-1 stage lines. Every error code the system raises is spelled in English (ADR-027). In progress: the promotion capsule, which files a rejected promotion attempt with its failing conjunct named and renders it read-only at `/promotion`. Next on the board: the AI-disclosure notice with its human route, the agent console and the instrument scaffolding.
+
+</details>
 
 ## License
 
