@@ -7,6 +7,7 @@ import {EventEmitter} from 'node:events';
 import {PassThrough} from 'node:stream';
 import {fileURLToPath} from 'node:url';
 import {createHash,randomUUID} from 'node:crypto';
+import {spawn as realSpawn} from 'node:child_process';
 import {collectProcessOutput} from './reviewed/process-output.mjs';
 import {tarMemberIdentity} from '../../../ci/intake_l03_observer.mjs';
 import {counters,referenceCase,referenceFailure} from '../../../ci/intake_l03_reference.mjs';
@@ -26,7 +27,7 @@ const probes=Object.fromEntries(await Promise.all(['probe.mjs','l03_gate.mjs'].m
 const id='1'.repeat(64),nonce='2'.repeat(32),reference='system-ldl03'+nonce+'.slice',base='/sys/fs/cgroup/system.slice/'+reference,leaf='docker-'+id+'.scope',image='sha256:'+'4'.repeat(64);
 const z='max 0\noom 0\noom_kill 0\noom_group_kill 0\n',oom='max 42\noom 1\noom_kill 1\noom_group_kill 0\n';
 function tar(name,b){const h=Buffer.alloc(512);h.write(name);h.write(b.length.toString(8).padStart(11,'0')+'\0',124);h[156]=48;h.fill(32,148,156);const n=h.reduce((a,v)=>a+v,0);h.write(n.toString(8).padStart(6,'0')+'\0 ',148);return Buffer.concat([h,b,Buffer.alloc((512-b.length%512)%512),Buffer.alloc(1024)]);}
-async function scenario(fault){
+async function scenario(fault,{qualificationOnly=false}={}){
  const model={slice:false,container:false,running:false,scope:false,released:false,oom:false,closed:false};
  const trace=[],saved=[],writes=[],loggingFailures=[],commands=[];let attached,proofFailed=false,clock=Date.now(),recoveryWrites=0,preReconciliation;
  const injected=Object.fromEntries(['COMMAND_PROOF_WRITE_FAILED','ATTACHED_EXPORT_FAILED'].map(code=>[code,Object.assign(Error(code),{code})]));
@@ -52,12 +53,32 @@ async function scenario(fault){
    }
   }
   if(bin==='/usr/bin/sudo'){
+   if(a.includes('/usr/bin/readlink')){
+    assert.deepEqual(a,['-n','/usr/bin/timeout','--signal=KILL','5s','/usr/bin/readlink','--verbose','--','/proc/1/ns/cgroup']);
+    return 'cgroup:[123]\n';
+   }
    if(a.includes('StartTransientUnit')){model.slice=true;if(fault==='partial-slice')fail('SLICE_REPLY_LOST');return 'o /synthetic/job/1';}
    if(a.includes('stop')){assert(!model.scope);model.slice=false;return '';}
   }
   fail('UNMODELED_COMMAND');
  }
  function spawn(bin,args,options){
+  if(qualificationOnly&&bin==='/usr/bin/sudo'&&args.includes('/usr/bin/readlink')){
+   response(bin,args); // Enforce the exact privileged target and bounded command.
+   const specimen={stdout:'cgroup:[123]\n',stderr:'',code:0};
+   if(fault==='different')specimen.stdout='cgroup:[456]\n';
+   if(fault==='permission-denied')Object.assign(specimen,{stdout:'',stderr:'readlink: /proc/1/ns/cgroup: Permission denied\n',code:1});
+   if(fault==='command-failed')Object.assign(specimen,{stdout:'',stderr:'sudo: /usr/bin/timeout: command not found\n',code:127});
+   if(fault==='missing')specimen.stdout='';
+   if(fault==='malformed')specimen.stdout='cgroup:[123]\ncgroup:[123]\n';
+   if(fault==='output-limit')specimen.stdout='x'.repeat(129);
+   if(fault==='invalid-utf8')specimen.stdout=null;
+   // Real pipes, exit status, collector, bounded executor and command records;
+   // a synthetic child replaces sudo only at the OS-spawn boundary.
+   const script='const s='+JSON.stringify(specimen)+';process.stdout.write(s.stdout===null?Buffer.from([255]):s.stdout);process.stderr.write(s.stderr);process.exitCode=s.code;';
+   const child=realSpawn(process.execPath,['-e',script],options);
+   trace.push({op:'namespace-child',pid:child.pid});return child;
+  }
   const p=new EventEmitter();p.stdout=new PassThrough();p.stderr=new PassThrough();p.stdin=new PassThrough();p.kill=signal=>{trace.push({op:'client-kill',signal});finish(p,null,signal);return true;};
   if(bin==='docker'&&args[2]==='start'){
    trace.push({op:'attach',bin,args});attached=p;model.running=true;model.scope=true;
@@ -80,7 +101,11 @@ async function scenario(fault){
  const fs={
   async lstat(file){if(file===base&&!model.slice)fail('ENOENT');return {dev:29,ino:file===base?1001:1002,isDirectory:()=>true,isSymbolicLink:()=>false};},
   async readdir(file){return file===base&&model.scope?[{name:leaf,isDirectory:()=>true}]:[];},
-  async readlink(file){assert(['/proc/self/ns/cgroup','/proc/1/ns/cgroup'].includes(file));return 'cgroup:[123]';},
+  async readlink(file){
+   trace.push({op:'readlink',file});
+   if(file==='/proc/1/ns/cgroup'||fault==='self-denied')fail('EACCES');
+   assert.equal(file,'/proc/self/ns/cgroup');return 'cgroup:[123]';
+  },
   async readFile(file){const name=path.basename(file);assert(Object.hasOwn(probes,name));return probes[name];},
   async open(file){
    trace.push({op:'read',file});let v;
@@ -104,11 +129,12 @@ async function scenario(fault){
  const runtime=makeExec(spawn,collectProcessOutput,save,path,sourceRoot,loggingFailures,commands,v=>v,assert,{now:()=>clock});
  const {exec,openReferenceRecovery,registerReference}=runtime;
  const captureClient=(bin,args)=>{trace.push({op:'copy-proof',bin,args});const file=args.at(-2).split('/').at(-1);return {done:Promise.resolve({code:0,reason:null,closed:true,stdout:tar(file,probes[file])})};};
- const fakeProcess={platform:'linux',env:{GITHUB_ACTIONS:'true',RUNNER_ENVIRONMENT:'github-hosted'}};
+ const fakeProcess={pid:6789,platform:'linux',env:{GITHUB_ACTIONS:'true',RUNNER_ENVIRONMENT:'github-hosted'}};
  const build=new Function('fs','path','os','randomUUID','createHash','spawn','assert','collectProcessOutput','captureClient','tarMemberIdentity','counters','referenceCase','process',adapterBody+';return linuxReferencePorts;');
  const create=build(fs,path,{release:()=> 'synthetic-kernel'},()=>nonce,createHash,spawn,assert,collectProcessOutput,captureClient,tarMemberIdentity,counters,referenceCase,fakeProcess);
  const ports=await create({image,flags:['--memory=512m','--memory-swap=512m','--cpus=1','--pids-limit=64'],sourceRoot,save,exec,openReferenceRecovery,registerReference},'memory');
- let result,error,caught;try{result=await referenceCase(ports,'memory');}catch(e){caught=e;error={message:e.message,code:e.code};}
+ let result,error,caught;try{result=qualificationOnly?await ports.prepare():await referenceCase(ports,'memory');}catch(e){caught=e;error={message:e.message,code:e.code};}
+ if(qualificationOnly)await ports.cleanup();
  const terminal=saved.find(r=>r.name==='L03-memory-result.json')?.value;
  preReconciliation={model:structuredClone(model),resources:structuredClone(runtime.referenceResources.map(e=>e.resource))};
  runtime.beginOuter();await runtime.reconcileReferences();
@@ -117,6 +143,37 @@ async function scenario(fault){
  return {fault,model,result,error,terminal,facts,loggingFailures,commands,trace,writes,saved,preReconciliation,
    resources:runtime.referenceResources.map(e=>e.resource)};
 }
+for(const fault of ['equal','different','permission-denied','command-failed','missing','malformed','output-limit','invalid-utf8','self-denied'])test('L03 namespace qualification through actual executor: '+fault,async t=>{
+ const r=await scenario(fault,{qualificationOnly:true});
+ const record=r.saved.find(e=>e.value.executable==='sudo'&&e.value.args?.includes('/usr/bin/readlink'))?.value;
+ assert.deepEqual(r.trace.filter(e=>e.op==='readlink').map(e=>e.file),['/proc/self/ns/cgroup']);
+ assert.equal(r.model.container,false);assert.equal(r.model.slice,false);
+ assert.equal(r.trace.some(e=>e.op==='release'||e.op==='attach'),false);
+ if(fault==='equal'){
+  assert.equal(r.error,undefined);assert.equal(r.resources.length,1);
+  assert.equal(r.saved.find(e=>e.name==='L03-memory-host.json').value.sameNamespace,true);
+  const observed=r.saved.find(e=>e.name==='L03-memory-namespace.json').value;
+  assert.deepEqual(observed,{originatorPid:6789,originator:'cgroup:[123]',init:'cgroup:[123]',commandRecord:r.saved.find(e=>e.value===record).name});
+ }else{
+  assert(r.error);assert.equal(r.resources.length,0,'Invalid qualification cannot reserve or create a slice');
+  assert.equal(r.saved.some(e=>e.name==='L03-memory-host.json'||e.name==='L03-memory-reservation.json'),false);
+  assert.equal(r.trace.some(e=>e.op==='command'&&e.args.includes('StartTransientUnit')),false);
+ }
+ if(fault==='different'){
+  assert.match(r.error.message,/EXCLUSIVE_REFERENCE_HOST_REQUIRED/);
+  assert.equal(r.saved.find(e=>e.name==='L03-memory-namespace.json').value.init,'cgroup:[456]');
+ }
+ if(fault==='permission-denied'){assert.equal(record.code,1);assert.match(record.stderr,/Permission denied/);assert.match(r.error.message,/NAMESPACE_COMMAND_FAILED/);}
+ if(fault==='command-failed'){assert.equal(record.code,127);assert.match(record.stderr,/command not found/);assert.match(r.error.message,/NAMESPACE_COMMAND_FAILED/);}
+ if(fault==='missing')assert.match(r.error.message,/NAMESPACE_OUTPUT_MISSING/);
+ if(fault==='malformed')assert.match(r.error.message,/NAMESPACE_OUTPUT_MALFORMED/);
+ if(fault==='output-limit'){assert.equal(record.reason,'output_limit');assert.equal(record.stdoutRetainedBytes,128);}
+ if(fault==='invalid-utf8'){assert.equal(record.reason,'invalid_output_utf8');assert.equal(record.stdoutEncodingError,true);}
+ if(fault==='self-denied'){assert.equal(r.error.code,'EACCES');assert.equal(record,undefined);}
+ else assert.equal(r.trace.filter(e=>e.op==='namespace-child').length,1);
+ t.diagnostic(JSON.stringify({kind:'Real child transport with synthetic namespace output; no privileged or physical Linux execution',fault,error:r.error,record,
+  namespace:r.saved.find(e=>e.name==='L03-memory-namespace.json')?.value,resources:r.resources.length}));
+});
 const cases=['none','partial-slice','partial-container','foreign-owner','no-gate','unexpected-exit','command-proof','group-deadline','cleanup-proof','cleanup-reconcile','command-proof-foreign','rm-reply-lost','attached-export','read-after'];
 for(const fault of cases)test('L03-B01/B03 actual adapter and runner composition: '+fault,async t=>{
  const r=await scenario(fault);

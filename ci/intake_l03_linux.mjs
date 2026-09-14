@@ -106,6 +106,24 @@ export async function linuxReferencePorts({ image, flags, sourceRoot, save, exec
     assert.equal(result.reason, undefined); assert.equal(result.stdoutEncodingError, false);
     assert.equal(result.stderrEncodingError, false); return result.stdout.trim();
   };
+  async function namespaces() {
+    // Read self in this Node process, never in the privileged helper.
+    const originator = await fs.readlink('/proc/self/ns/cgroup');
+    assert.match(originator, /^cgroup:\[[1-9][0-9]*\]$/, 'ORIGINATOR_NAMESPACE_MALFORMED');
+    const result = await exec('/usr/bin/sudo', ['-n', '/usr/bin/timeout', '--signal=KILL', '5s',
+      '/usr/bin/readlink', '--verbose', '--', '/proc/1/ns/cgroup'],
+    { timeout: 6000, limit: 128, diagnostic: 1024 });
+    // The command record retains exit status and stderr, including access denial.
+    assert.equal(result.code, 0, 'NAMESPACE_COMMAND_FAILED: ' + result.commandRecord);
+    assert.equal(result.reason, undefined, 'NAMESPACE_COMMAND_INCOMPLETE');
+    assert.equal(result.stdoutEncodingError || result.stderrEncodingError, false, 'NAMESPACE_ENCODING_ERROR');
+    assert.notEqual(result.stdout, '', 'NAMESPACE_OUTPUT_MISSING');
+    assert.match(result.stdout, /^cgroup:\[[1-9][0-9]*\]\n$/, 'NAMESPACE_OUTPUT_MALFORMED');
+    const init = result.stdout.slice(0, -1);
+    const observed = { originatorPid: process.pid, originator, init, commandRecord: result.commandRecord };
+    await persist('namespace', observed);
+    return originator === init;
+  }
   const docker = (args, recovering = false) => command('docker', ['--host', socket, ...args], recovering);
   const unitInventory = (recovering = false) => command('/usr/bin/systemctl', ['list-units', '--all', '--full', '--plain', '--no-legend', '--no-pager', reference], recovering);
   async function properties(recovering = false) {
@@ -210,7 +228,7 @@ export async function linuxReferencePorts({ image, flags, sourceRoot, save, exec
       assert.equal(mount.length, 1); assert.ok(mount[0].includes(' - cgroup2 '), 'CGROUP_V2_MOUNT');
       const facts = { platform: process.platform, actions: process.env.GITHUB_ACTIONS,
         environment: process.env.RUNNER_ENVIRONMENT, driver: info.CgroupDriver, version: info.CgroupVersion,
-        sameNamespace: await fs.readlink('/proc/self/ns/cgroup') === await fs.readlink('/proc/1/ns/cgroup'),
+        sameNamespace: await namespaces(),
         sameKernel: info.KernelVersion === os.release(), rootless: info.SecurityOptions?.some(value => value.includes('rootless')) ?? true,
         localEvents: mount[0].includes('memory_localevents'), socket,
         contextSocket: context.Endpoints?.docker?.Host, hostOverride: process.env.DOCKER_HOST || process.env.DOCKER_CONTEXT || null };

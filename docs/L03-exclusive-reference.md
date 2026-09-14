@@ -1,7 +1,9 @@
 # L03 exclusive kernel reference
 
-Status: implemented test correction; the localized failure-path delta is pending
-focused technical review. Physical Linux execution is not yet released.
+Status: the reviewed failure-path correction reached physical run `34851780203`
+at `5edb69ae461121e855c08a908dd116bb22aa3bea`. Namespace qualification failed
+with `EACCES` before slice reservation and before the memory case. The bounded
+namespace-read correction below is pending focused review and physical validation.
 No result below resolves the historical intermittent failure. The completed
 profile comparison remains `no_discrimination`; it does not select another driver.
 
@@ -62,6 +64,23 @@ It refuses Docker Desktop/Windows, rootless, another namespace, another driver,
 remote sockets and `memory_localevents`, rather than changing controls to make
 the check run. This narrows where this physical test can be reproduced; it does
 not change the parser's operational contract or authorize host changes elsewhere.
+
+The controller reads `/proc/self/ns/cgroup` directly in its own Node process.
+Only the read of `/proc/1/ns/cgroup` uses the existing noninteractive sudo path:
+`/usr/bin/timeout --signal=KILL 5s /usr/bin/readlink --verbose -- /proc/1/ns/cgroup`.
+There is no shell, caller-supplied target, privileged Node process, permission
+change or fallback. The executor caps the command at six seconds, 128 stdout
+bytes and 1,024 diagnostic bytes. It retains the command's exit status and stderr,
+distinguishing access denial from other command failures without treating either
+as qualification. Success requires a complete, valid namespace identifier equal
+to the originator's. Missing, malformed, truncated or unequal observations reject
+before reservation; both valid identities and the originator PID are retained.
+The helper never reads `/proc/self`, which would describe the helper, not Node.
+
+The other observations in this qualification phase read the controller's own
+mount information, query Docker's local daemon/context and compare the host
+kernel version. No other cross-process namespace link is read in this phase.
+This inspection does not certify later phases or broaden their permissions.
 
 ## Directed controls and execution
 
