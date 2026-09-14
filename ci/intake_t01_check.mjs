@@ -6,6 +6,7 @@ import {spawn} from 'node:child_process';
 import assert from 'node:assert/strict';
 import {collectProcessOutput} from '../tests/intake/t01/reviewed/process-output.mjs';
 import {summarizeNodeTests} from './intake_test_summary.mjs';
+import {observeL03} from './intake_l03_observer.mjs';
 const root=fileURLToPath(new URL('../',import.meta.url));
 const arg=name=>process.argv[process.argv.indexOf(name)+1];
 const group=arg('--group');
@@ -173,11 +174,17 @@ async function probe(command,{network='none',mounts=[],restricted=false,limit=83
  const allowed=restricted?['--permission','--allow-fs-read=/work/probe.mjs','--allow-fs-read=/work/package.json']: [];
  const flags=parserFlags.map(flag=>inodeVariant&&flag.startsWith('--tmpfs=/workspace:')?flag+',nr_inodes=128':flag);
  await container(name,[...flags,'--network',network,...mounts,parserImage,'node',...allowed,'--max-old-space-size=128','/work/probe.mjs',...command]);
+ const execute=async observer=>{
  const result=await docker(['start','-a',name],{timeout,limit,diagnostic:8192});
  if(result.reason)await required(['stop','-t','1',name]);
  const state=json(await docker(['inspect',name]))[0];
  await save('state-'+seq+'.json',{state:state.State,host:state.HostConfig,user:state.Config.User});
+ observer?.recordPrimary(result,state);
  return {...result,state:state.State,host:state.HostConfig};
+ };
+ return command[0]==='memory'?await observeL03({target:owned.at(-1).id,save,
+  expectedProbeSha256:async()=>hash(await fs.readFile(path.join(sourceRoot,'tests/intake/t01/probe.mjs'))),
+  onFailure:failure=>loggingFailures.push(failure)},execute):await execute();
  }finally{parserActive=false;}
 }
 async function originalCase(profile,name,folder='fixtures'){
@@ -229,7 +236,7 @@ try{
   if(stat.isDirectory()){await fs.mkdir(to,{recursive:true});for(const name of await fs.readdir(from))if(name!=='node_modules')await snapshot(path.join(from,name),path.join(to,name));}
   else {await fs.mkdir(path.dirname(to),{recursive:true});const data=await fs.readFile(from);await fs.writeFile(to,data,{flag:'wx'});sourceManifest.push({name:path.relative(sourceRoot,to).split(path.sep).join('/'),bytes:data.length,sha256:hash(data)});}
  }
- for(const name of ['tests/intake/t01','src/contracts/intake.ts','src/contracts/intake_artifact.ts','src/contracts/intake_bindings.ts','src/contracts/intake_mapping.ts','ci/intake/T01.Dockerfile','ci/intake_t01_check.mjs','ci/intake_test_summary.mjs','ci/intake_boundary_check.mjs'])
+ for(const name of ['tests/intake/t01','src/contracts/intake.ts','src/contracts/intake_artifact.ts','src/contracts/intake_bindings.ts','src/contracts/intake_mapping.ts','ci/intake/T01.Dockerfile','ci/intake_t01_check.mjs','ci/intake_l03_observer.mjs','ci/intake_test_summary.mjs','ci/intake_boundary_check.mjs'])
   await snapshot(path.join(root,name),path.join(sourceRoot,name));
  await save('source-manifest.json',sourceManifest);
  if(group==='contracts'){
