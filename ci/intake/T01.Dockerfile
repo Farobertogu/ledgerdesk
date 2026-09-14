@@ -17,4 +17,5 @@ WORKDIR /work
 COPY --from=control /work/reviewed/node_modules ./reviewed/node_modules
 COPY tests/intake/t01/reviewed/package.json tests/intake/t01/reviewed/adapter.mjs tests/intake/t01/reviewed/producer.mjs tests/intake/t01/reviewed/profile.mjs ./reviewed/
 COPY tests/intake/t01/probe.mjs ./probe.mjs
+COPY tests/intake/t01/l03_gate.mjs ./l03_gate.mjs
 USER 1000:1000

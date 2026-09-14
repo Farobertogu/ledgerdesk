@@ -116,9 +116,9 @@ test('unavailable diagnostic executable reports absence without exposing error t
   const r=await captureClient('nonexistent-l03-diagnostic-client',[]).done;
   assert.equal(r.error,'ENOENT');assert.equal(r.stdout.length,0);
 });
-test('actual runner preserves L03 probe/assertions and captures only memory after original state save',()=>{
+test('actual runner retains native probe and diagnostic ordering; L03 uses the exclusive reference',()=>{
   const source=fs.readFileSync(new URL('../../../ci/intake_t01_check.mjs',import.meta.url),'utf8');
-  assert.ok(source.includes("assert.equal(r.state.OOMKilled,true);assert.equal(r.state.ExitCode,137)"));
+  assert.ok(source.includes("()=>checkNativeMemory({image:parserImage,flags:parserFlags,sourceRoot,save,exec,openReferenceRecovery,registerReference})"));
   assert.ok(source.includes("command[0]==='memory'?await observeL03"));
   assert.ok(source.indexOf("await save('state-'+seq")<source.indexOf('observer?.recordPrimary'));
   assert.ok(source.includes("'ci/intake_l03_observer.mjs'"));

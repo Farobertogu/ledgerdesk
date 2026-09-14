@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import {runProcess} from './reviewed/process-output.mjs';
 import {summarizeNodeTests} from '../../../ci/intake_test_summary.mjs';
 import './l03_observation.mjs';
+import './l03_reference.mjs';
+import './l03_failure_paths.mjs';
 
 const run=script=>runProcess(process.execPath,['-e',script],{cwd:process.cwd(),outputBytes:65536,timeoutMs:5000});
 const tap='TAP version 13\nok 1 - positive\n1..1\n# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n';

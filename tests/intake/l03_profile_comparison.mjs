@@ -4,7 +4,8 @@ import {compare,configuration,hostGate,loadOriginal,verdict,CASES,BUDGET,privile
 import {readHierarchy} from '../../ci/l03_profile_hierarchy.mjs';
 import {linuxPorts} from '../../ci/l03_profile_host.mjs';
 import {binding,position,window,ctx,victim,row,text,baseMono,group,composed} from './l03_profile_fixtures.mjs';
-const source=fs.readFileSync(new URL('../../ci/intake_t01_check.mjs',import.meta.url),'utf8');
+// This closed comparison tests its exact retained input, not a later L03 test.
+const source=fs.readFileSync(new URL('./l03_compared_runner.txt',import.meta.url),'utf8');
 const options=JSON.parse(fs.readFileSync(new URL('./l03_journal_options.json',import.meta.url),'utf8'));
 const commands=[kernel.journalCommand(null),kernel.journalCommand(binding.boot,{cursor:position.cursor,untilUs:window.toUs})];
 const unknown=cmd=>cmd.args.slice(cmd.args.indexOf('/usr/bin/journalctl')+1).filter(a=>a.startsWith('--')&&!options.options.includes(a.slice(2).split('=')[0]));
