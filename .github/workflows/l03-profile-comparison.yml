@@ -1,0 +1,34 @@
+name: l03-profile-comparison
+on:
+  pull_request:
+    types: [opened, synchronize]
+permissions:
+  contents: read
+concurrency:
+  group: l03-single-profile-comparison
+  cancel-in-progress: false
+jobs:
+  compare:
+    if: ${{ github.event.action == 'synchronize' && github.event.number == 32 && github.event.before == 'ad466b40cbd41c418199b8f2cd5d9894198d58c3' && github.event.after == github.event.pull_request.head.sha && github.head_ref == 'card/INC-03-l03-single-profile-comparison' && github.repository == 'Farobertogu/ledgerdesk' && github.event.pull_request.head.repo.full_name == github.repository && github.run_attempt == 1 }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      LEDGERDESK_L03_PROFILE_COMPARISON: '1'
+      LEDGERDESK_L03_KERNEL_ORIGIN: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 3
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.16.0'
+      - name: Directed synthetic contracts
+        run: node --test --test-concurrency=1 tests/intake/l03_profile_comparison.mjs
+      - name: One fixed profile comparison
+        run: node ci/l03_profile_host.mjs --execute
+      - uses: actions/upload-artifact@v4
+        if: ${{ always() }}
+        with:
+          name: l03-profile-comparison-${{ github.run_id }}
+          path: test-results/l03-profile-comparison/
+          if-no-files-found: error

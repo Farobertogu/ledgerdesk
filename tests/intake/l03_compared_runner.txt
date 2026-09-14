@@ -7,8 +7,6 @@ import assert from 'node:assert/strict';
 import {collectProcessOutput} from '../tests/intake/t01/reviewed/process-output.mjs';
 import {summarizeNodeTests} from './intake_test_summary.mjs';
 import {observeL03} from './intake_l03_observer.mjs';
-import {checkNativeMemory} from './intake_l03_linux.mjs';
-import {referenceFailure} from './intake_l03_reference.mjs';
 const root=fileURLToPath(new URL('../',import.meta.url));
 const arg=name=>process.argv[process.argv.indexOf(name)+1];
 const group=arg('--group');
@@ -34,63 +32,35 @@ if(group==='lifecycle-child'){
  await fs.writeFile(nestedClaim,prefix,{flag:'wx'});
 }else await fs.writeFile(lockPath,prefix,{flag:'wx'});
 let bytesWritten=0,cleanupMode=false;const loggingFailures=[];
-async function save(name,value,{terminal=false}={}){const data=typeof value==='string'?value:JSON.stringify(value,null,2)+'\n';const size=Buffer.byteLength(data);if(bytesWritten+size>(cleanupMode||terminal?2147483648:2143289344))throw Error('EVIDENCE_LIMIT');await fs.writeFile(path.join(output,name),data,{flag:'wx'});bytesWritten+=size;}
+async function save(name,value){const data=typeof value==='string'?value:JSON.stringify(value,null,2)+'\n';const size=Buffer.byteLength(data);if(bytesWritten+size>(cleanupMode?2147483648:2143289344))throw Error('EVIDENCE_LIMIT');await fs.writeFile(path.join(output,name),data,{flag:'wx'});bytesWritten+=size;}
 const hash=b=>createHash('sha256').update(b).digest('hex');
 const redact=value=>value.replaceAll(root,'[repository]/').replaceAll(root.replaceAll('\\','/'),'[repository]/')
  .replace(/synthetic-(admin|runtime|observer)/g,'[synthetic-credential]');
 let seq=0;const cases=[],owned=[],commands=[],phaseMarks=[],reconciledResources=[];
 let budgetEnd=Date.now()+20*60*1000;
-const referenceRecoveryLanes=new WeakSet(),referenceResources=[];
-async function exec(bin,args,{timeout=60000,limit=8388608,diagnostic=65536,input,recovery}={}){
- if(recovery){
-  assert.ok(referenceRecoveryLanes.has(recovery),'UNREGISTERED_RECOVERY_ALLOWANCE');
-  const remaining=recovery.deadline-Date.now();
-  if(remaining<=0)throw Error('REFERENCE_RECOVERY_DEADLINE');
-  timeout=Math.min(timeout,remaining);
- }else{
-  if(Date.now()>budgetEnd)throw Error('GROUP_DEADLINE');
-  if(loggingFailures.length&&!cleanupMode)throw Error('EVIDENCE_INCOMPLETE');
- }
+async function exec(bin,args,{timeout=60000,limit=8388608,diagnostic=65536,input}={}){
+ if(Date.now()>budgetEnd)throw Error('GROUP_DEADLINE');
+ if(loggingFailures.length&&!cleanupMode)throw Error('EVIDENCE_INCOMPLETE');
  const started=Date.now();
  const result=await new Promise((resolve,reject)=>{
   const child=spawn(bin,args,{cwd:root,windowsHide:true,stdio:[input===undefined?'ignore':'pipe','pipe','pipe']});
   if(input!==undefined){child.stdin.on('error',()=>{});child.stdin.end(input);}
-  const collector=collectProcessOutput(child.stdout,child.stderr,{outputBytes:limit,diagnosticBytes:diagnostic,stop:()=>child.kill(recovery?'SIGKILL':undefined)});
+  const collector=collectProcessOutput(child.stdout,child.stderr,{outputBytes:limit,diagnosticBytes:diagnostic,stop:()=>child.kill()});
   const timer=setTimeout(()=>collector.terminate('worker_timeout'),timeout);
   child.on('error',e=>{clearTimeout(timer);reject(e);});
   child.on('close',(code,signal)=>{clearTimeout(timer);resolve({code,signal,...collector.finish(),milliseconds:Date.now()-started});});
  });
  const safe=args.map(a=>/PASSWORD=/.test(a)?a.split('=')[0]+'=[redacted]':a);
  const name=String(++seq).padStart(4,'0')+'.json';
- try{await save(name,{executable:path.basename(bin),args:safe.map(redact),...result,stdout:redact(result.stdout),stderr:redact(result.stderr),...(recovery?{lane:'reference-recovery'}:{})},{terminal:!!recovery});}
+ try{await save(name,{executable:path.basename(bin),args:safe.map(redact),...result,stdout:redact(result.stdout),stderr:redact(result.stderr)});}
  catch(e){loggingFailures.push({file:name,error:e.message});}
  commands.push({file:name,code:result.code,reason:result.reason});
  return {...result,commandRecord:name};
 }
-function openReferenceRecovery(){
- // One allowance covers postmortem reads and local cleanup. Final reconciliation
- // gets one more attempt, bounded by both 20 seconds and the outer cleanup end.
- const lane={deadline:Math.min(Date.now()+20000,cleanupMode?budgetEnd:Infinity)};
- referenceRecoveryLanes.add(lane);
- return(bin,args,options)=>exec(bin,args,{...options,recovery:lane});
-}
-function registerReference(resource,reconcile){
- assert.match(resource.nonce,/^[a-f0-9]{32}$/);
- assert.equal(resource.reference,'system-ldl03'+resource.nonce+'.slice');
- assert.equal(resource.name,'ld-l03-'+resource.nonce);
- assert.ok(!referenceResources.some(entry=>entry.resource.reference===resource.reference));
- referenceResources.push({resource,reconcile});
-}
-async function reconcileReferences(){
- for(const entry of referenceResources)if(!entry.resource.cleanup?.confirmed){
-  try{entry.resource.reconciliation=await entry.reconcile();}
-  catch(error){entry.resource.reconciliation={confirmed:false,errors:[error.message]};}
- }
-}
 const docker=(args,options)=>exec('docker',args,options);
 const json=r=>{assert.equal(r.code,0,r.stderr||r.stdout);assert.equal(r.reason,undefined);return JSON.parse(r.stdout);};
 async function required(args,options){const r=await docker(args,options);assert.equal(r.code,0,r.stderr||r.stdout);assert.equal(r.reason,undefined);return r.stdout.trim();}
-async function check(id,description,fn){const start=Date.now();try{const observed=await fn();cases.push({id,description,status:'passed',milliseconds:Date.now()-start,observed});console.log('PASS '+id);}catch(e){const terminal=referenceFailure(e);cases.push({id,description,status:'failed',milliseconds:Date.now()-start,error:redact(e.message),errorCode:e.code,actual:e.actual,expected:e.expected,...(terminal?{reference:terminal.record}:{})});console.log('FAIL '+id+' '+redact(e.message).slice(0,180));}}
+async function check(id,description,fn){const start=Date.now();try{const observed=await fn();cases.push({id,description,status:'passed',milliseconds:Date.now()-start,observed});console.log('PASS '+id);}catch(e){cases.push({id,description,status:'failed',milliseconds:Date.now()-start,error:redact(e.message),errorCode:e.code,actual:e.actual,expected:e.expected});console.log('FAIL '+id+' '+redact(e.message).slice(0,180));}}
 async function ownedResource(type,name,args){
  assert.ok(name.startsWith(prefix+'-'));const id=await required([type,'create','--label','intake.run='+prefix,...args,name]);
  owned.push({type,name,id});return name;
@@ -266,7 +236,7 @@ try{
   if(stat.isDirectory()){await fs.mkdir(to,{recursive:true});for(const name of await fs.readdir(from))if(name!=='node_modules')await snapshot(path.join(from,name),path.join(to,name));}
   else {await fs.mkdir(path.dirname(to),{recursive:true});const data=await fs.readFile(from);await fs.writeFile(to,data,{flag:'wx'});sourceManifest.push({name:path.relative(sourceRoot,to).split(path.sep).join('/'),bytes:data.length,sha256:hash(data)});}
  }
- for(const name of ['tests/intake/t01','src/contracts/intake.ts','src/contracts/intake_artifact.ts','src/contracts/intake_bindings.ts','src/contracts/intake_mapping.ts','ci/intake/T01.Dockerfile','ci/intake_t01_check.mjs','ci/intake_l03_observer.mjs','ci/intake_l03_linux.mjs','ci/intake_l03_reference.mjs','ci/intake_kernel_origin.mjs','ci/l03_profile_hierarchy.mjs','ci/intake_test_summary.mjs','ci/intake_boundary_check.mjs'])
+ for(const name of ['tests/intake/t01','src/contracts/intake.ts','src/contracts/intake_artifact.ts','src/contracts/intake_bindings.ts','src/contracts/intake_mapping.ts','ci/intake/T01.Dockerfile','ci/intake_t01_check.mjs','ci/intake_l03_observer.mjs','ci/intake_kernel_origin.mjs','ci/l03_profile_hierarchy.mjs','ci/intake_test_summary.mjs','ci/intake_boundary_check.mjs'])
   await snapshot(path.join(root,name),path.join(sourceRoot,name));
  await save('source-manifest.json',sourceManifest);
  if(group==='contracts'){
@@ -557,7 +527,7 @@ try{
     const n=await probe(['output','8388609']);assert.equal(n.reason,'output_limit');assert.equal(n.stdoutRetainedBytes,8388608);return {positiveBytes:p.stdoutRetainedBytes,negativeCause:n.reason};
    });
    await check('L02','Wall watchdog terminates CPU loop without retry',async()=>{const r=await probe(['cpu']);assert.equal(r.reason,'worker_timeout');assert.ok(r.milliseconds<15000);return{cause:r.reason,milliseconds:r.milliseconds};});
-   await check('L03','Native allocation reaches cgroup limit, not only JS heap',()=>checkNativeMemory({image:parserImage,flags:parserFlags,sourceRoot,save,exec,openReferenceRecovery,registerReference}));
+   await check('L03','Native allocation reaches cgroup limit, not only JS heap',async()=>{const r=await probe(['memory']);assert.equal(r.state.OOMKilled,true);assert.equal(r.state.ExitCode,137);return r.state;});
    await check('L04','File descriptors and workspace exhaustion are enforced',async()=>{const f=json(await probe(['files']));assert.equal(f.error,'EMFILE');assert.ok(f.count<128);const w=json(await probe(['workspace']));assert.equal(w.error,'ENOSPC');assert.ok(w.count<=64);return{fileDescriptors:f,workspace:w};});
    await check('L05','Bounded descendant control meets PID ceiling',async()=>{const r=json(await probe(['pids'],{timeout:10000}));assert.equal(r.error,'EAGAIN');assert.ok(r.started<64);return r;});
    await check('L06','A second parser request cannot create a concurrent worker',async()=>{const first=probe(['cpu'],{timeout:500});await assert.rejects(probe(['environment']),/PARSER_BUSY/);assert.equal((await first).reason,'worker_timeout');assert.equal(json(await probe(['environment'])).uid,1000);});
@@ -591,15 +561,13 @@ finally{
  cleanupMode=true;
  budgetEnd=Date.now()+60000;
  try{
-  await reconcileReferences();
   try{await reconcileOwned();}catch(e){loggingFailures.push({phase:'resource-reconciliation',error:e.message});}
   for(const resource of [...owned].reverse())if(!resource.removed)try{await remove(resource);}catch(e){resource.cleanupError=e.message;}
   try{await save('resources.json',owned);}catch(e){loggingFailures.push({file:'resources.json',error:e.message});}
   const after=await docker(['ps','-a','--format','{{.ID}} {{.Names}} {{.State}}']).catch(e=>({code:1,stdout:'',stderr:e.message}));
   if(after.code!==0)loggingFailures.push({phase:'final-inventory',error:after.stderr});
-  const references=referenceResources.map(entry=>entry.resource);
-  const residues=[...owned.filter(r=>!r.removed),...references.filter(r=>!(r.reconciliation??r.cleanup)?.confirmed)];
-  const result={group,runId,node:process.version,phase,phaseMarks,cases,passed:cases.filter(c=>c.status==='passed').length,failed:cases.filter(c=>c.status==='failed').length,blocked:cases.filter(c=>c.status==='blocked').length,evidenceComplete:loggingFailures.length===0,loggingFailures,cleanup:{residues,reconciledResources,references,after:after.stdout},commands,limitations:['Experimental only; no operational admission, preparation producer or candidate constitution','No full temporal conformity; R24 remains open','No real data or operational format adoption']};
+  const residues=owned.filter(r=>!r.removed);
+  const result={group,runId,node:process.version,phase,phaseMarks,cases,passed:cases.filter(c=>c.status==='passed').length,failed:cases.filter(c=>c.status==='failed').length,blocked:cases.filter(c=>c.status==='blocked').length,evidenceComplete:loggingFailures.length===0,loggingFailures,cleanup:{residues,reconciledResources,after:after.stdout},commands,limitations:['Experimental only; no operational admission, preparation producer or candidate constitution','No full temporal conformity; R24 remains open','No real data or operational format adoption']};
   try{await save('results.json',result);}catch(e){loggingFailures.push({file:'results.json',error:e.message});console.error('Terminal evidence failure: '+redact(e.message));}
   console.log('Evidence: test-results/intake-t01/'+runId);
   if(residues.length||loggingFailures.length||cases.some(c=>c.status!=='passed'))process.exitCode=1;

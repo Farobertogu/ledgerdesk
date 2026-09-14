@@ -405,6 +405,12 @@ container swap allowance, one CPU quota, 64 cgroup tasks, 128 descriptors,
 stdout and 8 KiB stderr. Heap is not RSS; sampled memory is not a host-wide
 physical maximum. Kernel/cgroup availability is checked before workloads.
 
+The L03 test correction uses a retained case-exclusive kernel reference; its
+fixture changes, restricted execution environment, exact acceptance property
+and pending physical evidence are specified in
+[L03 exclusive reference](L03-exclusive-reference.md). This is a test change,
+not a new parser limit, driver choice or operational capability.
+
 The inode-pressure experiment additionally constrains its own workspace to
 128 inodes, keeping all base memory/byte/process controls. This is a stricter
 test variant, not a change to the candidate's base mount. The multibyte output
