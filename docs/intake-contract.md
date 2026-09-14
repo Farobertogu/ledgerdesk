@@ -1,11 +1,19 @@
-# Intake foundation: experimental contracts
+# Intake contracts and experimental reception
 
 ## Implemented boundary
 
-This package implements pure validators, route metadata, a structural
-preparation representation and test-contained feasibility. No listed route is
-mounted. No application, access service, reading service or production database
-migration imports or activates it. The import boundary rejects such use.
+The foundation retains pure validators, route metadata, a structural preparation
+representation and test-contained feasibility. The reception implementation adds
+nine handlers at the existing access terminal, only when an explicit validated
+synthetic intake configuration is supplied. Without that configuration the
+terminal refuses the intake prefix. Next does not proxy or serve these handlers.
+Later processing and editorial handlers remain unmounted.
+
+This implementation is accepted only within the bounded synthetic experimental
+scope of the localized [T02 amendment to ADR-038](../adr/ADR-038-intake-foundation.md#amendments).
+This is not a deployment instruction or full contract conformity. The reception
+report and coverage register retain the exact acceptance limits and outstanding
+evidence; passing tests do not authorize later processing or real data.
 
 The contract is intake/1. Public text is English; literal source text, opaque
 identifiers and retained fixtures are not translated. session/1 and reading/1
@@ -14,14 +22,16 @@ rewritten.
 
 ## Operation inventory
 
-All paths below are contract metadata under /api/intake. None is an enabled API.
+All paths below are under /api/intake. Only the nine T02 operations listed in
+the reception section below have handlers; the others remain contract metadata.
+No public or real-data deployment is enabled by this inventory.
 
 | Operation | Method/path suffix | Binding requirement | First service |
 |---|---|---|---|
 | profiles | GET /profiles | Authorized visible profile/surface view | T02/T05 |
 | reserve_reception | POST /receptions | CARGAR_MATERIAL, PERSONA, current exercise faculty, receiving responsibility and treatment | T02 |
 | upload_original | POST /receptions/:id/attempts/:generation/original | Exact current reception continuation; not a bearer upload URL | T02 |
-| finalize_reception | POST /receptions/:id/finalize | Current parent consequence, exact generation and available verified original | T02 |
+| finalize_reception | POST /receptions/:id/finalize | Completion of the same personal loading act, exact generation and available verified original | T02 |
 | lookup_operation | POST /operations/lookup | Current permitted query, separate from creation faculty | T02 |
 | resume_reception | POST /receptions/:id/resume | Explicit bounded continuation, authoritative absence and current loading/treatment | T02 |
 | cancel_reception | POST /receptions/:id/cancel | Bounded stop of this work; not deletion or generalized detention | T02/T03 |
@@ -354,8 +364,10 @@ different facts.
 
 ## Experimental profile
 
-The executable registry remains operational: false. It fixes Node 22.16.0 and
-the proposed finite envelope; no intake route is mounted.
+The foundation registry remains operational: false. It fixes Node 22.16.0 and
+the finite feasibility envelope. Live reception availability is a different,
+currently authorized projection; it does not mutate that retained registry or
+claim that an extraction worker exists.
 
 On 2026-09-12 the owner approved the initial implementation target: UTF-8 text,
 inert Markdown, CSV with comma delimiters and double quotes, and bounded
@@ -401,10 +413,135 @@ separate exact 8 MiB/cap+1 cases remain. Neither experiment adopts operational
 formats or certifies general hostile-code isolation. Failed lifecycle children
 retain their failed/incomplete-evidence state even when their observer passes.
 
+## Reception transport and states: intake-reception/1
+
+The outer contract stays intake/1. The separate closed representations are
+intake-reception/1 and intake-availability/1; the foundation response validator
+is not widened to accept them. session/1, access/1 and reading/1 are unchanged.
+
+| Operation | Successful response | Required distinction |
+|---|---|---|
+| reserve_reception | 202 for a new reservation; 200 for a known compatible intention | No receipt or job yet |
+| upload_original | 200 after exact staged verification | Staging is not a receipt |
+| finalize_reception | 200 with the committed receipt effect and non-dispatchable work | Completion of the personal load, not extraction acceptance |
+| resume_reception | 202 for a new physical generation; 200 for a known compatible intention | Full retransmission; no reactivation of the predecessor |
+| cancel_reception | 200 with stopped work and retained history | No original deletion or receipt rollback |
+| profiles | 200 with currently revealable availability | Reception and processing availability are separate |
+| reception / lookup_operation | 200 for the permitted record | Lookup is a query even though it uses POST |
+| original | 200 and exact binary bytes for an admitted whole-original view | Record or fragment authority is insufficient |
+
+The record contains the operation and reception selectors, monotone reception
+revision, current attempt/generation, original identity/length/hash, configuration,
+attempt expiry, classified state and availability observation. effect and work
+are both absent or both present. A received state requires an effect; work is
+not_started or stopped and always dispatchable: false. The record contains no
+private path, credential, source-control catalog, extracted body or candidate.
+Availability is an observation, not a promise that storage cannot fail afterward.
+
+Unknown/non-revealable resources use the same closed 404 problem. Other closed
+statuses are 400 (invalid input/framing), 403 (transport/session refusal),
+409 (permitted conflict), 413 (input bound), 415 (media/profile mismatch),
+429 (finite capacity) and 503 (unavailable control or technical failure).
+Internal causes and input values are not copied into those bodies.
+
+The terminal requires the exact HTTPS origin/host and session transport.
+Every POST, including lookup and binary transfer, requires current CSRF.
+Intention keys appear only on intention-bearing operations. JSON is bounded to
+65,536 bytes and decoded strictly before canonical comparison. Binary transfer
+uses application/octet-stream and an exact Content-Length; it is not multipart.
+Duplicate sensitive headers, transfer/content encoding, Range, conditional cache
+requests, aliases, unknown queries and later-operation paths are rejected.
+
+Original delivery uses application/octet-stream, a fixed attachment filename,
+exact Content-Length, nosniff and private, no-store. No signed object URL,
+static original directory, fallback profile or Next proxy exists in this path.
+
+## Current admission, retained effects and private work
+
+The server resolves the stable account/person, current session/CSRF, existing
+authority evaluator, complete intake-binding/2 catalog entry, scope/purpose,
+receiving responsibility, executor and capture/read/conserve/process/deliver
+treatment. A hash or well-formed client selector does not supply those facts.
+The minimum verifier is an admitted processor even though it does not extract.
+
+Metadata admission occurs before consuming a structured command and before its
+reception is selected. Its prior evidence may therefore have null operation and
+reception references. Later selection and effect evidence use the actual selected
+references; they do not rewrite that earlier row. Pre-read evidence and delivery
+evidence are distinct. An evidence status is the prepared HTTP status, not proof
+of COMMIT or network completion; an external committed-state observation and an
+actual transport event establish their respective facts.
+
+After the irreversible handoff, failure to append its transport observation is
+not a new response failure. The terminal reports `transport_observation` with
+the controlled SQL/error code, source locations, prior evidence identifier,
+attempted outcome/byte count and prepared response status. Its diagnostic status
+does not replace the status already sent. No transport row or successful
+observation is invented, no receipt is deleted and no effect is retried.
+
+The synchronous technical failure receiver is used when installed. If absent
+or throwing, the terminal emits the same safe record to application stderr with
+an absent/failed receiver classification. Messages, SQL statements, authentication
+fields and protected bodies are excluded. The observation failure never enters
+the response-error path; admission closes in `finally` even if a synchronous
+diagnostic sink throws. This signal is independent of the failed database write,
+but is not durable transport evidence or a guarantee that an arbitrary external
+log sink stores it. The measured SQL-statement failure does not mark every future
+connection unhealthy: the next operation still needs a fresh healthy admission.
+It does not move the irreversible point to eventual browser receipt or wait for
+the browser to close before releasing the writer.
+
+The intention namespace is deployment + stable principal + act/variant + client
+key. Object, generation, revision and digest remain in the canonical compared
+payload. Existing access intentions and their verification profiles are not
+rewritten. Losing loading authority does not prevent a still-authorized query of
+an existing receipt. Losing query authority refuses disclosure without deleting
+the receipt. A different key cannot create a second receipt for that reception.
+An uncertain outcome is not authoritative absence and does not authorize retry.
+
+Private storage and verification use separate contained processes with no SQL
+credentials. A durable phase outside a restored receipt set precedes private
+dispatch. Its identity pins the participant, incarnation, object, generation,
+evidence and permitted operations. Actual worker closure and durable terminal
+acknowledgments precede phase retirement; a timeout or lost connection alone is
+not quiescence. A fresh effect snapshot checks the source epoch after retirement.
+Closed phase identities cannot be reopened or evicted to make space.
+
+The current fence guards the enumerated authority/control sources, including
+existing access tables, with statement-level guards. An unresolved phase refuses
+dependent writers rather than allowing them to bypass it. That fail-closed
+behavior can make other access work unavailable until controlled recovery. It
+is a deliberate synthetic availability limit, not a production failover policy.
+
+The broker/host and recovery supervisor remain trusted. Recovery requires
+external evidence of the old process set's actual termination and current live
+control independent of the arriving backup. Restoring historical reception data
+does not restore permissions over newer revocations. There is no atomic file/SQL
+transaction and no runtime overwrite/delete method for a sealed original.
+
+## Limits of this reception realization
+
+- Originals remain bounded to 1 MiB, chunks to 65,536 bytes, one active upload,
+  32 retained receptions, three generations per reception and 64 MiB storage.
+  Finite global capacity still permits contention; this is not universal DoS protection.
+- UTF-8 and bounded XLSX container verification are reception checks. CSV
+  extraction, workbook sheet/cell extraction limits and per-component coverage
+  remain T03 obligations. No receipt claims they have run.
+- Current readers and writers need their own real tests. The phase mechanism
+  and timestamps do not establish writer-free temporal conformity. R24 remains
+  an observed unresolved violation; it does not excuse a permission/fencing defect.
+- The browser driver is test infrastructure, not the T05 interface. Existing
+  BROWSER-I03 and BROWSER-J19 investigations remain open despite passing runs.
+- No candidate, extraction result, approval, publication, real-data permission,
+  operational format widening or accepted ADR amendment follows from these tests.
+
 ## Later first-consumer obligations
 
-- T02: actual loading/query bindings, first-receiver treatment, migration,
-  streaming admission, durable receipt/evidence and protected original handoff.
+- T02: verification and review of the implemented loading/query bindings,
+  first-receiver treatment, migration, streaming admission, receipt/evidence and
+  protected original handoff support bounded experimental acceptance. See the
+  reception report and coverage register for the observed R24 violations and
+  unexercised same-original fragment lineage; neither is closed by acceptance.
 - T03: actual durable worker, current admission before protected reads,
   generation/channel binding and controlled result acceptance.
 - T04: actual preparation producer, source/resource/difference correspondence,
@@ -415,4 +552,5 @@ retain their failed/incomplete-evidence state even when their observer passes.
   its admission, enforcement and truthful component coverage; approval does
   not make these experimental candidates operational or include PDF/OCR.
 
-See [the executed evidence and limits](INC-03-T01.md).
+See [the foundation evidence](INC-03-T01.md) and
+[the reception implementation and verification status](INC-03-T02.md).

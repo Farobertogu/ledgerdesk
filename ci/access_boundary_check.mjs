@@ -7,7 +7,12 @@ const contract = (name) => /^src\/contracts\/access(?:_[a-z]+)?\.ts$/.test(name)
 const presentation = (name) => name.startsWith('src/components/access/') || ['src/app/access/page.tsx','src/app/access/material/page.tsx'].includes(name);
 const sharedReading = new Map([
   ['src/server/access/authenticated_reading.ts',new Set(['src/server/reading/policy.ts','src/server/reading/context.ts','src/server/kb/reading.ts','src/contracts/material_reading.ts'])],
-  ['src/server/access/terminal.ts',new Set(['src/server/reading/http.ts','src/contracts/material_reading.ts'])],
+  ['src/server/access/terminal.ts',new Set(['src/server/reading/http.ts','src/contracts/material_reading.ts','src/server/intake/terminal.ts','src/server/intake/config.ts'])],
+  ['src/server/intake/protocol.ts',new Set(['src/contracts/access_transport.ts','src/contracts/access_canonical.ts'])],
+  ['src/server/intake/reception.ts',new Set(['src/contracts/access_canonical.ts'])],
+  ['src/server/intake/authority.ts',new Set(['src/server/access/invitation_authority.ts','src/server/access/postgres/store.ts','src/server/access/service.ts','src/server/access/transport.ts','src/server/access/config.ts','src/contracts/access_canonical.ts'])],
+  ['src/server/intake/postgres/store.ts',new Set(['src/server/access/postgres/store.ts'])],
+  ['src/server/intake/terminal.ts',new Set(['src/server/access/transport.ts','src/server/access/config.ts','src/contracts/access_transport.ts'])],
   ['src/components/access/AuthenticatedMaterial.tsx',new Set(['src/components/reading/MaterialReader.ts'])],
   ['src/components/reading/reader.ts',new Set(['src/contracts/access_transport.ts'])],
   ['src/components/reading/MaterialReader.tsx',new Set(['src/contracts/access_transport.ts'])],

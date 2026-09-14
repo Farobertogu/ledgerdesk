@@ -19,6 +19,22 @@ jobs:
         run: bash ci/check.sh
   reading:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [reading-foundations, intake-reception-behavior, intake-reception-recovery, intake-reception-mutations]
+    if: ${{ !cancelled() }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Require every producer result
+        if: ${{ always() }}
+        env:
+          READING_NEEDS: ${{ toJSON(needs) }}
+          READING_JOB_STATUS: ${{ job.status }}
+        run: node ci/reading_result_gate.mjs
+  reading-foundations:
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     # Service tests own an isolated PG16 Compose project; no destructive legacy scripts.
     # The boundary uses the installed TypeScript parser, not a second hand-written TSX parser.
@@ -33,6 +49,8 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
+      - run: node --test tests/intake/t02/test_ci_wiring.mjs
+      - run: node ci/intake_ci_check.mjs
       - run: node ci/reading_boundary_check.mjs
       - run: npm run test:reading
       - run: npm run test:reading:viewer
@@ -47,14 +65,10 @@ jobs:
       - run: npm run test:access:browser
       - run: npm run test:access:runtime:unit
       - run: npm run test:access:canonical
-      - run: npm run test:access:runtime
-      - run: npm run test:access:invitations
       - run: npm run test:access:reading:unit
-      - run: npm run test:access:reading
       - run: npm run test:access:administration:unit
-      - run: npm run test:access:administration
       - run: npm run test:access:journey:unit
-      - run: npm run test:access:journey
+      - run: node --test --test-concurrency=1 tests/access/test_runtime_packaging.mjs
       - run: node ci/intake_boundary_check.mjs
       - run: npm run test:intake
       - run: npm run test:intake:storage
@@ -70,6 +84,7 @@ jobs:
           if-no-files-found: ignore
       # This owns a fresh, separately named PG16 Compose project; no historical DB scripts.
       - run: npm run test:reading:service
+      - run: npm run typecheck
       - run: npm run typecheck:app
       - run: npm run build
       - run: npm run test:reading:http
@@ -82,36 +97,87 @@ jobs:
           name: reading-integration-screenshots
           path: test-results/reading-integration/
           if-no-files-found: ignore
+  intake-reception-behavior:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      LEDGERDESK_READING_TRIAL: '0'
+      LEDGERDESK_DEV_IDENTITY: '0'
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm ci --prefix ci/intake/reception --ignore-scripts --no-audit --no-fund
+      - run: node --test tests/intake/t02/test_ci_wiring.mjs
+      - run: node ci/intake_ci_check.mjs
+      - run: node ci/intake_t02_matrix.mjs --suite behavior
+      - name: Prepare bounded public evidence
+        if: always()
+        run: node ci/intake_t02_artifacts.mjs --job behavior
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: access-runtime-evidence
-          path: test-results/access-runtime/
-          if-no-files-found: ignore
+          name: intake-reception-behavior-evidence
+          path: test-results/intake-t02-public/behavior/
+          if-no-files-found: error
+  intake-reception-recovery:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      LEDGERDESK_READING_TRIAL: '0'
+      LEDGERDESK_DEV_IDENTITY: '0'
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: node --test tests/intake/t02/test_ci_wiring.mjs
+      - run: node ci/intake_ci_check.mjs
+      - run: node ci/intake_t02_matrix.mjs --suite recovery-with-access
+      - name: Prepare bounded public evidence
+        if: always()
+        run: node ci/intake_t02_artifacts.mjs --job recovery
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: access-invitations-evidence
-          path: test-results/access-invitations/
-          if-no-files-found: ignore
+          name: intake-reception-recovery-evidence
+          path: test-results/intake-t02-public/recovery/
+          if-no-files-found: error
+  intake-reception-mutations:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      LEDGERDESK_READING_TRIAL: '0'
+      LEDGERDESK_DEV_IDENTITY: '0'
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: node --test tests/intake/t02/test_ci_wiring.mjs
+      - run: node ci/intake_ci_check.mjs
+      - run: node ci/intake_t02_producer_checks.mjs
+      - run: node ci/intake_t02_guard_checks.mjs
+      - run: node ci/intake_t02_failure_checks.mjs
+      - name: Prepare bounded public evidence
+        if: always()
+        run: node ci/intake_t02_artifacts.mjs --job mutations
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: access-reading-evidence
-          path: test-results/access-reading/
-          if-no-files-found: ignore
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: access-administration-evidence
-          path: test-results/access-administration/
-          if-no-files-found: ignore
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: access-journey-evidence
-          path: test-results/access-journey/
-          if-no-files-found: ignore
+          name: intake-reception-mutations-evidence
+          path: test-results/intake-t02-public/mutations/
+          if-no-files-found: error
   db:
     runs-on: ubuntu-latest
     timeout-minutes: 20

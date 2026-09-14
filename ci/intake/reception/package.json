@@ -1,0 +1,10 @@
+{
+  "name": "ledgerdesk-intake-minimum-form",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "fast-xml-parser": "5.11.1",
+    "yauzl": "3.4.0"
+  }
+}
