@@ -75,12 +75,13 @@ See [the contract](../docs/intake-contract.md) and
 
 ### 2026-09-13 — Bounded durable reception
 
-**Amendment status:** proposed
-**Amendment decision date:** pending acceptance
+**Amendment status:** accepted
+**Amendment decision date:** 2026-09-14
 
-This localized proposal changes the unmounted boundary for nine reception/query
-operations only. The foundation decision above remains the accepted historical
-decision; this proposal is not its automatic acceptance.
+This localized amendment changes the unmounted boundary for nine reception/query
+operations only, within the documented synthetic experimental scope of I03-T02.
+The foundation decision above remains the accepted historical decision. This
+separate acceptance does not complete INC-03 or authorize later processing.
 
 Compose the isolated reception terminal explicitly behind the existing access
 terminal's current session transport. Keep it absent by default and synthetic
@@ -106,10 +107,12 @@ current treatment before input. A receipt does not certify workbook extraction
 coverage, semantic fidelity, a candidate or editorial approval. Retain current
 whole-original authorization and separate pre-read and pre-handoff evidence.
 
-This proposal preserves the observed R24 violation and the two browser diagnostic
-follow-ups. It authorizes no real data, public deployment, automatic failover or
-new format. Its review requires the identified actual service, coupling, failure,
-recovery and resource evidence; offline checker self-tests are not service tests.
+This amendment preserves R24's four observed writer-free expiry violations,
+the unexercised same-original fragment provenance, the two browser diagnostic
+follow-ups and the unknown cause of the historical L03 failure. It authorizes
+no real data, public deployment, automatic failover or new format. Its acceptance
+uses the identified actual service, coupling, failure, recovery and resource
+evidence within those limits; offline checker self-tests are not service tests.
 
 See [the reception contract](../docs/intake-contract.md) and
 [its implementation/evidence status](../docs/INC-03-T02.md).

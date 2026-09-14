@@ -1,5 +1,32 @@
 # INC-03 T02: producer coverage register
 
+## Current qualification
+
+I03-T02 is accepted on 2026-09-14 within its bounded synthetic
+experimental scope, under the localized [ADR-038 amendment](../adr/ADR-038-intake-foundation.md#amendments).
+The complementary implementation reviews are complete in their identified
+scopes. [Current implementation CI](https://github.com/Farobertogu/ledgerdesk/actions/runs/34810451606)
+passed all eight jobs on attempt 1 for head 299f3dbe17919f0359f0db27a002a0df98261c51;
+[the reception report](INC-03-T02.md#status) records the actual checkout, parents
+and tree. The later documentary commit still needs its own final-head CI before
+merge and an observed post-merge main result. No future run is credited here.
+
+The 21 obligations and 53 variants below keep their evidence categories. In
+particular, IC14/fragment-only stays P/R: permission separation was exercised,
+but the link to a fragment of that exact original was not. T03/T04 must supply
+and exercise the actual material-to-reception relationship; matching text is
+not provenance. IC16/writer-free-expiry remains an observed violation, including
+reservation, application capture, receipt/job persistence and original handoff.
+Neither category is upgraded by acceptance. R24, BROWSER-I03, BROWSER-J19 and
+the historical L03 cause remain open. INC-03 and its later tasks are not closed;
+real-data and production use remain prohibited.
+
+## Historical local qualification status
+
+The local records below retain their source-specific observations and then-pending
+review/CI wording. Current review, publication and implementation-CI status is
+stated above; no historical row, failed run or existing section anchor is erased.
+
 Status: finite qualification completed locally at the named boundaries below;
 verification wiring is implemented and locally checked; the stable acceptance review is still pending. This is
 not an acceptance verdict. All data are synthetic. No remote CI run, real-data

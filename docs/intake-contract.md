@@ -9,9 +9,11 @@ synthetic intake configuration is supplied. Without that configuration the
 terminal refuses the intake prefix. Next does not proxy or serve these handlers.
 Later processing and editorial handlers remain unmounted.
 
-This is an experimental implementation under review, not a deployment instruction
-or a claim that all reception acceptance evidence is complete. The proposed T02
-amendment to ADR-038 has not been accepted.
+This implementation is accepted only within the bounded synthetic experimental
+scope of the localized [T02 amendment to ADR-038](../adr/ADR-038-intake-foundation.md#amendments).
+This is not a deployment instruction or full contract conformity. The reception
+report and coverage register retain the exact acceptance limits and outstanding
+evidence; passing tests do not authorize later processing or real data.
 
 The contract is intake/1. Public text is English; literal source text, opaque
 identifiers and retained fixtures are not translated. session/1 and reading/1
@@ -535,9 +537,11 @@ transaction and no runtime overwrite/delete method for a sealed original.
 
 ## Later first-consumer obligations
 
-- T02: finish verification and review of the implemented loading/query bindings,
+- T02: verification and review of the implemented loading/query bindings,
   first-receiver treatment, migration, streaming admission, receipt/evidence and
-  protected original handoff. See the reception report for measured scope.
+  protected original handoff support bounded experimental acceptance. See the
+  reception report and coverage register for the observed R24 violations and
+  unexercised same-original fragment lineage; neither is closed by acceptance.
 - T03: actual durable worker, current admission before protected reads,
   generation/channel binding and controlled result acceptance.
 - T04: actual preparation producer, source/resource/difference correspondence,
