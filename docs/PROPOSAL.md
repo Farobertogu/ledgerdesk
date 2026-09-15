@@ -1,3 +1,5 @@
+> **Historical academic baseline — August 2026.** The original proposal below is preserved with its submission and approval wording; it is not the current implementation inventory. The [system overview](SYSTEM_OVERVIEW.md#relationship-to-the-earlier-system) explains the transition, including the current separation of human closure and editorial publication. This note does not alter or renew academic approval.
+
 # LedgerDesk — A Grounded-Answer Platform with a Sealed Quality Firewall, Demonstrated on Customer Support
 
 Project proposal for LedgerDesk (COIT20273 Software Design and Development Project, CQUniversity, Term 2 2026). Content dated 19 August 2026, submitted for facilitator approval; this copy is maintained in the delivery repository.

@@ -1,6 +1,14 @@
 # L03 bounded diagnostic capture
 
-L03 still requires the original first inspection to report `OOMKilled=true` and exit 137. The memory probe, allocation pattern, ten-second watchdog, output cap, cgroup limits, swap policy and privileges are unchanged. Later metadata and Docker events never replace that assertion. This instrumentation is not a causal fix for the observed remote failure.
+## Scope of this record
+
+This document records the earlier bounded observer and its identified September 14 executions.
+The current L03 acceptance oracle is the [exclusive retained kernel reference](L03-exclusive-reference.md),
+merged in PR #32 and qualified on its final PR and actual main. It no longer treats Docker's
+OOM flag as the acceptance oracle. The descriptions and results below remain scoped to the
+earlier observer; its historical failures and unknown cause are not rewritten by that repair.
+
+At this observer checkpoint, L03 required the original first inspection to report `OOMKilled=true` and exit 137. The memory probe, allocation pattern, ten-second watchdog, output cap, cgroup limits, swap policy and privileges were unchanged. Later metadata and Docker events never replaced that assertion. This instrumentation was not a causal fix for the observed remote failure.
 
 ## Captured observations
 

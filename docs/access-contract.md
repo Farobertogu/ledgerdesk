@@ -9,8 +9,11 @@ is a replacement for the `reading/1` material DTO. The executable definitions
 are in `src/contracts/access.ts`, `access_transport.ts`, `access_security.ts`
 and `access_context.ts`; independent examples are in `tests/access/examples.mjs`.
 
-T02 and T03 provide the operational synthetic producer in `src/server/access/terminal.ts`
-and a minimal UI at `/access`. The original T01 fixture remains a transport test.
+INC-02 T02 through T06 provide the operational synthetic producer in `src/server/access/terminal.ts`
+and the `/access` interface, including invitations, the census, authenticated reading and
+effective administration. [T06](INC-02-T06.md#experimental-acceptance) records acceptance
+of the implemented whole journey, not full contract or production conformity.
+The original T01 fixture remains a transport test.
 The import check permits only the explicit runtime adapters and keeps the UI
 away from server identity and legacy SQL. The producer requires the isolated
 configuration described in [T02](INC-02-T02.md); it is not enabled as a Next API
@@ -80,7 +83,8 @@ impersonation, direct positive grant or first-visitor bootstrap exists.
   depth and noncanonical/unsafe integer numbers. Decoding and `validateAccess`
   are both required. Read and limit bytes at the first receiver, not after
   buffering an unbounded body. T02 implements the HTTP receiver.
-- GET has no body. Implemented routes reject queries. The deferred census accepts only the `cursor` query selector; the
+- GET has no body. Implemented routes reject queries except the census, which accepts
+  only the `cursor` query selector; the
   first page uses the empty cursor. Other query fields are rejected. Its
   continuation is opaque and bound to the permitted population/snapshot, not
   a client offset into all accounts. No cursor is an authority credential.
@@ -253,15 +257,25 @@ The INC-02 owner is NOLOGIN; runtime roles have no ownership,
 membership escalation, BYPASSRLS, CREATE or inherited PUBLIC privileges.
 Separate account/session effect access, permitted reading and evidence append
 paths. T02 implements identity DDL and effective bilateral privilege probes;
-authenticated material reading remains T04.
+T04 adds authenticated material reading within that same decision database.
 
 T02 uses database `inc02_synthetic`, NOLOGIN owner `inc02_owner`, effect runtime
 `inc02_runtime`, deployment controller `inc02_control` and a separate test-only
 inspection credential. Runtime table grants are explicit; account identity and
 restriction updates, control functions, ownership, public-schema creation and
 evidence modification are denied. The master insertion trigger checks the
-predeclared address and person. T03 adds its grant/support tables; there is still
-no `inc02_reader` or session-derived material delivery.
+predeclared address and person. T03 adds its grant/support tables. T04 extends the
+store for session-derived material delivery, reusing the reading projection and deriving
+the material schema from its retained source. It does not copy the INC-01 role/control
+installation or adopt its separate admission domain. See [T04](INC-02-T04.md).
+The dedicated `inc02_reader` selects the admitted authority/material columns and appends
+evidence; it cannot select verifiers or session CSRF or write policy/grants.
+`inc02_runtime` can select `material_trial.control` and `material_trial.surface`
+for capability metadata. It is not granted SELECT on `material_trial.material`,
+`material_trial.policy`, `material_trial.census_entry` or `material_trial.census_cursor`;
+those protected material, policy and nominal-census tables are granted to `inc02_reader`.
+These service-role privileges do not confer an end user's authority to read a particular
+material version or query the authorized account census.
 The runtime credential is a trusted service credential, not an end-user role;
 SQL isolation alone does not establish person-level authorization.
 No existing user's database or historical container is a migration target.
@@ -280,8 +294,8 @@ for invalidating changes, with a predeclared lock order and no mid-operation
 upgrade. After acquisition, resolve the current session, account, support,
 grant, applicable investiture, person-level independence, capability and route/
 material/treatment policy together. No startup-only context or unrelated
-snapshot can supply authority. Implement this common kernel at T02/T03's first
-consumers; an allow-all placeholder is not an acceptable dependency on T04.
+snapshot can supply authority. T02/T03 implement this kernel at their first
+consumers, and T04 reuses it; an allow-all placeholder is not an acceptable substitute.
 
 Every participating invalidator belongs to that coordination domain: account
 restriction, session revocation, support/permission withdrawal, investiture
@@ -304,19 +318,19 @@ response handoff, not socket delivery or human receipt; interruption is distinct
 No SQL transaction stays open while awaiting
 browser/network activity. Hold the appropriate coordination until the protected
 boundary, with time rechecked there. Expiry without a writer remains a separate,
-unaccredited temporal condition. This transport proof does not close it.
+observed temporal failure (R24). The measured transport coordination does not close it.
 
 ## Implemented versus conditional
 
-| Capability | This delivery | Remaining first consumer |
+| Capability | Current experimental implementation | Remaining boundary |
 |---|---|---|
 | Closed contract parsing/validation, profile selection and transport guards | T02/T03 routes and the T04 census integrated; other admission remains closed | New explicitly admitted consumers |
 | Same-site HTTPS cookie/CSRF/CORS/TLS isolation | Real synthetic Next/terminal/PG/browser journey | Production deployment assessment |
 | Password library/configuration | Bounded verifier, decoy, rate limits and persisted lifecycle | Production capacity assessment |
 | Master activation/session/capability projection | Implemented, with current server-derived invitation options and four-axis presentation | New explicitly disclosed surfaces |
-| Invitations, accepted gains, withdrawal and initial verifier | Real isolated producer and object-authorized T05 controls | Whole-journey acceptance in T06 |
+| Invitations, accepted gains, withdrawal and initial verifier | Real isolated producer and object-authorized T05 controls, included in accepted T06 journey | New consumers and production conditions need their own evidence |
 | Current authority and authenticated material reading | Shared evaluator and session-bearing reading implemented in T04 | Full temporal conformity remains false |
-| Census and administration UI | Scoped nominal pagination and effective capabilities connected to real producers | Whole-journey acceptance in T06 |
+| Census and administration UI | Scoped nominal pagination and effective capabilities connected to real producers, included in accepted T06 journey | Full temporal conformity and production conditions remain open |
 | Post-bootstrap authority-management routes | Admission conditional; no route | Actual admitted consumer, not inferred from an entity |
 | Real data, external mail, production authentication or full temporal conformity | Not authorized or demonstrated | Separate conditions and evidence |
 
@@ -434,7 +448,7 @@ This is the admitted initial-administration exception. It does not let ordinary
 invitation gains bypass acceptance. Earlier isolated schemas remain the old
 credential-only profile; adding the migration to a populated schema preserves
 its facts without retrospective grants. See [ADR-037](../adr/ADR-037-whole-journey.md) and
-[T06](INC-02-T06.md) for the proposed realization and experimental evidence.
+[T06](INC-02-T06.md) for the accepted experimental realization and its evidence.
 
 ## Technical references
 

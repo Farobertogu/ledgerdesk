@@ -136,10 +136,11 @@ permission-name guess:
    Use the existing evaluator and coordination discipline, not this validator
    as a second authorization engine.
 
-No deployment declaration is seeded here. The contract supplies exact selector
-types and per-operation resolution, not invented UUIDs. Actual catalog rows,
-current grant/support evaluation, durable admission and effect/handoff remain
-T02–T04 implementation. Own intake queries do not authorize B9 inspection of
+The contract itself supplies exact selector types and per-operation resolution,
+not authority by inventing UUIDs or seeding a declaration. T02 implements the reception
+catalog bindings, current grant/support evaluation, durable admission and protected
+effect/handoff in the explicitly configured synthetic producer. Worker and preparation
+consumers remain T03/T04 obligations. Own intake queries do not authorize B9 inspection of
 another person's history, technical inspection or a new purpose. Such use needs
 its separately admitted act/purpose and is outside these bindings.
 
@@ -407,8 +408,9 @@ physical maximum. Kernel/cgroup availability is checked before workloads.
 
 The L03 test correction uses a retained case-exclusive kernel reference; its
 fixture changes, restricted execution environment, exact acceptance property
-and pending physical evidence are specified in
-[L03 exclusive reference](L03-exclusive-reference.md). This is a test change,
+and successful final-PR and actual-main physical qualification are specified in
+[L03 exclusive reference](L03-exclusive-reference.md). Historical failed runs and
+the unknown historical cause remain explicitly separate. This is a test change,
 not a new parser limit, driver choice or operational capability.
 
 The inode-pressure experiment additionally constrains its own workspace to

@@ -1,18 +1,21 @@
 # Reading contract: reading/1
 
-This document defines the English public interface for the synthetic INC-01 reading trial.
+This document defines the English public material interface shared by the synthetic
+INC-01 trial and INC-02 authenticated reading.
 The shared types and validators live in [material_reading.ts](../src/contracts/material_reading.ts),
 the internal delivery ports in [reading.ts](../src/server/kb/reading.ts), and the HTTP and trial
 configuration in [server/reading](../src/server/reading/). The module is dependency-free and carries
 only public JSON types. Authorization, persistence, delivery and viewer behavior remain separate
 implementation obligations.
 
-T01/T02 currently validates requests and closes the reading routes: invalid syntax returns 400,
-missing internal trial context returns 403, and valid configured requests return 503 until T04
-provides the actual service. The success shapes below define the consumer contract; they do not
-claim that material is already served. [ADR-029](../adr/ADR-029-isolated-reading-foundation.md)
-records the isolation and startup decisions, while [the verification record](INC-01-T01-T02.md)
-distinguishes completed checks from pending work.
+The dedicated terminal and integrated viewer are implemented: see [INC-01 T04](INC-01-T04.md)
+and [T05](INC-01-T05.md), with the viewer at `/material`.
+[INC-02 T04](INC-02-T04.md) adds the `/access/material` authenticated viewer with
+the same projection and `reading/1` shape under the explicit [session transport](access-contract.md).
+Next's preparation endpoints remain closed; they are not a proxy to either terminal or a fallback.
+The initial 400/403/503-only route behavior belongs to the dated
+[T01/T02 foundation record](INC-01-T01-T02.md), not the current integrated terminal.
+[ADR-029](../adr/ADR-029-isolated-reading-foundation.md) preserves that foundation decision.
 
 ## Source equivalence
 
@@ -47,11 +50,14 @@ must verify that the requested version belongs to the requested unit in the perm
 A crossed pair is unavailable; an older version is never redirected or replaced by its successor.
 Material version identity is distinct from the API profile and internal technical revisions.
 
-The server resolves the declared trial deployment and scope, synthetic subject, reading surface,
+In the credential-free INC-01 profile, the server resolves the declared trial deployment
+and scope, synthetic subject, reading surface,
 purpose, current time and applicable restrictions. The route fixes the action. A client cannot
 grant itself authority through IDs, headers, cookies, roles, query parameters or interface controls.
 The trial is explicitly enabled on a local synthetic environment and bound to loopback; this is
-not production authentication. Every read, including direct server access, requires current checks.
+not production authentication. The INC-02 profile instead resolves the current session and
+authority in its decision snapshot; it never treats the earlier internal context as a session.
+Every read, including direct server access, requires current checks.
 
 ## Closed response shapes
 
@@ -165,7 +171,7 @@ presentation failure, never permission to recover an earlier body.
 
 ## Delivery and viewer obligations
 
-T04 must coordinate admission, current restrictions and minimal durable evidence before revealing
+The terminal must coordinate admission, current restrictions and minimal durable evidence before revealing
 material. SQL must finish with a known commit while admission remains held through the controlled
 transport handoff; external I/O must not hold the SQL transaction open. Internal evidence records
 minimal decision metadata, never the material body. Receipts and transport observations belong to
@@ -175,11 +181,13 @@ two database reads alone does not establish safe delivery.
 
 Revocation, expiration, loss of control and pauses across preparation and delivery require measured
 tests against the actual terminal implementation. SQL commit, transport handoff and client receipt
-are different events. The current Node probe does not establish PostgreSQL durability, control over
-Next delivery, physical buffer fencing or the complete temporal guarantee. LR-AC21 remains partial
-until its required boundary is demonstrated.
+are different events. The initial Node probe alone did not establish PostgreSQL durability or
+integrated delivery. The later service and browser records provide their own evidence, without
+claiming control over arbitrary Next delivery or every physical buffer. LR-AC21 remains partial;
+writer-free expiry has an observed failure recorded as R24 in the authenticated path. Neither
+acceptance nor the measured writer coordination establishes the full temporal guarantee.
 
-T03 must render received text as inert text with spaces and line endings preserved. It must not
+The viewer must render received text as inert text with spaces and line endings preserved. It must not
 execute HTML/Markdown, scripts or external loads from text or locators. List loading, permitted
 empty results, local filter misses, no selection, detail loading, available detail and errors are
 interface states separate from editorial state. A 503 is never an empty list.
