@@ -1,4 +1,5 @@
 import {array,closed,choice,digest,exactReference,identifier,integer,record,scalarText,text,type Rule} from './intake.ts';
+import {EXTRACTION_BOUNDS} from './intake_extraction.ts';
 
 type Row=Record<string,any>;
 /** Lossless retention of JSON observations, not a claim of semantic interpretation. */
@@ -47,9 +48,11 @@ const nonempty=(max:number):Rule=>v=>text(max)(v)&&/\S/u.test(v as string);
 const trialRelation=closed({from:identifier,to:identifier,scope:nonempty(512),basis:nonempty(512),preparationRevision:v=>integer(v)&&(v as number)>0});
 const resourceId:Rule=v=>scalarText(v)&&(v as string).length>0&&!/[\u0000-\u0020\u007f]/u.test(v as string);
 const trialResource=closed({id:resourceId,file:v=>typeof v==='string'&&v.length<=256&&/^[A-Za-z0-9_.-]+$/.test(v),bytes:integer,sha256:digest});
-const extractionShape=closed({schema:choice('extraction-trial/1'),profile:choice('text','csv','xlsx'),original,
+const extractionShapeWithLimit=(maximum:number)=>closed({schema:choice('extraction-trial/1'),profile:choice('text','csv','xlsx'),original,
  outcome:choice('completed','partial'),coverage:closed({claim:choice('declared syntactic profile only'),unsupported:array(text(512),10000)}),
- inventory:jsonValue,elements:array(trialElement,10000),relations:array(trialRelation,10000),resources:array(trialResource,10000)});
+ inventory:jsonValue,elements:array(trialElement,maximum),relations:array(trialRelation,10000),resources:array(trialResource,10000)});
+const extractionShape=extractionShapeWithLimit(10000);
+const processingExtractionShape=extractionShapeWithLimit(EXTRACTION_BOUNDS.textElements);
 const candidateShape=closed({schema:choice('candidate-trial/1'),candidate:closed({unit:identifier,version:v=>integer(v)&&(v as number)>0,preparationId:identifier,preparationRevision:v=>integer(v)&&(v as number)>0,selected:array(identifier,10000),canonicalSha256:digest,state:choice('synthetic_candidate_only')}),preparation:closed({id:identifier,revision:v=>integer(v)&&(v as number)>0}),canonical:closed({elements:array(trialElement,10000),relations:array(trialRelation,10000),resources:array(trialResource,10000)})});
 const inventories:Record<string,Rule>={
  text:closed({bytes:integer,decodedCodePoints:integer,elements:integer,bomBytes:integer}),
@@ -79,8 +82,8 @@ function same(a:any,b:any):boolean{
  return Object.is(a,b);
 }
 function demand(ok:unknown,code:string):asserts ok {if(!ok)throw Error(code);}
-function inspectExtraction(x:Row){
- demand(extractionShape(x)&&inventories[x.profile](x.inventory),'MAPPING_EXTRACTION');
+function inspectExtraction(x:Row,shape:Rule=extractionShape){
+ demand(shape(x)&&inventories[x.profile](x.inventory),'MAPPING_EXTRACTION');
  demand((x.outcome==='partial')===(x.coverage.unsupported.length>0),'MAPPING_COVERAGE');
  demand(x.elements.every((e:Row)=>e.type===({text:'text',csv:'table',xlsx:'sheet'}[x.profile as 'text'|'csv'|'xlsx'])),'MAPPING_PROFILE_ELEMENT');
  demand(x.elements.every((e:Row)=>e.locator.original===x.original.sha256),'MAPPING_ORIGINAL');
@@ -114,6 +117,13 @@ export function projectTrial(mapping:unknown):Row{
   }
   demand(material.relations.every((r:Row)=>r.preparationRevision===source.preparation.revision),'MAPPING_RELATION_REVISION');
  }
+ const content=projectContent(material,ctx),coverage=projectCoverage(x);
+ const inputs=[ctx.original,ctx.source,ctx.profile].filter((r:Row,i:number,a:Row[])=>a.findIndex(t=>same(t,r))===i);
+ return {profile:'prepared-material/1',preparation:ctx.preparation,inputs,...content,...coverage,
+  differences:ctx.differences,inventory:'unknown',current_use:'not_evaluated',trial_mapping:m};
+}
+/** Common content projection. Extraction does not fabricate an editorial identity. */
+function projectContent(material:Row,ctx:Row):Row{
  demand(new Set(material.elements.map((e:Row)=>e.id)).size===material.elements.length,'MAPPING_DUPLICATE_ELEMENT');
  demand(new Set(material.resources.map((r:Row)=>r.id)).size===material.resources.length,'MAPPING_DUPLICATE_RESOURCE');
  demand(new Set(ctx.resources.map((r:Row)=>r.trial_id)).size===ctx.resources.length&&ctx.resources.length===material.resources.length,'MAPPING_RESOURCE_BINDING');
@@ -132,6 +142,9 @@ export function projectTrial(mapping:unknown):Row{
     demand(/^[1-9][0-9]*$/.test(c['@_min'])&&/^[1-9][0-9]*$/.test(c['@_max']),'MAPPING_COLUMN');
     return {minimum:Number(c['@_min']),maximum:Number(c['@_max']),...(c['@_hidden']!==undefined?{hidden:['1','true'].includes(c['@_hidden'])}:{}),...(c['@_width']!==undefined?{width_lexical:c['@_width']}: {})};})}};
  });
+ return {elements,relations:material.relations.map((r:Row,i:number)=>({id:'relation-'+i,from:r.from,to:r.to,role:'indispensable',scope:r.scope,origin:'prepared'})),resources};
+}
+function projectCoverage(x:Row):Row{
  const limitations=['syntactic-profile-only','raw-properties-retained-not-interpreted','semantic-fidelity-unverified'];
  const components:Row[]=[{id:'extraction',execution:'completed',coverage:x.outcome==='partial'?'partial':'complete',fidelity:'unchecked',limitations,incidents:[]}];
  const incidents:Row[]=[];
@@ -140,10 +153,26 @@ export function projectTrial(mapping:unknown):Row{
   components.push({id,execution:'not_attempted',coverage:'none',fidelity:'unchecked',limitations:['component-not-offered'],incidents:[incident]});
   incidents.push({id:incident,component:id,cause:'route_unoffered',detail:name});
  });
- const inputs=[ctx.original,ctx.source,ctx.profile].filter((r:Row,i:number,a:Row[])=>a.findIndex(t=>same(t,r))===i);
- return {profile:'prepared-material/1',preparation:ctx.preparation,inputs,elements,
-  relations:material.relations.map((r:Row,i:number)=>({id:'relation-'+i,from:r.from,to:r.to,role:'indispensable',scope:r.scope,origin:'prepared'})),
-  resources,components,incidents,differences:ctx.differences,inventory:'unknown',current_use:'not_evaluated',trial_mapping:m};
+ return {components,incidents};
+}
+/** Verified associations remain caller obligations; this pure projection grants nothing. */
+export function projectExtractionObservation(producer:unknown,originalReference:unknown,sourceReference:unknown):Row{
+ demand(closed({raw:jsonValue,extraction:processingExtractionShape,runtime})(producer)&&record(producer),'MAPPING_PRODUCER');
+ demand(exactReference(originalReference)&&exactReference(sourceReference),'MAPPING_EXTRACTION_REFERENCES');
+ const x=producer.extraction as Row;
+ inspectExtraction(x,processingExtractionShape);demand((originalReference as Row).sha256===x.original.sha256,'MAPPING_ORIGINAL_REFERENCE');
+ demand(x.profile!=='text'||x.elements.length<=Math.max(1,x.original.bytes),'MAPPING_TEXT_CARDINALITY');
+ // The current real adapters produce no relations/resources. Instrumented
+ // nonempty examples belong to their separate, explicitly bound realization.
+ demand(x.relations.length===0&&x.resources.length===0,'MAPPING_UNRESOLVED_EXTRACTION_RESOURCE');
+ // The original is already exact at the extraction root. Preserve every text
+ // element and both coordinate systems without repeating its hash per line.
+ // The historical prepared-material projection remains unchanged.
+ const content=x.profile==='text'?{elements:x.elements.map((e:Row)=>({id:e.id,kind:'text',text:e.text,
+   original_range:{bytes:e.locator.byteRange,code_points:e.locator.codePointRange}})),relations:[],resources:[]}:
+   projectContent(x,{original:originalReference,source:sourceReference,resources:[]});
+ return {...content,...projectCoverage(x),
+  inventory:'unknown',current_use:'not_evaluated'};
 }
 export function trialMapping(source:unknown,context:unknown,antecedent?:unknown):Row{
  const candidate=record(source)&&source.schema==='candidate-trial/1';

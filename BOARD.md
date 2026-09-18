@@ -14,7 +14,7 @@ use is authorized. The Done records below identify acceptance and execution sepa
 **Working rule: one branch per card (`card/<ID>-<slug>`); a card merges to `main` only after
 its named tests are green and the owner has reviewed the PR (merge `--no-ff`).** Verify
 the final head's complete required workflow, not an earlier green revision. The current
-intake composition has eight jobs, including `check`, `db`, `app` and `reading`; see the
+intake composition has ten jobs, including `check`, `db`, `app` and `reading`; see the
 delivery record for each executed composition. Historical tags and the 25-card roadmap
 below are retained provenance, not the new-system build order.
 
@@ -26,7 +26,8 @@ below are retained provenance, not the new-system build order.
 
 | Card | Increment | Closing evidence |
 |---|---|---|
-| INC-03 | Material intake: I03-T01 and I03-T02 accepted experimentally; I03-T03 through I03-T06 pending | I03-T01 retains its bounded foundation acceptance in [PR #30](https://github.com/Farobertogu/ledgerdesk/pull/30). I03-T02's bounded durable reception and protected original recovery are accepted only in the documented synthetic scope under the localized [ADR-038 amendment](adr/ADR-038-intake-foundation.md#amendments); see its Done row and [PR #31](https://github.com/Farobertogu/ledgerdesk/pull/31) for integration evidence. INC-03 stays open. No extraction worker, preparation/candidate producer, real data or production activation. |
+| I03-T03 | Bounded extraction — R2 correction, independent review pending | Finite capacity, dense representation, useful metadata, resources, authority, active-loss and matrix observations are recorded in [the T03 report](docs/INC-03-T03.md). Final local checks retain their exact source manifests. Current-image qualified memory execution, independent R2 acceptance and remote CI are not claimed. No publication; ADR-038 extraction amendment remains proposed. T04–T06, R24 and browser follow-ups remain open. |
+| INC-03 | Material intake: I03-T01 and I03-T02 accepted experimentally; I03-T03 through I03-T06 pending | I03-T01 retains its bounded foundation acceptance in [PR #30](https://github.com/Farobertogu/ledgerdesk/pull/30). I03-T02's bounded durable reception and protected original recovery are accepted only in the documented synthetic scope under the localized [ADR-038 amendment](adr/ADR-038-intake-foundation.md#amendments); see its Done row and [PR #31](https://github.com/Farobertogu/ledgerdesk/pull/31). The actual extraction implementation is unaccepted and its open obligations are named above. No preparation/candidate producer, real data or production activation. |
 
 Active access follow-up: [tracked browser failures and closure criteria](docs/INC-02-T03.md#tracked-browser-follow-up).
 

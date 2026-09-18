@@ -20,7 +20,7 @@ jobs:
   reading:
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    needs: [reading-foundations, intake-reception-behavior, intake-reception-recovery, intake-reception-mutations]
+    needs: [reading-foundations, intake-reception-behavior, intake-reception-recovery, intake-reception-mutations, intake-extraction, intake-extraction-recovery, intake-extraction-admission, intake-extraction-boundaries, intake-extraction-resource-guards, intake-extraction-format-guards]
     if: ${{ !cancelled() }}
     steps:
       - uses: actions/checkout@v4
@@ -177,6 +177,197 @@ jobs:
         with:
           name: intake-reception-mutations-evidence
           path: test-results/intake-t02-public/mutations/
+          if-no-files-found: error
+  intake-extraction:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      LEDGERDESK_READING_TRIAL: '0'
+      LEDGERDESK_DEV_IDENTITY: '0'
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: node --test tests/intake/t02/test_ci_wiring.mjs
+      - run: node ci/intake_ci_check.mjs
+      - run: node --test tests/intake/extraction/ci_evidence.mjs
+      - run: docker pull postgres:16
+      - run: npm run test:intake:extraction:unit
+      - run: npm run test:intake:extraction:schema
+      - run: npm run test:intake:extraction:worker -- --qualified-memory
+      - run: npm run test:intake:extraction:service
+      - run: node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases retry
+      - run: npm run test:intake:extraction:formats
+      - run: npm run test:intake:extraction:budgets
+      - run: npm run test:intake:extraction:semantics
+      - run: npm run test:intake:extraction:mixed
+      - name: Prepare closed-shape public evidence
+        if: always()
+        run: node ci/intake_extraction_artifacts.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: intake-extraction-evidence
+          path: test-results/intake-extraction-public/
+          if-no-files-found: error
+  intake-extraction-recovery:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      LEDGERDESK_READING_TRIAL: '0'
+      LEDGERDESK_DEV_IDENTITY: '0'
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: node --test tests/intake/t02/test_ci_wiring.mjs
+      - run: node ci/intake_ci_check.mjs
+      - run: node --test tests/intake/extraction/ci_evidence.mjs
+      - run: docker pull postgres:16
+      - run: npm run test:intake:extraction:restart
+      - run: npm run test:intake:extraction:restore
+      - run: npm run test:intake:extraction:storage-recovery
+      - run: npm run test:intake:extraction:temporal
+      - run: npm run test:intake:extraction:fencing
+      - name: Prepare closed-shape public evidence
+        if: always()
+        run: node ci/intake_extraction_artifacts.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: intake-extraction-recovery-evidence
+          path: test-results/intake-extraction-public/
+          if-no-files-found: error
+  intake-extraction-admission:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      LEDGERDESK_READING_TRIAL: '0'
+      LEDGERDESK_DEV_IDENTITY: '0'
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: node --test tests/intake/t02/test_ci_wiring.mjs
+      - run: node ci/intake_ci_check.mjs
+      - run: node --test tests/intake/extraction/ci_evidence.mjs
+      - run: docker pull postgres:16
+      - run: node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases authority-original
+      - run: node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases authority-result
+      - run: node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases authority-effect
+      - run: node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases compatibility
+      - run: node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases capacity
+      - run: node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases extraction-privileges
+      - name: Prepare closed-shape public evidence
+        if: always()
+        run: node ci/intake_extraction_artifacts.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: intake-extraction-admission-evidence
+          path: test-results/intake-extraction-public/
+          if-no-files-found: error
+  intake-extraction-boundaries:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      LEDGERDESK_READING_TRIAL: '0'
+      LEDGERDESK_DEV_IDENTITY: '0'
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: node --test tests/intake/t02/test_ci_wiring.mjs
+      - run: node ci/intake_ci_check.mjs
+      - run: node --test tests/intake/extraction/ci_evidence.mjs
+      - run: docker pull postgres:16
+      - run: node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases resources
+      - run: node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases associations
+      - run: node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases lineage
+      - run: node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases browser-disconnect
+      - run: node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases containment
+      - run: node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases private-loss
+      - run: node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases controller-loss
+      - name: Prepare closed-shape public evidence
+        if: always()
+        run: node ci/intake_extraction_artifacts.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: intake-extraction-boundaries-evidence
+          path: test-results/intake-extraction-public/
+          if-no-files-found: error
+  intake-extraction-resource-guards:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      LEDGERDESK_READING_TRIAL: '0'
+      LEDGERDESK_DEV_IDENTITY: '0'
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: node --test tests/intake/t02/test_ci_wiring.mjs
+      - run: node ci/intake_ci_check.mjs
+      - run: node --test tests/intake/extraction/ci_evidence.mjs
+      - run: docker pull postgres:16
+      - run: node ci/intake_extraction_guard_checks.mjs --suite resources
+      - name: Prepare closed-shape public evidence
+        if: always()
+        run: node ci/intake_extraction_artifacts.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: intake-extraction-resource-guards-evidence
+          path: test-results/intake-extraction-public/
+          if-no-files-found: error
+  intake-extraction-format-guards:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      LEDGERDESK_READING_TRIAL: '0'
+      LEDGERDESK_DEV_IDENTITY: '0'
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: node --test tests/intake/t02/test_ci_wiring.mjs
+      - run: node ci/intake_ci_check.mjs
+      - run: node --test tests/intake/extraction/ci_evidence.mjs
+      - run: docker pull postgres:16
+      - run: node ci/intake_extraction_guard_checks.mjs --suite formats
+      - name: Prepare closed-shape public evidence
+        if: always()
+        run: node ci/intake_extraction_artifacts.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: intake-extraction-format-guards-evidence
+          path: test-results/intake-extraction-public/
           if-no-files-found: error
   db:
     runs-on: ubuntu-latest

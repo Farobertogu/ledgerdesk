@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath,pathToFileURL } from 'node:url';
 import { randomUUID, createHash } from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { collectProcessOutput } from '../tests/intake/t01/reviewed/process-output.mjs';
@@ -17,10 +17,24 @@ import {receiptCommitFaultCopy} from './intake/reception/receipt_commit_fault.mj
 import {observationActions,eventObservationTarget} from './intake/reception/admin_observation.mjs';
 import {observationFaultCopy} from './intake/reception/observation_fault.mjs';
 import {commandDiagnostic} from './intake/command_diagnostic.mjs';
+import {supervisedBudgetCopy} from '../tests/intake/extraction/budget_fault.mjs';
+import {interruptedSealCopy} from '../tests/intake/extraction/seal_fault.mjs';
+import {semanticFaultCopy} from '../tests/intake/extraction/semantic_fault.mjs';
+import {mixedComponentsCopy} from '../tests/intake/extraction/mixed_fault.mjs';
+import {containmentProbeCopy} from '../tests/intake/extraction/containment_fault.mjs';
+import {associationBoundaryCopy} from '../tests/intake/extraction/association_fault.mjs';
 
 const root=fileURLToPath(new URL('../',import.meta.url));
 const group=process.argv[process.argv.indexOf('--group')+1];
-if(!['units','runtime','authority','missing-catalog','transitions','neutrality','original-scope','fragment-permissions','privileges','transactions','delivery-order','finite-stream','finite-quota','finite-attempts','boundaries','temporal','integrity','browser','observer','observer-canonical','phase-lineage','fencing-probe','phase-prototype','fence-sql','fence-loss','fence-coupled','fence-ack','fence-commit','fence-continuation','fence-ipc','fence-restore'].includes(group))throw Error('Explicit T02 group required');
+const extractionCases=process.argv.includes('--extraction-cases')?process.argv[process.argv.indexOf('--extraction-cases')+1]:'service';
+const formatCase=process.argv.includes('--format-case')?process.argv[process.argv.indexOf('--format-case')+1]:null;
+if(formatCase&&(group!=='extraction'||extractionCases!=='formats'||!['escaped-limit.csv','combined-limit.csv','control-at-byte-limit.txt'].includes(formatCase)))throw Error('EXTRACTION_FORMAT_FILTER_SCOPE');
+if(!['service','formats','format-negatives','temporal','fencing','budgets','retry','restart','restore','storage-recovery','semantics','mixed','capacity','private-loss','controller-loss','resources','authority-original','authority-result','authority-effect','compatibility','containment','browser-disconnect','extraction-privileges','lineage','associations'].includes(extractionCases)||(extractionCases!=='service'&&group!=='extraction'))throw Error('EXTRACTION_CASE_SCOPE');
+const extractionMutation=process.argv.includes('--extraction-mutation')?process.argv[process.argv.indexOf('--extraction-mutation')+1]:null;
+if(extractionMutation&&(group!=='extraction'||!({semantics:['omit-condition-store','omit-limitation-store','omit-incident-query'],
+  resources:['omit-resource-relation-store','read-resource-before-validation','allow-resource-swap'],
+  'format-negatives':['xlsx-recalculate-store','xlsx-hide-sheet-store','xlsx-context-store']}[extractionCases]??[]).includes(extractionMutation)))throw Error('EXTRACTION_MUTATION_SCOPE');
+if(!['units','runtime','extraction','authority','missing-catalog','transitions','neutrality','original-scope','fragment-permissions','privileges','transactions','delivery-order','finite-stream','finite-quota','finite-attempts','boundaries','temporal','integrity','browser','observer','observer-canonical','phase-lineage','fencing-probe','phase-prototype','fence-sql','fence-loss','fence-coupled','fence-ack','fence-commit','fence-continuation','fence-ipc','fence-restore'].includes(group))throw Error('Explicit T02 group required');
 const isObserver=['observer','observer-canonical'].includes(group);
 const usesObjectObserver=observationActions(group).includes('observe-events');
 const canonicalCase=process.argv.includes('--canonical-case')?process.argv[process.argv.indexOf('--canonical-case')+1]:'same-key';
@@ -63,9 +77,10 @@ const rejectRetainedIncarnation=process.argv.includes('--reject-retained-incarna
 if(rejectRetainedIncarnation&&group!=='fence-loss')throw Error('RETAINED_INCARNATION_MUTATION_GROUP');
 const forgetUnseenClose=process.argv.includes('--forget-unseen-close');
 if(forgetUnseenClose&&group!=='phase-prototype')throw Error('PHASE_MUTATION_GROUP');
-const runId='intake-t02-'+new Date().toISOString().replace(/[:.]/g,'-')+'-'+randomUUID().slice(0,8);
-const directory=path.join(root,'test-results/intake-t02',runId),claim=path.join(root,'test-results/intake-t02/.active-run');
+const runId=(group==='extraction'?'intake-extraction-':'intake-t02-')+new Date().toISOString().replace(/[:.]/g,'-')+'-'+randomUUID().slice(0,8);
+const directory=path.join(root,group==='extraction'?'test-results/intake-extraction':'test-results/intake-t02',runId),claim=path.join(root,'test-results/intake-t02/.active-run');
 await fs.mkdir(directory,{recursive:true});
+await fs.mkdir(path.dirname(claim),{recursive:true});
 await fs.writeFile(claim,runId,{flag:'wx'});
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 const files=[],commands=[],resources=[];
@@ -79,6 +94,26 @@ async function source(relative) {
   if(stat.isSymbolicLink())throw Error('SOURCE_SYMBOLIC_LINK');
   if(stat.isDirectory()){for(const name of (await fs.readdir(file)).sort())if(!['node_modules','.next'].includes(name))await source(path.posix.join(relative,name));}
   else {let bytes=await fs.readFile(file),fault=null;const originalSha256=hash(bytes),target=path.join(directory,'source',relative);
+    if(group==='extraction'&&extractionCases==='budgets'&&relative==='workers/intake/extraction/entry.mjs'){
+      bytes=Buffer.from(supervisedBudgetCopy(bytes.toString('utf8')));fault='instrumented-producer-output-reserve';
+    }
+    if(group==='extraction'&&extractionCases==='containment'&&relative==='workers/intake/extraction/entry.mjs'){
+      bytes=Buffer.from(containmentProbeCopy(bytes.toString('utf8')));fault='instrumented-effective-denials-and-timeout';
+    }
+    if(group==='extraction'&&extractionCases==='associations'){
+      const changed=associationBoundaryCopy(relative,bytes.toString('utf8'));
+      if(changed!==bytes.toString('utf8')){bytes=Buffer.from(changed);fault='instrumented-internal-association-input';}
+    }
+    if(group==='extraction'&&extractionCases==='storage-recovery'&&relative==='ci/intake/extraction/seal.mjs'){
+      bytes=Buffer.from(interruptedSealCopy(bytes.toString('utf8')));fault='actual-private-child-kill-after-raw-seal';
+    }
+    if(extractionMutation){
+      const changed=semanticFaultCopy(relative,bytes.toString('utf8'),extractionMutation);
+      if(changed!==bytes.toString('utf8')){bytes=Buffer.from(changed);fault=extractionMutation;}
+    }
+    if(group==='extraction'&&extractionCases==='mixed'&&relative==='src/server/intake/extraction_output.ts'){
+      bytes=Buffer.from(mixedComponentsCopy(bytes.toString('utf8')));fault='instrumented-three-component-outcome';
+    }
     if(pinned){const expected=independentFiles.find(x=>x.name===path.relative(independentRoot,file).replaceAll('\\','/'));
       if(!expected||expected.bytes!==bytes.length||expected.sha256!==originalSha256)throw Error('INDEPENDENT_SOURCE_IDENTITY');}
     if(observerMutation){const changed=observerFaultCopy(relative,bytes.toString('utf8'),observerMutation);
@@ -100,7 +135,7 @@ async function source(relative) {
       bytes=Buffer.from(value.replace(anchor,"    throw Error('EXPECTED_T02_BEFORE_SQL_CONNECT');\n"+anchor));fault='before-first-sql-connect';
     }
     if(boundaryMutation&&relative==='src/server/intake/terminal.ts'){
-      const value=bytes.toString('utf8'),anchor='const request=receptionEnvelope(req,access.transport),token=sessionToken(req.headers.cookie),onLoss=()=>res.destroy();';
+      const value=bytes.toString('utf8'),anchor="const request=receptionEnvelope(req,access.transport,config.extraction==='intake-execution/1'),token=sessionToken(req.headers.cookie),onLoss=()=>res.destroy();";
       if(value.split(anchor).length!==2)throw Error('EARLY_READ_MUTATION_ANCHOR');
       bytes=Buffer.from(value.replace(anchor,"if(req.url==='/api/intake/receptions'&&req.headers['content-length']==='65537'){\n"+
         "if(!req.readableLength)await new Promise(resolve=>req.once('readable',resolve));\n"+
@@ -205,7 +240,12 @@ async function runtimeGroup() {
     if(result.code!==0||result.reason)throw Error('PHASE_PROTOTYPE_FAILED');
     return;
   }
+  const extraction=group==='extraction'?await (await import(pathToFileURL(path.join(directory,'source/ci/intake/extraction/runtime_harness.mjs')))).extractionHarness({
+    directory,prefix:resourcePrefix,docker,resources,container,bounded,save,originalParticipant:broker}):null;
   const runtime=await container('runtime',['--network','none','--group-add','20202','--cap-drop','ALL','--security-opt','no-new-privileges','--memory','1g','--memory-swap','1g','--cpus','2','--pids-limit','192',
+    ...(extraction?.runtimeArgs??[]),
+    ...(extraction?['--env','LEDGERDESK_EXTRACTION_CASES='+extractionCases]:[]),
+    ...(formatCase?['--env','LEDGERDESK_EXTRACTION_FORMAT_CASE='+formatCase]:[]),
     ...mount('object-ipc','/run/intake-t02/objects'),...mount('verifier-ipc','/run/intake-t02/verifier'),
     ...(group==='observer'?['--env','LEDGERDESK_INTAKE_OBSERVER=1']:[]),
     ...(group==='observer-canonical'?['--env','LEDGERDESK_INTAKE_CANONICAL='+canonicalCase]:[]),
@@ -236,11 +276,12 @@ async function runtimeGroup() {
     await docker(['cp',path.join(directory,'observer-source.json'),runtime.name+':/work/output/observer-source.json']);
   }
   let running=true,bridgeFailure=null;
-  const executionPromise=run('docker',['start','-a',runtime.name],{timeout:240000}).finally(()=>{running=false;});
+  const executionPromise=run('docker',['start','-a',runtime.name],{timeout:extractionCases==='temporal'?330000:240000}).finally(()=>{running=false;});
   const handled=new Set();
   try{while(running){
     await new Promise(resolve=>setTimeout(resolve,500));
     if(!running)break;
+    await extraction?.bridge.tick();
     const poll=await run('docker',['exec',runtime.name,'node','-e',"const f=require('fs');const p='/work/output/admin-request.json';process.stdout.write(f.existsSync(p)?f.readFileSync(p):'null')"]);
     if(!running&&poll.code!==0){
       const record=commands.at(-1),observed=JSON.parse(await docker(['inspect',runtime.name]))[0];
@@ -255,10 +296,15 @@ async function runtimeGroup() {
     if(poll.code!==0){bridgeFailure='ADMIN_BRIDGE_READ';break;}
     const request=JSON.parse(poll.stdout);
     if(!request||handled.has(request.id))continue;
-    if(!/^[a-f0-9-]{36}$/.test(request.id)||!['backup','restore','inspect','complete',...observationActions(group),...(group==='phase-lineage'?['observe-original']:[]),...(['fencing-probe','fence-loss'].includes(group)?['arm-stall','stall-state','continue-broker']:[]),
+    if(!/^[a-f0-9-]{36}$/.test(request.id)||!['backup','restore','inspect','complete',...(group==='extraction'?['observe-extraction','hold-next-extraction','fail-next-extraction-input','fault-extraction-output']:[]),...observationActions(group),...(group==='phase-lineage'?['observe-original']:[]),...(['fencing-probe','fence-loss'].includes(group)?['arm-stall','stall-state','continue-broker']:[]),
       ...(group==='fence-loss'?['observe-stalled-worker','terminate-stalled-worker','fence-private-process-set','recover-private-participant']:[]),
       ...(group==='fence-ack'?['arm-private-ack','private-ack-state']:[]),
       ...(['fence-commit','fence-ipc'].includes(group)?['phase-no-dispatch']:[]),
+      ...(group==='extraction'&&extractionCases==='restore'?['extraction-backup','extraction-restore','extraction-restore-inspect']:[]),
+      ...(group==='extraction'&&extractionCases==='lineage'?['replay-extraction-completion']:[]),
+      ...(group==='extraction'&&extractionCases==='storage-recovery'?['replace-closed-extraction-participant','arm-extraction-seal-fault','inspect-extraction-seal']:[]),
+      ...(group==='extraction'&&extractionCases==='private-loss'?['replace-unresolved-extraction-participant']:[]),
+      ...(group==='extraction'&&extractionCases==='controller-loss'?['lose-next-extraction-controller']:[]),
       ...(group==='fence-ipc'?['restart-closed-participant']:[]),...(group==='integrity'?['fault-original']:[]),...(group==='privileges'?['probe-object-privileges']:[])].includes(request.action)){bridgeFailure='ADMIN_BRIDGE_REQUEST';break;}
     handled.add(request.id);
     const controlPath=path.join(directory,'admin',request.id);await fs.mkdir(controlPath,{recursive:true});
@@ -267,7 +313,34 @@ async function runtimeGroup() {
       await docker(['cp',path.join(controlPath,'cut-data.json'),broker.name+':/output/cut-data-'+request.id+'.json']);
     }
     let response;
-    if(request.action==='arm-observer'){
+    if(request.action==='lose-next-extraction-controller'){
+      if(Object.keys(request.body).length)throw Error('EXTRACTION_CONTROLLER_LOSS_SCOPE');
+      extraction.bridge.loseNextController();response=JSON.stringify({ok:true});
+    }else if(request.action==='replace-unresolved-extraction-participant'){
+      if(Object.keys(request.body).join(',')!=='participant'||request.body.participant!=='outputs')throw Error('EXTRACTION_REPLACEMENT_SCOPE');
+      response=JSON.stringify(await extraction.replaceClosed('outputs',{unresolved:true}));
+    }else if(request.action==='replace-closed-extraction-participant'){
+      if(Object.keys(request.body).join(',')!=='participant')throw Error('EXTRACTION_REPLACEMENT_SCOPE');
+      response=JSON.stringify(await extraction.replaceClosed(request.body.participant));
+    }else if(['arm-extraction-seal-fault','inspect-extraction-seal'].includes(request.action)){
+      response=JSON.stringify(await extraction.storageFault(request.action==='arm-extraction-seal-fault'?'arm':'inspect',request.body));
+    }else if(['extraction-backup','extraction-restore','extraction-restore-inspect'].includes(request.action)){
+      response=JSON.stringify(await extraction.restoreArchive({'extraction-backup':'backup','extraction-restore':'restore','extraction-restore-inspect':'inspect'}[request.action],
+        {...request.body,...(request.action==='extraction-restore'?{attemptId:request.id}:{})}));
+    }else if(request.action==='fault-extraction-output'){
+      response=JSON.stringify(await extraction.faultOutput(request.body));
+    }else if(request.action==='replay-extraction-completion'){
+      response=JSON.stringify(await extraction.replayCompletion(request.body));
+    }else if(request.action==='hold-next-extraction'){
+      if(Object.keys(request.body).length)throw Error('EXTRACTION_HOLD_SCOPE');
+      extraction.bridge.holdNextInput();response=JSON.stringify({ok:true});
+    }else if(request.action==='fail-next-extraction-input'){
+      if(Object.keys(request.body).length)throw Error('EXTRACTION_INPUT_FAULT_SCOPE');
+      extraction.bridge.failNextInput();response=JSON.stringify({ok:true});
+    }else if(request.action==='observe-extraction'){
+      if(Object.keys(request.body).length!==1)throw Error('EXTRACTION_OBSERVER_SCOPE');
+      response=JSON.stringify({ok:true,events:await extraction.observe(request.body.participant)});
+    }else if(request.action==='arm-observer'){
       if(Object.keys(request.body).length)throw Error('OBSERVER_ARM_SCOPE');
       await docker(['exec',broker.name,'node','-e',"require('fs').writeFileSync('/output/observer-fault-armed','armed',{flag:'wx'})"]);
       response=JSON.stringify({ok:true});
@@ -392,10 +465,11 @@ async function runtimeGroup() {
     if(observed.Id!==runtime.id||observed.Config.Labels['intake.t02.run']!==resourcePrefix)throw Error('BRIDGE_STOP_OWNER_MISMATCH');
     await docker(['stop','--time','3',runtime.name]);
   }
+  try{await extraction?.bridge.close();}catch(error){bridgeFailure??=error.message;}
   const execution=await executionPromise;
   const state=JSON.parse(await docker(['inspect',runtime.name]))[0];await save('runtime-state.json',state.State);
   const exports=[];
-  for(const [resource,source,destination] of [[runtime,'/work/output/.','runtime'],[broker,'/output/.','objects'],[verifier,'/output/.','verifier']]) {
+  for(const [resource,source,destination] of [[runtime,'/work/output/.','runtime'],[broker,'/output/.','objects'],[verifier,'/output/.','verifier'],...(extraction?.exports??[])]) {
     const target=path.join(directory,destination);await fs.mkdir(target,{recursive:true});
     const actualSource=lifecycleFault==='evidence-export'&&destination==='runtime'?'/work/__expected_missing_evidence__':source;
     try{await docker(['cp',resource.name+':'+actualSource,target]);exports.push({destination,complete:true});}
@@ -465,6 +539,8 @@ try {
   if(group==='fence-coupled')for(const relative of ['ci/access','ci/access_final_routes.mjs','src/components/access','src/components/reading','src/app/access',
     'src/app/layout.tsx','src/app/globals.css','src/instrumentation.ts','next.config.mjs','postcss.config.mjs',
     'tests/reading/browser_diagnostics.mjs'])await source(relative);
+  await source('tests/intake/extraction');await source('tests/intake/t01/boundaries');
+  if(group==='extraction')await source('workers/intake/extraction');
   await save('source-manifest.json',{profile:'intake-t02-source/1',runId,files});
   await run('git',['rev-parse','HEAD']);await run('git',['status','--porcelain=v1']);
   if(group==='units') {

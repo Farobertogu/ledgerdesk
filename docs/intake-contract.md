@@ -7,7 +7,9 @@ representation and test-contained feasibility. The reception implementation adds
 nine handlers at the existing access terminal, only when an explicit validated
 synthetic intake configuration is supplied. Without that configuration the
 terminal refuses the intake prefix. Next does not proxy or serve these handlers.
-Later processing and editorial handlers remain unmounted.
+The accepted reception baseline does not enable processing. The separately
+configured extraction implementation below is pending review under its proposed
+amendment; editorial handlers remain unmounted.
 
 This implementation is accepted only within the bounded synthetic experimental
 scope of the localized [T02 amendment to ADR-038](../adr/ADR-038-intake-foundation.md#amendments).
@@ -560,5 +562,108 @@ transaction and no runtime overwrite/delete method for a sealed original.
   its admission, enforcement and truthful component coverage; approval does
   not make these experimental candidates operational or include PDF/OCR.
 
-See [the foundation evidence](INC-03-T01.md) and
-[the reception implementation and verification status](INC-03-T02.md).
+## Bounded extraction implementation — review pending
+
+The optional `intake-execution/1` composition adds an internal controlled
+`ExtractionService` and the protected extraction query. It does not add a
+browser dispatch, preparation, constitution or approval operation. Processing
+is admitted from the independent current declaration, executor faculty,
+treatment and fixed source/image binding. A received file or an intact worker
+reply is not that authority.
+
+The worker uses `intake-worker/3`: one direct observation object in a closed
+envelope. The complete bytes of that envelope remain raw evidence. The separate
+`intake-reception/2` and `intake-availability/2` views are selected explicitly;
+the representation selector does not change historical `intake/1` intention
+identity or canonicalization. Incompatible old views fail before claiming new
+work rather than describing a started job as unstarted.
+
+The extraction transport bounds are 40 MiB raw, 16 MiB normalized, 56 MiB
+conserved per-attempt total, 64 KiB reserved for a failure projection within the normalized
+allocation, 80 MiB private framing, and 16 MiB plus 64 KiB for the protected HTTP
+projection. The original remains limited to 1 MiB, XLSX to eight sheets and
+10,000 aggregate physical cells. Historical preparation and feasibility
+quotas do not inherit this transport-specific increase.
+
+The finite aggregate extraction accounting is 256 MiB, separate from original
+storage, scratch and OS disk capacity. Each attempt reserves 56 MiB atomically
+before protected reads or launch. Unresolved and sealed-before-SQL work retains
+that obligation; durable bytes settle it once, including failed conserved
+results. Reconciliation neither erases history nor double-charges it. This is
+not an OS disk quota or an automatic reclamation policy.
+
+The valid 60,000-LF original now completes normalization using compact text
+elements with exact text and byte/code-point ranges against the enclosing
+original/source. The measured raw/normalized sizes are 11,646,808 and 6,845,205
+bytes. No input/transport limit was enlarged for this correction. Passing this
+case does not guarantee completeness for every original below 1 MiB. Any actual
+normalization failure remains a separate cause; a partial list is never relabeled
+complete, invalid UTF-8, knowledge insufficiency or an unoffered format.
+
+The extraction response explicitly declares `view: metadata` or `view: content`.
+Metadata retains the authorized job, receipt/original and result/effect identity
+without reading protected original, raw, normalized or resource bodies. Content
+needs separate current authority; original-body permission does not imply
+extraction-body permission or the reverse. Metadata is not a route to hidden
+diagnostics or inventory.
+
+The labeled nonempty-resource boundary fixes the exact original and operation
+selection independently of worker output, checks unique resource identities and
+associations before resource reads, and conserves the required relation. Its
+actual service/storage/query evidence is instrumented, not native image
+extraction or T04 preparation. Integrity and association do not authenticate a
+package or prove semantic completeness.
+
+The analyzer stays at a 512 MiB cgroup and 128 MiB V8 heap. The trusted private
+storage transport has a separate finite 1 GiB cgroup and 256 MiB heaps because
+the framed payload, decoded buffers and file cache coexist there. Both effective
+settings and observed resource counters belong to the evidence. Neither an
+observed peak nor a passing boundary sample proves a universal memory maximum.
+
+The original generation, attempt generation, actual launch/channel, sealed
+artifact, staged SQL row and accepted effect remain distinct. Actual process
+death at the seal/SQL gap or after staging cannot allocate another normalized
+identity. A lost acceptance reply is recovered by current authorized query,
+not by re-executing acceptance or dispatch. Withdrawing processing permission
+does not erase an accepted result; withdrawing query permission denies its
+disclosure. An unresolved predecessor stays unavailable rather than acquiring
+a guessed termination from elapsed time.
+
+### Populated extraction restore
+
+The controlled synthetic restore cut contains the actual reception tables and
+five extraction tables, exact original objects, raw observations, normalized
+objects and their original manifests. Current access state, control declarations,
+incarnation and restore anchors stay outside the archive. The output cut is
+bounded to four bundles, 64 MiB aggregate member bytes and 90,000,000 encoded
+archive bytes; that is a finite recovery experiment, not universal backup capacity.
+
+The retained cut records each exact historical output row before import. The
+runtime and reader cannot create that association. Import keeps foreign keys,
+immutability and association triggers active. It does not impersonate the old
+sealing process or substitute a newly fabricated private-phase observation.
+An altered but structurally valid output row is rejected against the retained
+row. Recalculated arriving hashes cannot replace the independent archive anchor.
+
+Restored outputs have a separate physical location with their original bytes
+and manifest intact. Query admission uses the current namespace, source,
+generation, incarnation and authority, and binds that location to the retained
+restore anchor before reading it. Matching hashes or registering a restore file
+alone do not authorize disclosure. The old live normalized copies can be corrupt
+while the restored copies remain readable; there is no fallback to the old path.
+
+The executed populated cut includes a completed text result and a genuinely
+failed CSV extraction. Both keep their prior effect identities. A later withdrawal is not
+undone: a new accepted invitation, not the archive, supplies replacement faculty.
+Closed private-participant replacement and exact interrupted-seal reconciliation
+have separate evidence in the [extraction report](INC-03-T03.md). Replacement
+with closed phases is distinct from the separately exercised unresolved-output
+replacement, which preserves uncertainty and refuses adoption. Post-launch
+controller loss likewise does not invent a successful stop. Automatic recovery
+is not inferred from either case. The writer-free interval remains
+open for every affected effect; restore admission is not a claim of complete
+temporal conformity.
+
+See [the foundation evidence](INC-03-T01.md),
+[the reception implementation and verification status](INC-03-T02.md), and
+[the extraction evidence and incomplete acceptance rows](INC-03-T03.md).

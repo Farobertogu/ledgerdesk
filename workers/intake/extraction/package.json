@@ -1,0 +1,15 @@
+{
+  "name": "ledgerdesk-intake-extraction",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "csv-parse": "7.0.2",
+    "fast-xml-parser": "5.11.1",
+    "yauzl": "3.4.0",
+    "xlsx": "file:vendor/xlsx-0.20.3.tgz"
+  },
+  "engines": {
+    "node": "22.16.0"
+  }
+}

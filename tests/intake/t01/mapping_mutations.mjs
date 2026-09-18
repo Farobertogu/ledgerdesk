@@ -8,7 +8,7 @@ import {createHash,randomUUID} from 'node:crypto';
 const root=fileURLToPath(new URL('../../../',import.meta.url));
 const output=path.join(root,'test-results/intake-t01','mapping-mutants-'+randomUUID());
 await fs.mkdir(output,{recursive:true});
-const files=['package.json','src/contracts/intake.ts','src/contracts/intake_artifact.ts','src/contracts/intake_mapping.ts','src/contracts/intake_bindings.ts',
+const files=['package.json','src/contracts/intake.ts','src/contracts/intake_artifact.ts','src/contracts/intake_extraction.ts','src/contracts/intake_mapping.ts','src/contracts/intake_bindings.ts',
  'tests/intake/t01/fixtures.mjs','tests/intake/t01/artifact-consumer.mjs','tests/intake/t01/mapping.mjs','tests/intake/t01/bindings.mjs','tests/intake/t01/binding_fixtures.mjs','tests/intake/t01/binding_regressions.mjs','tests/intake/t01/reviewed/profile.mjs'];
 const results=[];
 for(const [id,file,before,after,suite,expected]of [

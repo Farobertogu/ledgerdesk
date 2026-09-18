@@ -1,0 +1,66 @@
+{
+  "schema": "intake-worker-provenance/1",
+  "protocol": "intake-worker/3",
+  "node": "22.16.0",
+  "dependencies": {
+    "csv-parse": "7.0.2",
+    "fast-xml-parser": "5.11.1",
+    "yauzl": "3.4.0",
+    "xlsx": "0.20.3"
+  },
+  "installation": "npm ci --ignore-scripts --no-audit --no-fund within workers/intake/extraction only",
+  "sources": [
+    {
+      "source": "tests/intake/t01/reviewed/adapter.mjs",
+      "destination": "workers/intake/extraction/adapter.mjs",
+      "source_sha256": "f6fdbf24d2a5801b45ede2c31ebeed457ef561ae2bb07f2c06845bfe2a6f3100",
+      "source_bytes": 12072,
+      "adopted_sha256": "7e8afc902599b784d56e6a6a1650ed1e5d6e6f87ef418ceb90fa1d1848c11805"
+    },
+    {
+      "source": "tests/intake/t01/reviewed/profile.mjs",
+      "destination": "workers/intake/extraction/profile.mjs",
+      "source_sha256": "28d6a0ec16d49d7834243f5264018d904892fcb982ded1958aba32041a2a96f0",
+      "source_bytes": 1566,
+      "adopted_sha256": "28d6a0ec16d49d7834243f5264018d904892fcb982ded1958aba32041a2a96f0"
+    },
+    {
+      "source": "tests/intake/t01/reviewed/package.json",
+      "destination": "workers/intake/extraction/package.json",
+      "source_sha256": "63539a4001e1e1a46f66c1f0beae9e89b9b7572937135bb16561f3e8d127c0c9",
+      "source_bytes": 287,
+      "adopted_sha256": "7df6952e16b0f593b6bda0baa25d021a3ae895e468611bf38d8943b8ccfc11fd"
+    },
+    {
+      "source": "tests/intake/t01/reviewed/package-lock.json",
+      "destination": "workers/intake/extraction/package-lock.json",
+      "source_sha256": "0f39315f91f5c1bd475b7f88e017e3a2a7f5852065240bcee02ace162285ece7",
+      "source_bytes": 5768,
+      "adopted_sha256": "15d093e673998d80c0cc2fc353acd6234d1eb3c8d9af20b59db59b41266928e1"
+    },
+    {
+      "source": "tests/intake/t01/reviewed/vendor/xlsx-0.20.3.tgz",
+      "destination": "workers/intake/extraction/vendor/xlsx-0.20.3.tgz",
+      "source_sha256": "8dc73fc3b00203e72d176e85b50938627c7b086e607c682e8d3c22c02bb99fe8",
+      "source_bytes": 2409319,
+      "adopted_sha256": "8dc73fc3b00203e72d176e85b50938627c7b086e607c682e8d3c22c02bb99fe8"
+    },
+    {
+      "source": "tests/intake/t01/reviewed/vendor/PROVENANCE.json",
+      "destination": "workers/intake/extraction/vendor/PROVENANCE.json",
+      "source_sha256": "4a8ea1d1a0a8552383d5444b302a45fd1077e6344861aeaa04c3977fd657c58e",
+      "source_bytes": 648,
+      "adopted_sha256": "4a8ea1d1a0a8552383d5444b302a45fd1077e6344861aeaa04c3977fd657c58e"
+    }
+  ],
+  "delta": [
+    "Reuse the reviewed parser implementation and fixed options. Remove every mutation argument and test-only alteration.",
+    "Replace the path-taking adapter with a buffer-taking adapter. The entry checks one fixed original file and passes the same checked bytes, avoiding a second original read. Original display name is the fixed name original.",
+    "Keep profile.mjs byte-identical, including its historical experiment labels and historical output quota. The identified intake-worker/3 contract supplies effective execution/output bounds; original, ZIP, sheet, cell and CSV input limits remain unchanged.",
+    "Rename the isolated package, remove the historical run.mjs npm script and pin Node 22.16.0 in engines. All dependency lock entries, archives and upstream notices remain unchanged.",
+    "Add the closed stdin worker envelope, bounded command read, exact original identity validation, bounded structured failure codes and full escaped reply measurement. No mutation option is exposed.",
+    "Use the direct observation object in intake-worker/3. Preserve actual outer reply bytes rather than nesting JSON text. Enforce the shared 40 MiB full-envelope cap; separate normalization/conservation quotas belong to the receiving service. A bounded output failure does not change admitted input formats or claim universal completion."
+  ],
+  "verification_scope": "Host adapter/package and request/reply checks do not certify Linux fixed-path execution, operating-system containment, full storage/query size, service authority or universal XLSX fidelity.",
+  "resource_semantics": "Relations and resources are empty for these adapters. Ordinary cell prose is not native Excel comments; an unsupported SVG part is not image interpretation."
+}

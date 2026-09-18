@@ -16,7 +16,9 @@ COPY tests/access/ ./tests/access/
 COPY tests/reading/T04_seed.mjs ./tests/reading/T04_seed.mjs
 COPY tests/reading/timing_comparison.mjs ./tests/reading/timing_comparison.mjs
 COPY tests/intake/t02/ ./tests/intake/t02/
+COPY tests/intake/extraction/ ./tests/intake/extraction/
 COPY tests/intake/t01/fixtures/ ./tests/intake/t01/fixtures/
+COPY tests/intake/t01/boundaries/ ./tests/intake/t01/boundaries/
 RUN mkdir -p /work/output && chown pwuser:pwuser /work/output
 ENV LEDGERDESK_ACCESS_CONTAINER=1 LEDGERDESK_INTAKE_CONTAINER=1
 USER pwuser

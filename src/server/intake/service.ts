@@ -1,11 +1,16 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { BINDINGS } from '../../contracts/intake_bindings.ts';
-import { AVAILABILITY_RESPONSE, RECEPTION_FORMATS, type ReceptionRoute } from '../../contracts/intake_reception.ts';
+import { AVAILABILITY_RESPONSE, RECEPTION_FORMATS } from '../../contracts/intake_reception.ts';
+import type {ServingRoute as ReceptionRoute} from './protocol.ts';
+import {readExtraction} from './extraction_query.ts';
+import {stopExtraction} from './extraction_stop.ts';
+import {ExtractionAuthority} from './extraction_authority.ts';
+import {AVAILABILITY_RESPONSE_V2} from '../../contracts/intake_reception_v2.ts';
 import { IntakeAuthority, type Admission } from './authority.ts';
 import { intakeConfig, RECEPTION_BOUNDS, type IntakeConfig } from './config.ts';
-import { IntakeFailure, receptionCanonical, type ReceptionRequest } from './protocol.ts';
+import { IntakeFailure, IntakeRepresentationFailure, receptionCanonical, type ReceptionRequest } from './protocol.ts';
 import { IntakeStore } from './postgres/store.ts';
-import { exact, newReception, phase, projection, selected } from './reception.ts';
+import { exact, newReception, phase, projection, selected,assertReceptionRepresentation } from './reception.ts';
 import type { OriginalPort, VerificationPort } from './ports.ts';
 import {privatePhase} from './private_phase.ts';
 
@@ -82,7 +87,7 @@ export class ReceptionService {
     const keys=[...(request.route==='reserve_reception'||request.route==='resume_reception'?['intake:quota']:[]),
       request.parameters.id?'intake:reception:'+request.parameters.id:'intake:intention:'+sessionKey+':'+(request.clientKey??'query')];
     const admission=await this.authority.open(request,token,keys,onLoss,
-      ['profiles','reception','lookup_operation','original'].includes(request.route)?'inc03_intake_reader':'inc03_intake_runtime');
+      ['profiles','reception','lookup_operation','original','extraction'].includes(request.route)?'inc03_intake_reader':'inc03_intake_runtime');
     const db=admission.db;
     try {
       await this.authority.beforeMetadata(admission,request.route);
@@ -90,6 +95,7 @@ export class ReceptionService {
       if(request.route==='lookup_operation')return await this.lookup(admission,request,body);
       if(request.route==='reserve_reception')return await this.reserve(admission,request,body);
       if(!uuidPattern.test(request.parameters.id??''))throw new IntakeFailure(404);
+      if(request.route==='extraction')return await readExtraction(this,admission,request);
       const originalContext=request.route==='original'?await this.authority.beforeOriginalSelection(admission):undefined;
       const {reception,attempt}=await selected(db,request.parameters.id,admission.session.account_id,originalContext);
       this.hooks.selection?.({origin:'reception-selection-boundary',receptionId:reception.id,principal:admission.session.account_id,
@@ -99,7 +105,7 @@ export class ReceptionService {
       if(request.route==='reception') {
         await this.authority.resolve(admission,'reception',undefined,reception);
         await this.evidence(admission,request.route,'query',{operationId:operation.id,receptionId:reception.id});
-        return await this.prepared(admission,request,200,await projection(db,reception,attempt,operation.id),operation.id,{receptionId:reception.id});
+        return await this.prepared(admission,request,200,await projection(db,reception,attempt,operation.id,request.representation),operation.id,{receptionId:reception.id});
       }
       if(request.route==='original')return await this.original(admission,request,reception,attempt,operation.id);
       const canonical=receptionCanonical(request,body);
@@ -110,8 +116,9 @@ export class ReceptionService {
         if(committed)return await this.known(admission,request,committed,canonical,'existing-reception-effect');
       }
       await this.authority.resolve(admission,request.route,undefined,reception,phase(admission,reception,attempt));
+      await assertReceptionRepresentation(db,reception.id,request.representation);
       if(request.route==='finalize_reception')return await this.finalize(admission,request,body,reception,attempt,canonical);
-      if(request.route==='cancel_reception')return await this.cancel(admission,request,body,reception,attempt,canonical);
+      if(request.route==='cancel_reception')return await this.cancel(admission,request,body,reception,attempt,canonical,token,onLoss);
       if(request.route==='resume_reception')return await this.resume(admission,request,body,reception,attempt,canonical);
       throw new IntakeFailure(400);
     }catch(error){await db.close();throw error;}
@@ -141,7 +148,7 @@ export class ReceptionService {
       outcome:compatible?'compatible':'incompatible',effectId:receipt?.effect_id??null,receiptId:receipt?.id??null,observedAtMs:Date.now()});
     if(!compatible)throw new IntakeFailure(409);
     await this.evidence(admission,request.route,'query',{operationId:intention.id,receptionId:reception.id});
-    return this.prepared(admission,request,200,await projection(admission.db,reception,attempt,intention.id),intention.id,{receptionId:reception.id});
+    return this.prepared(admission,request,200,await projection(admission.db,reception,attempt,intention.id,request.representation),intention.id,{receptionId:reception.id});
   }
   async insertIntention(admission:Admission,request:ReceptionRequest,canonical:string,receptionId:string,id=randomUUID(),effectId:string|null=null) {
     await admission.db.query('INSERT INTO $INTAKE.intention VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)',
@@ -167,7 +174,7 @@ export class ReceptionService {
     await this.insertAttempt(admission,attempt);
     await this.insertIntention(admission,request,canonical,r.id,operationId);
     await this.clock(admission,'reservation-commit',request.route);
-    return this.prepared(admission,request,202,await projection(admission.db,r,attempt,operationId),operationId,{receptionId:r.id});
+    return this.prepared(admission,request,202,await projection(admission.db,r,attempt,operationId,request.representation),operationId,{receptionId:r.id});
   }
   async insertAttempt(admission:Admission,a:any) {
     await admission.db.query('INSERT INTO $INTAKE.attempt VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)',
@@ -190,10 +197,12 @@ export class ReceptionService {
   async profiles(admission:Admission,request:ReceptionRequest) {
     await this.authority.resolve(admission,'profiles');
     const rows=(await admission.db.query('SELECT * FROM intake_control.profile ORDER BY format')).rows;
+    const available=this.config.extraction==='intake-execution/1'?await new ExtractionAuthority(this.config).availability(admission,rows):{};
     const profiles=rows.filter(row=>row.revealable).map(row=>({format_profile:row.format,configuration:row.configuration,
-      original_bytes:RECEPTION_BOUNDS.originalBytes,reception_available:row.reception_enabled,processing_available:false}));
-    const body={profile:'intake/1',representation:'intake-availability/1',profiles};
-    if(!AVAILABILITY_RESPONSE(body))throw new IntakeFailure(503);
+      original_bytes:RECEPTION_BOUNDS.originalBytes,reception_available:row.reception_enabled,processing_available:available[row.format]??false}));
+    if(request.representation!==2&&profiles.some(row=>row.processing_available))throw new IntakeRepresentationFailure();
+    const body={profile:'intake/1',representation:request.representation===2?'intake-availability/2':'intake-availability/1',profiles};
+    if(!(request.representation===2?AVAILABILITY_RESPONSE_V2:AVAILABILITY_RESPONSE)(body))throw new IntakeFailure(503);
     await this.evidence(admission,request.route,'query');
     return this.prepared(admission,request,200,body,null);
   }
@@ -212,12 +221,12 @@ export class ReceptionService {
     const {reception,attempt}=await selected(admission.db,row.reception_id,admission.session.account_id);
     await this.authority.resolve(admission,'lookup_operation',undefined,reception);
     await this.evidence(admission,request.route,'query',{operationId:row.id,receptionId:reception.id});
-    return this.prepared(admission,request,200,await projection(admission.db,reception,attempt,row.id),row.id,{receptionId:reception.id});
+    return this.prepared(admission,request,200,await projection(admission.db,reception,attempt,row.id,request.representation),row.id,{receptionId:reception.id});
   }
   async finalize(admission:Admission,request:ReceptionRequest,body:any,reception:any,attempt:any,canonical:string) {
     const prior=(await admission.db.query('SELECT * FROM $INTAKE.receipt WHERE reception_id=$1',[reception.id])).rows[0];
     if(prior){await this.authority.resolve(admission,'lookup_operation',undefined,reception);return this.prepared(admission,request,200,
-      await projection(admission.db,reception,attempt,prior.operation_id),prior.operation_id,{receptionId:reception.id});}
+      await projection(admission.db,reception,attempt,prior.operation_id,request.representation),prior.operation_id,{receptionId:reception.id});}
     this.expected(body,reception,attempt);
     if(reception.stopped||reception.state!=='staged'||attempt.state!=='sealed')throw new IntakeFailure(409);
     const artifact=(await admission.db.query('SELECT * FROM $INTAKE.artifact WHERE id=$1 AND reception_id=$2 AND generation=$3',
@@ -254,7 +263,7 @@ export class ReceptionService {
     reception.state='received';reception.revision++;
     await this.hooks.barrier?.('before_receipt_commit',{route:request.route,receptionId:reception.id,operationId:id});
     await this.clock(admission,'receipt-commit',request.route);
-    const result=await this.prepared(admission,request,200,await projection(admission.db,reception,attempt,id),id,{receptionId:reception.id,artifactId:artifact.id,generation:artifact.generation});
+    const result=await this.prepared(admission,request,200,await projection(admission.db,reception,attempt,id,request.representation),id,{receptionId:reception.id,artifactId:artifact.id,generation:artifact.generation});
     await this.hooks.barrier?.('after_receipt_commit',{route:request.route,receptionId:reception.id,operationId:id});
     return result;
   }
@@ -263,14 +272,16 @@ export class ReceptionService {
     if(body.original&&(body.original.id!==attempt.artifact_id||body.original.generation!==attempt.generation||body.original.bytes!==reception.declaration.bytes||body.original.sha256!==reception.declaration.sha256))throw new IntakeFailure(409);
     if(body.format_profile&&body.format_profile!==reception.format)throw new IntakeFailure(409);
   }
-  async cancel(admission:Admission,request:ReceptionRequest,body:any,reception:any,attempt:any,canonical:string) {
+  async cancel(admission:Admission,request:ReceptionRequest,body:any,reception:any,attempt:any,canonical:string,token:string|null,onLoss:()=>void) {
     this.expected(body,reception,attempt);
+    const extractionStop=await stopExtraction(this,admission,request,body,reception,attempt,canonical,token,onLoss);
+    if(extractionStop)return extractionStop;
     await this.fenceAttempt(admission,request,reception,attempt);
     await admission.db.query('SELECT $INTAKE.stop_reception($1,$2,$3)',[reception.id,attempt.generation,reception.revision]);
     reception.stopped=true;reception.state='stopped';reception.revision++;
     const id=await this.insertIntention(admission,request,canonical,reception.id);
     await this.clock(admission,'stop-commit',request.route);
-    return this.prepared(admission,request,200,await projection(admission.db,reception,attempt,id),id,{receptionId:reception.id});
+    return this.prepared(admission,request,200,await projection(admission.db,reception,attempt,id,request.representation),id,{receptionId:reception.id});
   }
   async resume(admission:Admission,request:ReceptionRequest,body:any,reception:any,attempt:any,canonical:string) {
     this.expected(body,reception,attempt);
@@ -285,7 +296,7 @@ export class ReceptionService {
     reception.generation++;reception.revision++;reception.state='reserved';
     const id=await this.insertIntention(admission,request,canonical,reception.id);
     await this.clock(admission,'generation-commit',request.route);
-    return this.prepared(admission,request,202,await projection(admission.db,reception,next,id),id,{receptionId:reception.id});
+    return this.prepared(admission,request,202,await projection(admission.db,reception,next,id,request.representation),id,{receptionId:reception.id});
   }
   async fenceAttempt(admission:Admission,request:ReceptionRequest,reception:any,attempt:any) {
     const fenceEvidence=await this.evidence(admission,request.route,'effect',{receptionId:reception.id,artifactId:attempt.artifact_id,generation:attempt.generation});

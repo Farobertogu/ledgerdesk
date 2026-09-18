@@ -23,9 +23,12 @@ import {transactionCases} from './transaction_cases.mjs';
 import {deliveryOrderCases} from './delivery_order_cases.mjs';
 import {observationFailureCases} from './observation_failure_cases.mjs';
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
-test('T02 real identity, grant, durable reception and protected original', {timeout:180000}, async t=>{
+const runtimePermissionIds=process.env.LEDGERDESK_INTAKE_EXTRACTION==='1'?[...permissionIds,'intake_processing','intake_extraction_read']:permissionIds;
+// The separate extraction temporal group has fourteen real worker/effect cases
+// and seven declared five-second expiry windows; older groups keep their bound.
+test('T02 real identity, grant, durable reception and protected original', {timeout:process.env.LEDGERDESK_EXTRACTION_CASES==='temporal'?300000:180000}, async t=>{
   console.log('INTAKE_RUNTIME_IDENTITY '+JSON.stringify({uid:process.getuid(),gid:process.getgid(),groups:process.getgroups()}));
-  const env=await journeyEnvironment({facultiesTransform:faculties=>[...faculties,...permissionIds.map(permission_id=>({
+  const env=await journeyEnvironment({facultiesTransform:faculties=>[...faculties,...runtimePermissionIds.map(permission_id=>({
     permission_id,exercise_or_grant:'grant',scope_ref:'organisation',support_ref:'domain',permission_revision:1,scope_revision:1,support_revision:1,expires_at:Date.now()+3500000}))]});
   let terminal;const messages=[],storage=[],comparisons=[],barriers=[],transfers=[],privilegeProbes=[],incomplete=[],admissions=[],diagnostics=[];
   let barrierAction=async()=>{};
@@ -35,7 +38,7 @@ test('T02 real identity, grant, durable reception and protected original', {time
     const ended=await administration('complete',{scope:'runtime-cleanup'});
     assert.equal(ended.ok,true);
   }});
-  for(const permission of permissionIds)await env.admin.query('INSERT INTO access_trial.permission_definition VALUES($1,$2,$3,1,true,false)',[permission,permission,'application']);
+  for(const permission of runtimePermissionIds)await env.admin.query('INSERT INTO access_trial.permission_definition VALUES($1,$2,$3,1,true,false)',[permission,permission,'application']);
   const before=(await env.admin.query('SELECT * FROM material_trial.material')).rows;
   await env.admin.query(readFileSync(new URL('../../../src/server/intake/postgres/001_reception.sql',import.meta.url),'utf8'));
   await env.admin.query(readFileSync(new URL('../../../src/server/intake/postgres/002_data.sql',import.meta.url),'utf8'));
@@ -46,7 +49,8 @@ test('T02 real identity, grant, durable reception and protected original', {time
   const intake={profile:'intake-runtime/1',synthetic:true,enabled:true,connectionString:`postgresql://inc03_intake_runtime:${runtimePassword}@127.0.0.1:55432/inc02_synthetic`,
     readerConnectionString:`postgresql://inc03_intake_reader:${readerPassword}@127.0.0.1:55432/inc02_synthetic`,expectedPort:55432,
     deployment:'inc02-synthetic',namespace:'intake_trial',controlSource:'live-control',incarnation:'intake-runtime-1',generation:1,
-    catalog,configuration,limits,brokerSocket:'/run/intake-t02/objects/channel.sock',verifierSocket:'/run/intake-t02/verifier/channel.sock',digestKeyVersion:1};
+    catalog,configuration,limits,brokerSocket:'/run/intake-t02/objects/channel.sock',verifierSocket:'/run/intake-t02/verifier/channel.sock',digestKeyVersion:1,
+    ...(process.env.LEDGERDESK_INTAKE_EXTRACTION==='1'?{extraction:'intake-execution/1'}:{})};
   const hooks={storage:event=>storage.push(event),comparison:event=>comparisons.push(event),
     request:event=>requestEvents.push(event),incumbentComparison:event=>incumbentComparisons.push(event),
     evidence:event=>evidenceInserts.push(event),
@@ -89,7 +93,7 @@ test('T02 real identity, grant, durable reception and protected original', {time
   const proof=messages.at(-1);assert.equal((await post('/activation/complete',{challenge_id:proof.challenge_id,code:proof.code,password},activation)).status,200);
   const master=await login('master@example.test');
   const issued=await post('/invitations',{email:recipientEmail,family:'application',expires_at:Date.now()+300000,
-    grants:permissionIds.map(permission_id=>({permission_id,exercise_or_grant:'exercise',scope_ref:'organisation',support_ref:'domain'}))},master);
+    grants:runtimePermissionIds.map(permission_id=>({permission_id,exercise_or_grant:'exercise',scope_ref:'organisation',support_ref:'domain'}))},master);
   assert.equal(issued.status,200,JSON.stringify(issued.body));
   const receiving=await flow();assert.equal((await post(`/invitations/${issued.body.invitation_id}/challenges`,{},receiving)).status,200);
   const challenge=messages.at(-1),verified=await post(`/invitation-proofs/${challenge.challenge_id}/verify`,{code:challenge.code},receiving);
@@ -100,11 +104,110 @@ test('T02 real identity, grant, durable reception and protected original', {time
   await t.test('identity and permissions originate in the existing accepted invitation',async()=>{
     const grants=(await env.admin.query(`SELECT g.*,a.invitation_id FROM access_trial.grant_record g
       JOIN access_trial.acceptance a ON a.id=g.acceptance_id WHERE a.invitation_id=$1`,[issued.body.invitation_id])).rows;
-    assert.equal(grants.length,4);assert.ok(grants.every(g=>g.faculty==='exercise'&&g.acceptance_id));
+    assert.equal(grants.length,runtimePermissionIds.length);assert.ok(grants.every(g=>g.faculty==='exercise'&&g.acceptance_id));
     assert.deepEqual((await env.admin.query('SELECT * FROM material_trial.material')).rows,before);
   });
   if(process.env.LEDGERDESK_INTAKE_BROWSER==='1'){
     await browserRoundTrip(t,{env,terminal,setBarrier:action=>{barrierAction=action;}});return;
+  }
+  if(process.env.LEDGERDESK_INTAKE_EXTRACTION==='1'){
+    if(process.env.LEDGERDESK_EXTRACTION_CASES==='associations'){
+      const {extractionAssociationCases}=await import('../extraction/runtime_associations.mjs');
+      await extractionAssociationCases(t,{env,intake,client,request});return;
+    }
+    if(process.env.LEDGERDESK_EXTRACTION_CASES==='lineage'){
+      const {extractionLineageCases}=await import('../extraction/runtime_lineage.mjs');
+      await extractionLineageCases(t,{env,intake,client,request});return;
+    }
+    if(process.env.LEDGERDESK_EXTRACTION_CASES==='browser-disconnect'){
+      const {extractionBrowserDisconnectCases}=await import('../extraction/runtime_browser_disconnect.mjs');
+      await extractionBrowserDisconnectCases(t,{env,intake,client,request});return;
+    }
+    if(process.env.LEDGERDESK_EXTRACTION_CASES==='extraction-privileges'){
+      const {extractionPrivilegeCases}=await import('../extraction/runtime_privileges.mjs');
+      await extractionPrivilegeCases(t,{env,intake,client,request});return;
+    }
+    if(process.env.LEDGERDESK_EXTRACTION_CASES==='compatibility'){
+      const {extractionCompatibilityCases}=await import('../extraction/runtime_compatibility.mjs');
+      await extractionCompatibilityCases(t,{env,intake,client,request,setBarrier:action=>{barrierAction=action;}});return;
+    }
+    if(['authority-original','authority-result','authority-effect'].includes(process.env.LEDGERDESK_EXTRACTION_CASES)){
+      const {extractionAuthorityMatrix}=await import('../extraction/runtime_authority_matrix.mjs');
+      await extractionAuthorityMatrix(t,{env,intake,client,request,boundary:process.env.LEDGERDESK_EXTRACTION_CASES.slice('authority-'.length)});return;
+    }
+    if(process.env.LEDGERDESK_EXTRACTION_CASES==='format-negatives'){
+      const {extractionFormatNegativeCases}=await import('../extraction/runtime_format_negatives.mjs');
+      await extractionFormatNegativeCases(t,{env,intake,client,request});return;
+    }
+    if(process.env.LEDGERDESK_EXTRACTION_CASES==='resources'){
+      const {extractionResourceCases}=await import('../extraction/runtime_resources.mjs');
+      await extractionResourceCases(t,{env,intake,client,request});return;
+    }
+    if(process.env.LEDGERDESK_EXTRACTION_CASES==='containment'){
+      const {extractionContainmentCases}=await import('../extraction/runtime_containment.mjs');
+      await extractionContainmentCases(t,{env,intake,client,request});return;
+    }
+    if(process.env.LEDGERDESK_EXTRACTION_CASES==='controller-loss'){
+      const {extractionControllerLossCases}=await import('../extraction/runtime_controller_loss.mjs');
+      await extractionControllerLossCases(t,{env,intake,client,request});return;
+    }
+    if(process.env.LEDGERDESK_EXTRACTION_CASES==='private-loss'){
+      const {extractionPrivateLossCases}=await import('../extraction/runtime_private_loss.mjs');
+      await extractionPrivateLossCases(t,{env,intake,client,request});return;
+    }
+    if(process.env.LEDGERDESK_EXTRACTION_CASES==='capacity'){
+      const {extractionCapacityCases}=await import('../extraction/runtime_capacity.mjs');
+      await extractionCapacityCases(t,{env,intake,client,request,admissions});return;
+    }
+    if(process.env.LEDGERDESK_EXTRACTION_CASES==='semantics'){
+      const {extractionSemanticCases}=await import('../extraction/runtime_semantics.mjs');
+      await extractionSemanticCases(t,{env,intake,client,request});return;
+    }
+    if(process.env.LEDGERDESK_EXTRACTION_CASES==='mixed'){
+      const {extractionMixedCases}=await import('../extraction/runtime_mixed.mjs');
+      await extractionMixedCases(t,{env,intake,client,request});return;
+    }
+    if(process.env.LEDGERDESK_EXTRACTION_CASES==='storage-recovery'){
+      const {extractionStorageRecoveryCases}=await import('../extraction/runtime_storage_recovery.mjs');
+      await extractionStorageRecoveryCases(t,{env,intake,client,request});return;
+    }
+    if(process.env.LEDGERDESK_EXTRACTION_CASES==='restore'){
+      const {extractionRestoreCases}=await import('../extraction/runtime_restore.mjs');
+      await extractionRestoreCases(t,{env,intake,client,request,post,master,flow,messages,
+        digestSession:value=>terminal.service.digest(value),restart:async next=>{
+          await terminal.close();terminal=await startApplication({config:env.config,reading:env.reading,tls:env.tls,
+            mailbox:{send:async message=>messages.push(message)},intake:next,intakeHooks:hooks});
+        }});return;
+    }
+    if(process.env.LEDGERDESK_EXTRACTION_CASES==='retry'){
+      const {extractionRetryGroup}=await import('../extraction/runtime_retry.mjs');
+      await extractionRetryGroup(t,{env,intake,client,request});return;
+    }
+    if(process.env.LEDGERDESK_EXTRACTION_CASES==='restart'){
+      const {extractionRestartCases}=await import('../extraction/runtime_restart.mjs');
+      await extractionRestartCases(t,{env,intake,client,request,application:{crash:()=>terminal.crash(),restart:async next=>{
+        await terminal.close();terminal=await startApplication({config:env.config,reading:env.reading,tls:env.tls,
+          mailbox:{send:async message=>messages.push(message)},intake:next,intakeHooks:hooks});return terminal.processRef;
+      }}});return;
+    }
+    if(process.env.LEDGERDESK_EXTRACTION_CASES==='budgets'){
+      const {extractionBudgetCases}=await import('../extraction/runtime_budgets.mjs');
+      await extractionBudgetCases(t,{env,intake,client,request});return;
+    }
+    if(process.env.LEDGERDESK_EXTRACTION_CASES==='fencing'){
+      const {extractionFencingCases}=await import('../extraction/runtime_fencing.mjs');
+      await extractionFencingCases(t,{env,intake,client,request,clientCalls,setBarrier:action=>{barrierAction=action;}});return;
+    }
+    if(process.env.LEDGERDESK_EXTRACTION_CASES==='temporal'){
+      const {extractionTemporalCases}=await import('../extraction/runtime_temporal.mjs');
+      await extractionTemporalCases(t,{env,intake,client,request,requestEvents,clientCalls,setBarrier:action=>{barrierAction=action;}});return;
+    }
+    if(process.env.LEDGERDESK_EXTRACTION_CASES==='formats'){
+      const {extractionFormatCases}=await import('../extraction/runtime_formats.mjs');
+      await extractionFormatCases(t,{env,intake,client,request,terminal});return;
+    }
+    const {extractionRuntimeCases}=await import('../extraction/runtime_cases.mjs');
+    await extractionRuntimeCases(t,{env,intake,client,request,post,master,login});return;
   }
   if(process.env.LEDGERDESK_INTAKE_COMPLETION){
     await completionCases(t,{env,client,master,request,post,flow,messages,login,storage,selections});return;

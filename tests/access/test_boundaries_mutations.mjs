@@ -14,6 +14,17 @@ test('access foundation stays separate from framework, DB, legacy identity and o
   assert.ok(accessSourceViolations('src/app/page.tsx', "import x from '@/server/access/transport'").length > 0);
   assert.deepEqual(accessSourceViolations('src/contracts/access.ts', "// import x from 'next'\nconst value = 'pg';"), []);
 });
+test('extraction admission reuses only the named authority and canonical bridges', () => {
+  const file = 'src/server/intake/extraction_authority.ts';
+  for (const target of ['../access/invitation_authority.ts', '../../contracts/access_canonical.ts']) {
+    assert.deepEqual(accessSourceViolations(file, `import x from '${target}'`), []);
+    assert.ok(accessSourceViolations('src/server/intake/extraction_output.ts', `import x from '${target}'`).length > 0);
+  }
+  for (const target of ['../access/service.ts', '../access/postgres/store.ts', '../access/config.ts']) {
+    assert.ok(accessSourceViolations(file, `import x from '${target}'`).length > 0);
+  }
+  assert.ok(accessSourceViolations('src/server/access/service.ts', "import x from '../intake/extraction_authority.ts'").length > 0);
+});
 async function moduleFrom(relative, before, after) {
   const url = new URL(`../../${relative}`, import.meta.url);
   let source = readFileSync(url, 'utf8');

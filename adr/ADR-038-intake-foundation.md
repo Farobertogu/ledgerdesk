@@ -116,3 +116,84 @@ evidence within those limits; offline checker self-tests are not service tests.
 
 See [the reception contract](../docs/intake-contract.md) and
 [its implementation/evidence status](../docs/INC-03-T02.md).
+
+### Bounded extraction — proposed 2026-09-15
+
+Amendment status: proposed. Decision date: pending acceptance.
+
+Add separately admitted extraction after receipt; keep receipt, worker dispatch,
+result acceptance and protected disclosure as different effects. Use the closed
+`intake-worker/3` channel and explicit `intake-reception/2` and
+`intake-availability/2` projections without changing stored `intake/1` intention
+semantics. A promoted job cannot be reported as historical non-started work.
+
+Reuse the identified isolated text/Markdown, CSV and bounded XLSX adapters.
+Current authority must precede protected body reads and every new dependent
+effect. Channel binding and integrity do not certify semantic fidelity. Keep
+the original generation separate from retry generation; reconcile uncertain
+and known effects before new execution, and conserve failed/partial/unknown
+observations honestly. No confirmed preparation or candidate is created here.
+
+This amendment is not accepted by implementation or a passing contract test.
+The complete worker/service path, resource measurements, coupled regression
+and independent review remain required. R24, browser follow-ups, real-data and
+production restrictions are unchanged.
+
+The worker carries the observation object directly, not an escaped nested JSON
+string. Its exact complete reply remains protected raw evidence. Version 2 is
+not an implicit alternate decoder. The bounded extraction transport reserves
+40 MiB for raw stdout, 16 MiB for normalized content, 56 MiB in total, a 64 KiB
+failure projection within that normalized allocation, an 80 MiB private frame,
+and 16 MiB plus 64 KiB for the protected HTTP projection. Original, archive,
+sheet, cell and parser-execution limits do not change. Preparation quotas and
+historical profiles do not inherit these transport-specific bounds.
+
+The trusted private transport has a separate 1 GiB cgroup with no additional
+swap, 256 MiB V8 heap per server/relay and the existing CPU/PID limits. This
+accounts for simultaneous framed input, base64 decoding, relay serialization,
+bounded artifact bytes and charged file cache. The analyzer remains at 512 MiB
+and 128 MiB V8 heap. The effective settings and actual cgroup high-water/counter
+observations must accompany full-path results; a passing sample is not a proof
+that every admissible object completes below a universal memory peak.
+
+A completed extraction whose normalization exceeds its bound retains its raw
+observation and a separately identified normalization failure. A supervisor
+output limit remains the primary cause even when truncation makes the retained
+bytes undecodable. Neither an intact artifact nor a larger transport allocation
+authenticates its provenance or demonstrates semantic completeness. Physical
+budget and coupled-consumer evidence remain implementation exit conditions.
+
+The synthetic populated restore retains exact historical output rows against
+an independently stored control cut. It does not fabricate a new sealing PID,
+disable association triggers or restore access/control state from the archive.
+Restored objects use their own physical location and a current namespace/anchor
+binding, while original manifests and accepted effect identities stay intact.
+This is not an automatic import endpoint or a universal backup-capacity claim.
+
+Actual process-death experiments distinguish loss before SQL staging, loss after
+staging and loss of the acceptance reply. Reconciliation of a known result uses
+current query authority without re-execution. An unconfirmed predecessor cannot
+become a new attempt just because its owner process ended. Separate participant
+recovery and final coupled verification remain required before review closure.
+
+#### Correction clarification — 2026-09-19, still proposed
+
+Reserve the finite 56 MiB per-attempt conservation obligation atomically before
+protected input or launch, within a 256 MiB extraction aggregate. Retain pending,
+uncertain and sealed-before-SQL obligations; settle durable actual bytes once,
+including failed results. Do not erase history to admit another attempt. This
+accounting is not an OS disk quota, analyzer scratch or original-object budget.
+
+Use compact exact text/ranges for dense text normalization rather than expanding
+transport limits. Provide a closed useful metadata-only view without reading
+protected bodies; keep original and extraction permissions independent. Exercise
+nonempty resources/indispensable relations through a labeled instrumented
+producer and independent association expectations, not a claim of native image
+extraction or a T04 preparation producer.
+
+Actual controller loss and unresolved private-participant replacement remain
+fail-closed when closure is unconfirmed. A reachable replacement cannot inherit
+authority or invent a stopped predecessor. The qualified L03 mechanism is reused;
+its retained result is not qualification of the current T03 image on this local
+host. That environment-specific execution remains explicit. These clarifications
+do not accept this amendment, close T03/R24 or authorize publication or real data.

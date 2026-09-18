@@ -15,6 +15,7 @@ const element:Rule=v=>closed({id:identifier,kind:choice('text'),text:text(104857
 const relation=closed({id:identifier,from:identifier,to:identifier,role:choice('indispensable','context'),scope:text(512),origin:choice('observed','prepared','proposed')});
 const incident=closed({id:identifier,component:identifier,cause:choice('unreadable','route_unoffered','technical_failure'),detail:text(512)});
 const component=closed({id:identifier,execution:choice('completed','failed','not_attempted'),coverage:choice('complete','partial','unknown','none'),fidelity:choice('checked','unchecked','disputed'),limitations:array(identifier),incidents:array(identifier)});
+export {element as INTAKE_ELEMENT,relation as INTAKE_RELATION,component as INTAKE_COMPONENT};
 const difference=closed({id:identifier,before:exactReference,after:exactReference,method:choice('exact_selection','correction','synthesis'),reason:text(2048),affected:array(identifier)},{actor:identifier,recorded_at:integer});
 export const PREPARATION_SHAPE=closed({
   profile:choice(PREPARED_PROFILE),preparation:exactReference,inputs:array(exactReference),
