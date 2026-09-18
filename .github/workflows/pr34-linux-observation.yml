@@ -1,0 +1,165 @@
+name: PR 34 bounded Linux observation
+'on':
+  push:
+    branches: [diagnostic/INC-03-pr34-linux]
+permissions:
+  contents: read
+defaults:
+  run:
+    shell: bash
+env:
+  LEDGERDESK_READING_TRIAL: '0'
+  LEDGERDESK_DEV_IDENTITY: '0'
+  NEXT_TELEMETRY_DISABLED: '1'
+# Temporary causal observation only. This does not replace required acceptance CI.
+jobs:
+  authority-original:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 1a740f4e5003558912e9196dcb24f5e7de4b657f
+          persist-credentials: false
+      - name: Verify the published source
+        run: test "$(git rev-parse HEAD)" = 1a740f4e5003558912e9196dcb24f5e7de4b657f
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: docker pull postgres:16
+      - name: Execute original admission once
+        run: node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases authority-original
+      - name: Observe retained original access and producer result
+        if: always()
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import path from 'node:path';
+          const base='test-results/intake-extraction';
+          const read=p=>{try{return JSON.parse(fs.readFileSync(p,'utf8'));}catch{throw Error('Required observation unavailable');}};
+          let observed=0;
+          const runs=(fs.existsSync(base)?fs.readdirSync(base,{withFileTypes:true}):[]).filter(e=>e.isDirectory()&&
+            (!process.env.PR34_RUN_NAME||e.name===process.env.PR34_RUN_NAME)&&fs.existsSync(path.join(base,e.name,'manifest.json'))&&read(path.join(base,e.name,'manifest.json')).group==='extraction');
+          if(runs.length!==1)throw Error('Expected exactly one extraction run');
+          for(const entry of runs){
+            const bridge=path.join(base,entry.name,'worker-bridge');if(!fs.existsSync(bridge))continue;
+            for(const child of fs.readdirSync(bridge,{withFileTypes:true}).filter(e=>e.isDirectory())){
+              const dir=path.join(bridge,child.name),rawPath=path.join(dir,'raw.bin');
+              if(!fs.existsSync(path.join(dir,'original')))continue;
+              let raw=null;
+              if(fs.existsSync(rawPath)){const text=fs.readFileSync(rawPath,'utf8');try{raw=JSON.parse(text);}catch{raw=null;}}
+              const stat=fs.statSync(path.join(dir,'original'));
+              const event=fs.readdirSync(dir).filter(n=>/^event-\d+\.json$/.test(n)).map(n=>read(path.join(dir,n))).find(e=>e.kind==='running');
+              const code=raw?.outcome?.producer_code;
+              console.log(JSON.stringify({observation:++observed,hostUid:stat.uid,hostGid:stat.gid,mode:(stat.mode&0o777).toString(8),workerUid:event?.effective?.uid??null,
+                replyUnavailableOrInvalid:raw===null,produced:raw?.outcome?.kind==='produced',failed:raw?.outcome?.kind==='failed',
+                producerCode:['EACCES','EPERM','ENOENT','input_identity_mismatch','unknown'].includes(code)?code:null,
+                otherStructuredCode:typeof code==='string'&&!['EACCES','EPERM','ENOENT','input_identity_mismatch','unknown'].includes(code)}));
+            }
+          }
+          console.log(JSON.stringify({workerObservations:observed,observationMissing:observed===0}));
+          NODE
+  schema:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 1a740f4e5003558912e9196dcb24f5e7de4b657f
+          persist-credentials: false
+      - name: Verify the published source
+        run: test "$(git rev-parse HEAD)" = 1a740f4e5003558912e9196dcb24f5e7de4b657f
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: docker pull postgres:16
+      - name: Execute schema once
+        run: node ci/intake_extraction_check.mjs --group schema
+      - name: Observe the first SQL connection after readiness
+        if: always()
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import path from 'node:path';
+          const base='test-results/intake-extraction';
+          const read=p=>{try{return JSON.parse(fs.readFileSync(p,'utf8'));}catch{throw Error('Required observation unavailable');}};
+          let observed=0;
+          const runs=(fs.existsSync(base)?fs.readdirSync(base,{withFileTypes:true}):[]).filter(e=>e.isDirectory()&&
+            (!process.env.PR34_RUN_NAME||e.name===process.env.PR34_RUN_NAME)&&fs.existsSync(path.join(base,e.name,'manifest.json'))&&read(path.join(base,e.name,'manifest.json')).group==='schema');
+          if(runs.length!==1)throw Error('Expected exactly one schema run');
+          for(const entry of runs){
+            const dir=path.join(base,entry.name),file=path.join(dir,'manifest.json');if(!fs.existsSync(file))continue;
+            const m=read(file);if(m.group!=='schema')continue;
+            const commands=m.commands.map(c=>read(path.join(dir,c.file))),first=commands.find(c=>c.args?.includes('psql'));
+            const patterns=['database "inc02_synthetic" does not exist','Connection refused','No such file or directory','the database system is starting up','the database system is shutting down','server closed the connection unexpectedly'];
+            const stderr=first?.stderr??'';
+            console.log(JSON.stringify({observation:++observed,readinessExits:commands.filter(c=>c.args?.includes('pg_isready')).map(c=>c.code),
+              firstSqlExit:first?.code??null,stderrBytes:Buffer.byteLength(stderr),
+              matchedLiteralErrors:patterns.filter(p=>stderr.includes(p)),
+              otherErrorPresent:stderr.length>0&&!patterns.some(p=>stderr.includes(p))}));
+          }
+          console.log(JSON.stringify({schemaObservations:observed,observationMissing:observed===0}));
+          NODE
+  finite-quota:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 1a740f4e5003558912e9196dcb24f5e7de4b657f
+          persist-credentials: false
+      - name: Verify the published source
+        run: test "$(git rev-parse HEAD)" = 1a740f4e5003558912e9196dcb24f5e7de4b657f
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm ci --prefix ci/intake/reception --ignore-scripts --no-audit --no-fund
+      - name: Execute finite quota once
+        run: node ci/intake_t02_check.mjs --group finite-quota
+      - name: Observe the failing operation and retained child result
+        if: always()
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import path from 'node:path';
+          const base='test-results/intake-t02';
+          const read=p=>{try{return JSON.parse(fs.readFileSync(p,'utf8'));}catch{throw Error('Required observation unavailable');}};
+          let observed=0;
+          const runs=(fs.existsSync(base)?fs.readdirSync(base,{withFileTypes:true}):[]).filter(e=>e.isDirectory()&&
+            (!process.env.PR34_RUN_NAME||e.name===process.env.PR34_RUN_NAME)&&fs.existsSync(path.join(base,e.name,'manifest.json'))&&read(path.join(base,e.name,'manifest.json')).group==='finite-quota');
+          if(runs.length!==1)throw Error('Expected exactly one finite-quota run');
+          for(const entry of runs){
+            const dir=path.join(base,entry.name),file=path.join(dir,'manifest.json');if(!fs.existsSync(file))continue;
+            const m=read(file);if(m.group!=='finite-quota')continue;
+            for(const c of m.commands.map(c=>read(path.join(dir,c.file)))){
+              if(!c.args?.includes('start')||!c.args?.includes('-a')||!c.stdout?.includes('T02 real identity'))continue;
+              console.log(JSON.stringify({observation:++observed,runtimeExit:c.code,interrupted:c.reason!=null}));
+              for(const line of c.stdout.split(/\r?\n/)){
+                const diagnostic=/^# INTAKE_DIAGNOSTIC (.+)$/.exec(line);
+                if(diagnostic){let d;try{d=JSON.parse(diagnostic[1]);}catch{throw Error('Required diagnostic unavailable');}
+                  console.log(JSON.stringify({status:Number.isInteger(d.status)?d.status:null,
+                    code:typeof d.code==='string'&&/^[0-9A-Z_]{1,40}$/.test(d.code)?d.code:null,
+                    locations:Array.isArray(d.locations)?d.locations.filter(s=>/^src\/server\/(?:intake|access)\/[a-z_./]+\.ts:\d+:\d+$/.test(s)):[]}));}
+                const numeric=/^\s*(expected|actual): (\d+)\s*$/.exec(line);
+                if(numeric)console.log(JSON.stringify({assertionField:numeric[1],value:Number(numeric[2])}));
+                const location=/tests\/intake\/t02\/finite_limits_cases\.mjs:(\d+):(\d+)/.exec(line);
+                if(location)console.log(JSON.stringify({finiteCaseLine:Number(location[1]),column:Number(location[2])}));
+              }
+            }
+            const events=path.join(dir,'objects/events.ndjson');
+            if(fs.existsSync(events))for(const line of fs.readFileSync(events,'utf8').trim().split(/\r?\n/).filter(Boolean)){
+              let e;try{e=JSON.parse(line);}catch{throw Error('Required child observation unavailable');}
+              if(e.origin!=='private-supervisor'||e.kind!=='closed'||e.action!=='fence')continue;
+              console.log(JSON.stringify({fenceExit:Number.isInteger(e.exitCode)?e.exitCode:null,
+                reason:['deadline','input-failed','spawn-failed','input-or-observation-failed','client-disconnected','output-limit','diagnostic-limit','observation-failed',null].includes(e.reason)?e.reason:'unclassified',
+                milliseconds:Number.isSafeInteger(e.closedAtMs)&&Number.isSafeInteger(e.startedAtMs)?e.closedAtMs-e.startedAtMs:null}));
+            }
+          }
+          console.log(JSON.stringify({runtimeObservations:observed,observationMissing:observed===0}));
+          NODE
