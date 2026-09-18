@@ -7,6 +7,7 @@ import {collectProcessOutput} from './intake/extraction/collector.mjs';
 import {dockerCommand} from './intake/extraction/launcher.mjs';
 import {schemaCases} from '../tests/intake/extraction/schema.mjs';
 import {extractionArguments,requireMemoryProof} from './intake/extraction/memory_qualification.mjs';
+import {schemaSql, schemaDatabase, schemaPassword, waitForSchemaDatabase} from './intake/extraction/schema_readiness.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const {group,required:qualifiedMemory}=extractionArguments(process.argv.slice(2));
@@ -49,26 +50,19 @@ async function schema() {
   await save('resource-intent.json', {runId, ...resource});
   const id = await command(['create', '--name', name, '--label', 'intake.t03.run=' + runId, '--network=none',
     '--memory=512m', '--memory-swap=512m', '--cpus=1', '--pids-limit=128', '--security-opt=no-new-privileges',
-    '--tmpfs', '/var/lib/postgresql/data:rw,nosuid,size=268435456', '-e', 'POSTGRES_DB=inc02_synthetic',
-    '-e', 'POSTGRES_PASSWORD=isolated-synthetic-schema-only', image.Id], {timeout: 60000});
+    '--tmpfs', '/var/lib/postgresql/data:rw,nosuid,size=268435456', '-e', 'POSTGRES_DB=' + schemaDatabase,
+    '-e', 'POSTGRES_PASSWORD=' + schemaPassword, image.Id], {timeout: 60000});
   resource.id = id;
   await command(['start', id]);
-  let ready = false;
-  for (let attempt = 0; attempt < 40; attempt++) {
-    try {await command(['exec', id, 'pg_isready', '-U', 'postgres', '-d', 'inc02_synthetic']); ready = true; break;}
-    catch {await new Promise(resolve => setTimeout(resolve, 100));}
-  }
-  if (!ready) throw Error('EXTRACTION_SCHEMA_DATABASE_NOT_READY');
-  const sql = input => command(['exec', '-i', id, 'psql', '-X', '-qAt', '-v', 'ON_ERROR_STOP=1', '-U', 'postgres', '-d', 'inc02_synthetic'], {input});
-  const version = await sql('SHOW server_version_num;');
-  if (Number(version) < 160000 || Number(version) >= 170000) throw Error('EXTRACTION_SCHEMA_PG_VERSION');
+  const sql = schemaSql(command, id);
+  const version = await waitForSchemaDatabase(sql);
   const result = await schemaCases({sql, observe: async item => {cases.push(item); console.log(JSON.stringify(item));}});
   await save('schema-result.json', {version, ...result});
 }
 async function units() {
   const args = ['--experimental-strip-types', '--test', 'tests/intake/extraction/collector.mjs',
     'tests/intake/extraction/interface.mjs', 'tests/intake/extraction/representations.mjs','tests/intake/extraction/output.mjs','tests/intake/extraction/private_contract.mjs','tests/intake/extraction/source_classification.mjs',
-    'tests/intake/extraction/memory_qualification.mjs'];
+    'tests/intake/extraction/memory_qualification.mjs', 'tests/intake/extraction/setup.mjs'];
   const child = spawn(process.execPath, args, {cwd: root, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe']});
   const output = collectProcessOutput(child.stdout, child.stderr, {outputBytes: 1048576, stop: () => child.kill()});
   const timer = setTimeout(() => output.terminate('unit_timeout'), 60000);
@@ -126,7 +120,7 @@ try {
     'ci/seam_check.mjs','src/alg/channels.ts','src/alg/escalation.ts','agents/triage/schema.ts','agents/gateway.ts',
     'ci/intake_l03_linux.mjs','ci/intake_l03_reference.mjs','ci/intake_l03_observer.mjs','ci/intake_kernel_origin.mjs','ci/l03_profile_hierarchy.mjs',
     'tests/intake/t01/reviewed/process-output.mjs','tests/intake/t01/probe.mjs','tests/intake/t01/l03_gate.mjs',
-    'tests/intake/extraction/memory_qualification.mjs']) await source(item);
+    'tests/intake/extraction/memory_qualification.mjs', 'tests/intake/extraction/setup.mjs']) await source(item);
   if (group === 'schema') await schema(); else if (group === 'worker') await worker(); else if(group==='composition')await composition();else await units();
   requireMemoryProof(qualifiedMemory,memoryImage,memoryProof);
   outcome = 'passed';

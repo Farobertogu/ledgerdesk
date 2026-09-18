@@ -3,6 +3,7 @@ import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {launchExtraction} from './launcher.mjs';
 import {loseControllerAfterLaunch} from './controller_loss.mjs';
+import {grantOriginalCopy} from './granted_original.mjs';
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 const uuid=value=>/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(value??'');
 
@@ -12,7 +13,7 @@ export function extractionHostBridge({broker,image,runId,directory,docker}){
   const control=(action,channel)=>docker(['exec',broker,'node','--experimental-strip-types','/work/ci/intake/extraction/bridge_cli.mjs',action,...(channel?[channel]:[])]);
   async function execute(item,abort){
     const hold=holdNext,inputFault=failInputNext,controllerLoss=loseControllerNext;holdNext=false;failInputNext=false;loseControllerNext=false;
-    const target=path.join(directory,item.channel);await fs.mkdir(target,{recursive:false});
+    const target=path.join(directory,item.channel);await fs.mkdir(target,{recursive:false,mode:0o700});
     await fs.writeFile(path.join(target,'request.json'),JSON.stringify(item,null,2),{flag:'wx'});
     const memoryBefore=process.memoryUsage().rss;let sampledPeakRss=memoryBefore,samples=0;
     const memoryTimer=setInterval(()=>{sampledPeakRss=Math.max(sampledPeakRss,process.memoryUsage().rss);samples++;},10);
@@ -20,11 +21,10 @@ export function extractionHostBridge({broker,image,runId,directory,docker}){
     try{
       if(item.image!==image||item.request.binding.channel_id!==item.channel)throw Error('EXTRACTION_BRIDGE_IMAGE_OR_CHANNEL');
       await docker(['cp',broker+':/output/queue/'+item.channel+'/original',path.join(target,'original')]);
-      const bytes=await fs.readFile(path.join(target,'original'));
-      if(bytes.length!==item.request.binding.original.bytes||hash(bytes)!==item.request.binding.original.sha256)throw Error('EXTRACTION_BRIDGE_ORIGINAL');
+      const originalPath=await grantOriginalCopy(target,item.request.binding.original);
       if(item.stopped)abort.abort();
       if(inputFault)await fs.writeFile(path.join(target,'injection.json'),JSON.stringify({boundary:'controller-stdin',fault:'disconnect-before-input'}),{flag:'wx'});
-      const result=await(controllerLoss?loseControllerAfterLaunch:launchExtraction)({request:item.request,originalPath:path.join(target,'original'),image,runId,
+      const result=await(controllerLoss?loseControllerAfterLaunch:launchExtraction)({request:item.request,originalPath,image,runId,
         directory:target,signal:abort.signal,testInputFault:inputFault,
         observe:async event=>{
           events.push(event);await fs.writeFile(path.join(target,'event-'+String(events.length).padStart(3,'0')+'.json'),JSON.stringify(event,null,2),{flag:'wx'});
