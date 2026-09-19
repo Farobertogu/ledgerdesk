@@ -13,7 +13,7 @@ import {publicEvidence,eligibleEvidence,collectPublicEvidence} from '../../../ci
 import {commandDiagnostic} from '../../../ci/intake/command_diagnostic.mjs';
 import {createHash,randomUUID} from 'node:crypto';
 const text=fs.readFileSync(new URL('../../../.github/workflows/ci.yml',import.meta.url),'utf8');
-const expectedProducers=['reading-foundations','intake-reception-behavior','intake-reception-recovery','intake-reception-mutations','intake-extraction','intake-extraction-recovery','intake-extraction-admission','intake-extraction-boundaries','intake-extraction-resource-guards','intake-extraction-format-guards'];
+const expectedProducers=['reading-foundations','intake-reception-behavior','intake-reception-recovery','intake-reception-mutations','intake-extraction','intake-extraction-recovery','intake-extraction-admission','intake-extraction-boundaries','intake-extraction-resource-guards','intake-extraction-format-guards','intake-preparation-behavior','intake-preparation-admission','intake-preparation-guards'];
 const success=()=>Object.fromEntries(expectedProducers.map(n=>[n,{result:'success'}]));
 const root=fileURLToPath(new URL('../../../',import.meta.url));
 function gateProcess(env,script=path.join(root,'ci/reading_result_gate.mjs')){

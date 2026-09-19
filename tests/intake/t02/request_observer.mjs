@@ -11,7 +11,7 @@ export function observedContext(event) {
 }
 
 /** Observe actual request callbacks and reads without exposing authentication fields. */
-export function observeRequests(server, publish, {diagnoseReadOrigin=process.env.LEDGERDESK_INTAKE_BOUNDARIES==='1'}={}) {
+export function observeRequests(server, publish, {diagnoseReadOrigin=process.env.LEDGERDESK_INTAKE_BOUNDARIES==='1',preparationBodyCapture=false}={}) {
   const listeners = server.listeners('request');
   if (listeners.length !== 1) throw Error('OBSERVER_REQUEST_LISTENER_COUNT');
   const original = listeners[0], sockets = new WeakMap();
@@ -38,12 +38,17 @@ export function observeRequests(server, publish, {diagnoseReadOrigin=process.env
         return dump.apply(this,args);
       };
     }
+    // T04 stages documents up to 8 MiB; the retained T02 observation boundary
+    // remains 1 MiB everywhere else. This changes test capture, not admission.
+    const captureLimit=preparationBodyCapture&&req.method==='POST'&&
+      /^\/api\/intake\/preparation-attempts\/[A-Za-z0-9][A-Za-z0-9._:-]{0,127}\/content$/.test(req.url??'')&&
+      req.headers.accept==='application/vnd.ledgerdesk.intake-preparation+json'?8388608:1048576;
     let total = 0;
     req.read = function (...args) {
       const value = read.apply(this, args);
       if (Buffer.isBuffer(value) && value.length) {
         total += value.length;
-        if (total > 1048576) throw Error('OBSERVER_CONSUMPTION_CAPTURE_LIMIT');
+        if (total > captureLimit) throw Error('OBSERVER_CONSUMPTION_CAPTURE_LIMIT');
         const frames=diagnoseReadOrigin?(new Error().stack??'').split('\n').slice(1,9).map(line=>line.trim()):null;
         const internalFlow=frames?.[1]?.match(/^at flow \(node:internal\/streams\/readable:\d+:\d+\)$/)&&
           frames?.[2]?.match(/^at resume_ \(node:internal\/streams\/readable:\d+:\d+\)$/);

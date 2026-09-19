@@ -156,6 +156,21 @@ export function verifyWiring(workflow,executedPlans=plans,mutations=producerFaul
     ['closed-before-open','phase-prototype','--forget-unseen-close']],'guard mutation obligations');
   for(const name of readingDependencies){for(const s of workflow.jobs[name].steps.filter(s=>s.uses==='actions/upload-artifact@v4'))same(s.if,'always()');}
   const retainedArtifacts=previous.jobs.reading.steps.filter(s=>s.uses==='actions/upload-artifact@v4'&&!s.with.name.startsWith('access-'));
+  for(const [part,cases]of Object.entries({behavior:['fidelity','formats','resources','mixed','units','bounds'],
+    admission:['identity','concurrency','prior-act','temporal','ordering','recovery','disclosure'],guards:[]})){
+    const name='intake-preparation-'+part,job=workflow.jobs[name];
+    same(commands(job),['npm ci','node --test tests/intake/t02/test_ci_wiring.mjs','node ci/intake_ci_check.mjs',
+      'node --test tests/intake/extraction/ci_evidence.mjs tests/intake/preparation/test_ci.mjs','docker pull postgres:16',
+      ...(part==='behavior'?['npm run test:intake:preparation:unit','npm run test:intake:preparation:schema']:[]),
+      ...(part==='guards'?['node ci/intake_preparation_guards.mjs']:cases.map(c=>
+        'node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases preparation --preparation-cases '+c)),
+      'node ci/intake_extraction_artifacts.mjs'],name+' finite obligations');
+    same(job.steps.at(-2).if,'always()');
+    same(job.steps.at(-1),{uses:'actions/upload-artifact@v4',if:'always()',with:{name:name+'-evidence',
+      path:'test-results/intake-extraction-public/','if-no-files-found':'error'}});
+  }
+  same(scripts['test:intake:preparation:unit'],'node --experimental-strip-types ci/intake_preparation_check.mjs --group contracts');
+  same(scripts['test:intake:preparation:schema'],'node --experimental-strip-types ci/intake_preparation_check.mjs --group schema');
   same(base.steps.filter(s=>s.uses==='actions/upload-artifact@v4'),retainedArtifacts,'foundation artifacts');
   return true;
 }

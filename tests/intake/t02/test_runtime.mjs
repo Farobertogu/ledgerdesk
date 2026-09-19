@@ -23,7 +23,9 @@ import {transactionCases} from './transaction_cases.mjs';
 import {deliveryOrderCases} from './delivery_order_cases.mjs';
 import {observationFailureCases} from './observation_failure_cases.mjs';
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
-const runtimePermissionIds=process.env.LEDGERDESK_INTAKE_EXTRACTION==='1'?[...permissionIds,'intake_processing','intake_extraction_read']:permissionIds;
+const preparing=process.env.LEDGERDESK_EXTRACTION_CASES==='preparation';
+const runtimePermissionIds=process.env.LEDGERDESK_INTAKE_EXTRACTION==='1'?[...permissionIds,'intake_processing','intake_extraction_read',
+  ...(preparing?['intake_prepare','intake_prepared_read','intake_difference_read','intake_resource_read','intake_constitute']:[])]:permissionIds;
 // The separate extraction temporal group has fourteen real worker/effect cases
 // and seven declared five-second expiry windows; older groups keep their bound.
 test('T02 real identity, grant, durable reception and protected original', {timeout:process.env.LEDGERDESK_EXTRACTION_CASES==='temporal'?300000:180000}, async t=>{
@@ -50,7 +52,8 @@ test('T02 real identity, grant, durable reception and protected original', {time
     readerConnectionString:`postgresql://inc03_intake_reader:${readerPassword}@127.0.0.1:55432/inc02_synthetic`,expectedPort:55432,
     deployment:'inc02-synthetic',namespace:'intake_trial',controlSource:'live-control',incarnation:'intake-runtime-1',generation:1,
     catalog,configuration,limits,brokerSocket:'/run/intake-t02/objects/channel.sock',verifierSocket:'/run/intake-t02/verifier/channel.sock',digestKeyVersion:1,
-    ...(process.env.LEDGERDESK_INTAKE_EXTRACTION==='1'?{extraction:'intake-execution/1'}:{})};
+    ...(process.env.LEDGERDESK_INTAKE_EXTRACTION==='1'?{extraction:'intake-execution/1'}:{}),
+    ...(preparing?{preparation:'intake-preparation/1'}:{})};
   const hooks={storage:event=>storage.push(event),comparison:event=>comparisons.push(event),
     request:event=>requestEvents.push(event),incumbentComparison:event=>incumbentComparisons.push(event),
     evidence:event=>evidenceInserts.push(event),
@@ -61,7 +64,7 @@ test('T02 real identity, grant, durable reception and protected original', {time
     barrier:async(label,event)=>{barriers.push({label,...event,atMs:Date.now()});await barrierAction(label,event);},
     failure:event=>{diagnostics.push(event);console.log('INTAKE_DIAGNOSTIC '+JSON.stringify(event));}};
   terminal=await startApplication({config:env.config,reading:env.reading,tls:env.tls,mailbox:{send:async message=>messages.push(message)},intake,intakeHooks:hooks});
-  function request(path,{body,client,key,bytes,headers={},label=null}={}) {
+  function request(path,{body,client,key,bytes,headers={},label=null,onRequest}={}) {
     const payload=bytes??(body===undefined?undefined:Buffer.from(JSON.stringify(body)));
     const started=performance.now();
     const observed={label,path,route:path,method:payload===undefined?'GET':'POST',socket:null,atMs:null,response:null,receivedBytes:0};
@@ -82,7 +85,7 @@ test('T02 real identity, grant, durable reception and protected original', {time
         if(socket.connecting)socket.once('secureConnect',capture);else capture();});
       call.setTimeout(15000,()=>call.destroy(Error('T02 bounded HTTPS timeout')));call.once('error',reject);
       if(label&&payload)observed.sent={observedAtMs:Date.now(),bytes:Buffer.from(payload),ended:false};
-      call.end(payload);if(observed.sent)observed.sent.ended=true;
+      onRequest?.(call);call.end(payload);if(observed.sent)observed.sent.ended=true;
     });
   }
   const get=(path,client)=>request('/api/access/v1'+path,{client});
@@ -111,6 +114,15 @@ test('T02 real identity, grant, durable reception and protected original', {time
     await browserRoundTrip(t,{env,terminal,setBarrier:action=>{barrierAction=action;}});return;
   }
   if(process.env.LEDGERDESK_INTAKE_EXTRACTION==='1'){
+    if(preparing){
+      const {preparationRuntimeCases}=await import('../preparation/runtime_cases.mjs');
+      await preparationRuntimeCases(t,{env,intake,client,request,diagnostics,storage,admissions,login,clientCalls,requestEvents,
+        setBarrier:action=>{barrierAction=action;},post,master,flow,messages,digestSession:value=>terminal.service.digest(value),
+        application:{crash:()=>terminal.crash(),restart:async next=>{
+          await terminal.close();terminal=await startApplication({config:env.config,reading:env.reading,tls:env.tls,
+            mailbox:{send:async message=>messages.push(message)},intake:next,intakeHooks:hooks});return terminal.processRef;
+        }}});return;
+    }
     if(process.env.LEDGERDESK_EXTRACTION_CASES==='associations'){
       const {extractionAssociationCases}=await import('../extraction/runtime_associations.mjs');
       await extractionAssociationCases(t,{env,intake,client,request});return;

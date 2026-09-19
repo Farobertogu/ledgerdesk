@@ -148,6 +148,9 @@ export async function extractionRuntimeCases(t,{env,intake,client,request,post,l
       let stopResponse;
       const stopping=new ExtractionService(intake,{barrier:async label=>{
         if(label!=='after_extraction_launch')return;
+        // Exceed the former 1.2 s automatic release deliberately. The held
+        // producer must still await the real stop, within its unchanged 10 s cap.
+        await delay(1300);
         const before=(await env.admin.query(`SELECT j.state,
           (SELECT count(*)::int FROM intake_trial.extraction_event WHERE job_id=j.id AND kind='termination') AS terminations
           FROM intake_trial.extraction_job j WHERE j.id=$1`,[target])).rows[0];

@@ -21,15 +21,22 @@ import {supervisedBudgetCopy} from '../tests/intake/extraction/budget_fault.mjs'
 import {interruptedSealCopy} from '../tests/intake/extraction/seal_fault.mjs';
 import {semanticFaultCopy} from '../tests/intake/extraction/semantic_fault.mjs';
 import {mixedComponentsCopy} from '../tests/intake/extraction/mixed_fault.mjs';
+import {preparationAssociationCopy} from './intake/preparation_association_input.mjs';
 import {containmentProbeCopy} from '../tests/intake/extraction/containment_fault.mjs';
 import {associationBoundaryCopy} from '../tests/intake/extraction/association_fault.mjs';
+import {summarizeNodeTests} from './intake_test_summary.mjs';
+import {preparationFaultCopy} from './intake/preparation_fault.mjs';
 
 const root=fileURLToPath(new URL('../',import.meta.url));
 const group=process.argv[process.argv.indexOf('--group')+1];
 const extractionCases=process.argv.includes('--extraction-cases')?process.argv[process.argv.indexOf('--extraction-cases')+1]:'service';
 const formatCase=process.argv.includes('--format-case')?process.argv[process.argv.indexOf('--format-case')+1]:null;
+const preparationCases=process.argv.includes('--preparation-cases')?process.argv[process.argv.indexOf('--preparation-cases')+1]:'first-slice';
+if(!['first-slice','fidelity','formats','resources','mixed','identity','concurrency','prior-act','temporal','ordering','units','recovery','disclosure','bounds'].includes(preparationCases)||(preparationCases!=='first-slice'&&(group!=='extraction'||extractionCases!=='preparation')))throw Error('PREPARATION_CASE_SCOPE');
+const preparationMutation=process.argv.includes('--preparation-mutation')?process.argv[process.argv.indexOf('--preparation-mutation')+1]:null;
+if(preparationMutation&&!({fidelity:['drop-retained-context'],formats:['drop-retained-limitation'],resources:['swap-resource-at-birth','swap-resource-at-consume'],mixed:['flatten-component-causes'],identity:['ignore-c9-conditions'],concurrency:['drop-item-lock'],'prior-act':['drop-prior-target']}[preparationCases]??[]).includes(preparationMutation))throw Error('PREPARATION_MUTATION_SCOPE');
 if(formatCase&&(group!=='extraction'||extractionCases!=='formats'||!['escaped-limit.csv','combined-limit.csv','control-at-byte-limit.txt'].includes(formatCase)))throw Error('EXTRACTION_FORMAT_FILTER_SCOPE');
-if(!['service','formats','format-negatives','temporal','fencing','budgets','retry','restart','restore','storage-recovery','semantics','mixed','capacity','private-loss','controller-loss','resources','authority-original','authority-result','authority-effect','compatibility','containment','browser-disconnect','extraction-privileges','lineage','associations'].includes(extractionCases)||(extractionCases!=='service'&&group!=='extraction'))throw Error('EXTRACTION_CASE_SCOPE');
+if(!['service','formats','format-negatives','temporal','fencing','budgets','retry','restart','restore','storage-recovery','semantics','mixed','capacity','private-loss','controller-loss','resources','authority-original','authority-result','authority-effect','compatibility','containment','browser-disconnect','extraction-privileges','lineage','associations','preparation'].includes(extractionCases)||(extractionCases!=='service'&&group!=='extraction'))throw Error('EXTRACTION_CASE_SCOPE');
 const extractionMutation=process.argv.includes('--extraction-mutation')?process.argv[process.argv.indexOf('--extraction-mutation')+1]:null;
 if(extractionMutation&&(group!=='extraction'||!({semantics:['omit-condition-store','omit-limitation-store','omit-incident-query'],
   resources:['omit-resource-relation-store','read-resource-before-validation','allow-resource-swap'],
@@ -97,6 +104,8 @@ async function source(relative) {
     if(group==='extraction'&&extractionCases==='budgets'&&relative==='workers/intake/extraction/entry.mjs'){
       bytes=Buffer.from(supervisedBudgetCopy(bytes.toString('utf8')));fault='instrumented-producer-output-reserve';
     }
+    if(preparationMutation){const changed=preparationFaultCopy(relative,bytes.toString('utf8'),preparationMutation);
+      if(changed!==bytes.toString('utf8')){bytes=Buffer.from(changed);fault=preparationMutation;}}
     if(group==='extraction'&&extractionCases==='containment'&&relative==='workers/intake/extraction/entry.mjs'){
       bytes=Buffer.from(containmentProbeCopy(bytes.toString('utf8')));fault='instrumented-effective-denials-and-timeout';
     }
@@ -111,8 +120,14 @@ async function source(relative) {
       const changed=semanticFaultCopy(relative,bytes.toString('utf8'),extractionMutation);
       if(changed!==bytes.toString('utf8')){bytes=Buffer.from(changed);fault=extractionMutation;}
     }
-    if(group==='extraction'&&extractionCases==='mixed'&&relative==='src/server/intake/extraction_output.ts'){
+    if(group==='extraction'&&(extractionCases==='mixed'||extractionCases==='preparation'&&preparationCases==='mixed')&&relative==='src/server/intake/extraction_output.ts'){
       bytes=Buffer.from(mixedComponentsCopy(bytes.toString('utf8')));fault='instrumented-three-component-outcome';
+      if(extractionCases==='preparation') bytes=Buffer.from(bytes.toString('utf8').replace("    outcome='partial';",
+        "    outcome='partial';\n    if(body.elements[0]?.text === 'Known component source.\\n') body.inventory='known';"));
+    }
+    if(group==='extraction'&&extractionCases==='preparation'&&preparationCases==='fidelity'){
+      const changed=preparationAssociationCopy(relative,bytes.toString('utf8'));
+      if(changed!==bytes.toString('utf8')){bytes=Buffer.from(changed);fault='instrumented-preparation-association-input';}
     }
     if(pinned){const expected=independentFiles.find(x=>x.name===path.relative(independentRoot,file).replaceAll('\\','/'));
       if(!expected||expected.bytes!==bytes.length||expected.sha256!==originalSha256)throw Error('INDEPENDENT_SOURCE_IDENTITY');}
@@ -214,6 +229,20 @@ async function runtimeGroup() {
   }
   async function container(suffix,args){const name=resourcePrefix+'-'+suffix,id=await docker(['create','--name',name,'--label','intake.t02.run='+resourcePrefix,...args]);
     const resource={type:'container',name,id};resources.push(resource);return resource;}
+  if(group==='extraction'&&extractionCases==='preparation'){
+    const checks=await container('preparation-contracts',['--network','none','--read-only','--user','1001:1001',
+      '--cap-drop','ALL','--security-opt','no-new-privileges','--memory','512m','--memory-swap','512m','--cpus','1','--pids-limit','64',
+      '--entrypoint','node',image('runtime'),'--experimental-strip-types','--test',
+      'tests/intake/preparation/test_contracts.mjs','tests/intake/preparation/test_producer.mjs']);
+    await save('preparation-contracts-inspect.json',JSON.parse(await docker(['inspect',checks.name])));
+    const result=await run('docker',['start','-a',checks.name],{timeout:60000,limit:1048576});
+    // Preserve a numeric command record for the existing flat-TAP validator.
+    const record=String(index)+'.json';
+    await save(record,{...result,sourceCommand:commands.at(-1).file});
+    const report=summarizeNodeTests(result,record);
+    await save('preparation-contracts-result.json',{platform:'linux',report});
+    if(report.status!=='passed')throw Error('PREPARATION_LINUX_CONTRACTS_FAILED');
+  }
   const mount=(volume,target)=>['--mount',`type=volume,source=${volumes[volume]},target=${target}`];
   const init=await container('volume-init',['--network','none','--read-only','--user','0:0','--cap-drop','ALL','--cap-add','CHOWN','--security-opt','no-new-privileges',
     ...Object.keys(volumes).flatMap((key,i)=>mount(key,'/owned-'+i)),'--entrypoint','node',image('private_service'),'-e',
@@ -243,6 +272,7 @@ async function runtimeGroup() {
   const extraction=group==='extraction'?await (await import(pathToFileURL(path.join(directory,'source/ci/intake/extraction/runtime_harness.mjs')))).extractionHarness({
     directory,prefix:resourcePrefix,docker,resources,container,bounded,save,originalParticipant:broker}):null;
   const runtime=await container('runtime',['--network','none','--group-add','20202','--cap-drop','ALL','--security-opt','no-new-privileges','--memory','1g','--memory-swap','1g','--cpus','2','--pids-limit','192',
+    ...(group==='extraction'&&extractionCases==='preparation'?['--env','LEDGERDESK_PREPARATION_CASES='+preparationCases]:[]),
     ...(extraction?.runtimeArgs??[]),
     ...(extraction?['--env','LEDGERDESK_EXTRACTION_CASES='+extractionCases]:[]),
     ...(formatCase?['--env','LEDGERDESK_EXTRACTION_FORMAT_CASE='+formatCase]:[]),
@@ -300,7 +330,7 @@ async function runtimeGroup() {
       ...(group==='fence-loss'?['observe-stalled-worker','terminate-stalled-worker','fence-private-process-set','recover-private-participant']:[]),
       ...(group==='fence-ack'?['arm-private-ack','private-ack-state']:[]),
       ...(['fence-commit','fence-ipc'].includes(group)?['phase-no-dispatch']:[]),
-      ...(group==='extraction'&&extractionCases==='restore'?['extraction-backup','extraction-restore','extraction-restore-inspect']:[]),
+      ...(group==='extraction'&&(extractionCases==='restore'||extractionCases==='preparation'&&preparationCases==='recovery')?['extraction-backup','extraction-restore','extraction-restore-inspect']:[]),
       ...(group==='extraction'&&extractionCases==='lineage'?['replay-extraction-completion']:[]),
       ...(group==='extraction'&&extractionCases==='storage-recovery'?['replace-closed-extraction-participant','arm-extraction-seal-fault','inspect-extraction-seal']:[]),
       ...(group==='extraction'&&extractionCases==='private-loss'?['replace-unresolved-extraction-participant']:[]),
@@ -540,6 +570,7 @@ try {
     'src/app/layout.tsx','src/app/globals.css','src/instrumentation.ts','next.config.mjs','postcss.config.mjs',
     'tests/reading/browser_diagnostics.mjs'])await source(relative);
   await source('tests/intake/extraction');await source('tests/intake/t01/boundaries');
+  await source('tests/intake/preparation');await source('tests/intake/t01/fixtures.mjs');await source('ci/intake_test_summary.mjs');
   if(group==='extraction')await source('workers/intake/extraction');
   await save('source-manifest.json',{profile:'intake-t02-source/1',runId,files});
   await run('git',['rev-parse','HEAD']);await run('git',['status','--porcelain=v1']);

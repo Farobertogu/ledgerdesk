@@ -5,6 +5,33 @@ import { once } from 'node:events';
 import {setTimeout as delay} from 'node:timers/promises';
 import { observeRequests, observedContext, clientEndpoint } from './request_observer.mjs';
 
+test('larger observation capture is restricted to the explicit preparation upload profile',async t=>{
+  const records=[],body=Buffer.alloc(1048577,65);
+  const server=http.createServer(async(req,res)=>{
+    try{let bytes=0;for await(const chunk of req)bytes+=chunk.length;res.end(String(bytes));}
+    catch(error){res.statusCode=503;res.end(error.message);}
+  });
+  observeRequests(server,e=>records.push(e),{preparationBodyCapture:true});
+  server.listen(0,'127.0.0.1');await once(server,'listening');
+  t.after(async()=>{server.closeAllConnections();await new Promise(resolve=>server.close(resolve));});
+  for(const [path,accept,status] of [
+    ['/api/intake/preparation-attempts/test/content','application/vnd.ledgerdesk.intake-preparation+json',200],
+    ['/api/intake/preparation-attempts/test/content','application/json',503],
+    ['/api/intake/receptions/test/content','application/vnd.ledgerdesk.intake-preparation+json',503],
+  ]){
+    const result=await new Promise((resolve,reject)=>{
+      const request=http.request({host:'127.0.0.1',port:server.address().port,path,method:'POST',agent:false,
+        headers:{accept,'content-length':body.length}},response=>{
+        const chunks=[];response.on('data',c=>chunks.push(c));response.once('end',()=>resolve({status:response.statusCode,text:Buffer.concat(chunks).toString()}));
+        response.once('error',reject);
+      });request.once('error',reject);request.end(body);
+    });
+    assert.deepEqual(result,{status,text:status===200?String(body.length):'OBSERVER_CONSUMPTION_CAPTURE_LIMIT'});
+  }
+  const first=records.find(e=>e.kind==='server-request');
+  assert.equal(records.filter(e=>e.kind==='application-read'&&e.callId===first.callId).reduce((n,e)=>n+e.bytes,0),body.length);
+});
+
 test('request observer retains real persistent ordinals, async ownership and exact reads', async t => {
   const records=[], contexts=[], replies=[], ordinals=new WeakMap();
   const server=http.createServer(async(req,res)=>{

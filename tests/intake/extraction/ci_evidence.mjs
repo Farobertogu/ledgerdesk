@@ -44,7 +44,8 @@ test('the eight earlier jobs remain and all six extraction groups require every 
   const workflow=parseWorkflow(await fs.readFile(new URL('../../../.github/workflows/ci.yml',import.meta.url),'utf8'));
   assert.deepEqual(Object.keys(workflow.jobs).sort(),['check','reading','reading-foundations','intake-reception-behavior',
     'intake-reception-recovery','intake-reception-mutations','intake-extraction','intake-extraction-recovery',
-    'intake-extraction-admission','intake-extraction-boundaries','intake-extraction-resource-guards','intake-extraction-format-guards','db','app'].sort());
+    'intake-extraction-admission','intake-extraction-boundaries','intake-extraction-resource-guards','intake-extraction-format-guards',
+    'intake-preparation-behavior','intake-preparation-admission','intake-preparation-guards','db','app'].sort());
   assert.equal(verifyWiring(workflow),true);
   const unqualified=structuredClone(workflow);
   const memory=unqualified.jobs['intake-extraction'].steps.find(step=>step.run==='npm run test:intake:extraction:worker -- --qualified-memory');

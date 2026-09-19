@@ -6,6 +6,12 @@ import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {grantOriginalCopy} from '../../../ci/intake/extraction/granted_original.mjs';
 import {schemaSql, readinessQuery, waitForSchemaDatabase} from '../../../ci/intake/extraction/schema_readiness.mjs';
+import {launchExtraction} from '../../../ci/intake/extraction/launcher.mjs';
+
+test('held-input control is a closed harness option, never combined with a disconnect fault', async () => {
+  for (const options of [{testHoldInput: 'true'}, {testInputFault: 'true'}, {testHoldInput: true, testInputFault: true}])
+    await assert.rejects(launchExtraction(options), /EXTRACTION_TEST_FAULT_SCOPE/);
+});
 
 test('the verified copy alone becomes read-only under an owner-only host directory', async t => {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'intake-copy-'));

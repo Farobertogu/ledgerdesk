@@ -1,6 +1,6 @@
 import {fileURLToPath} from 'node:url';
 import path from 'node:path';
-export const readingDependencies=Object.freeze(['reading-foundations','intake-reception-behavior','intake-reception-recovery','intake-reception-mutations','intake-extraction','intake-extraction-recovery','intake-extraction-admission','intake-extraction-boundaries','intake-extraction-resource-guards','intake-extraction-format-guards']);
+export const readingDependencies=Object.freeze(['reading-foundations','intake-reception-behavior','intake-reception-recovery','intake-reception-mutations','intake-extraction','intake-extraction-recovery','intake-extraction-admission','intake-extraction-boundaries','intake-extraction-resource-guards','intake-extraction-format-guards','intake-preparation-behavior','intake-preparation-admission','intake-preparation-guards']);
 export function readingPassed(needs,jobStatus){
   // The current job status is independent of the producer results.
   // Unknown or absent status must not become an implicit non-cancellation.

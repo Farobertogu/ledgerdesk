@@ -2,9 +2,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {moduleReferences} from './reading_boundary_check.mjs';
-const contract = name => /^src\/contracts\/intake(?:_artifact|_bindings|_mapping|_reception|_reception_v2|_extraction|_extraction_view)?\.ts$/.test(name);
+const contract = name => /^src\/contracts\/intake(?:_artifact|_bindings|_mapping|_reception|_reception_v2|_extraction|_extraction_view|_preparation|_preparation_bindings|_preparation_response)?\.ts$/.test(name);
 const server = name => name.startsWith('src/server/intake/');
 const shared = new Map([
+  ['src/contracts/intake_preparation_bindings.ts', new Set(['src/contracts/access_canonical.ts'])],
+  ...['authority','proposals','records','service'].map(name=>['src/server/intake/preparation/'+name+'.ts',new Set(['src/contracts/access_canonical.ts'])]),
+  ['src/server/intake/preparation/terminal.ts',new Set(['src/server/access/transport.ts','src/server/access/config.ts'])],
   ['src/server/intake/protocol.ts', new Set(['src/contracts/access_transport.ts','src/contracts/access_canonical.ts'])],
   ['src/server/intake/reception.ts', new Set(['src/contracts/access_canonical.ts'])],
   ['src/server/intake/authority.ts', new Set(['src/server/access/invitation_authority.ts','src/server/access/postgres/store.ts','src/server/access/service.ts','src/server/access/transport.ts','src/server/access/config.ts','src/contracts/access_canonical.ts'])],
@@ -21,7 +24,7 @@ export function intakeViolations(file,source){
   for(const {specifier} of references){
     let target=specifier.startsWith('@/')?'src/'+specifier.slice(2):specifier.startsWith('.')?path.posix.normalize(path.posix.join(path.posix.dirname(file),specifier)):null;
     if(target&&!/\.[cm]?[jt]sx?$/.test(target))target+='.ts';
-    if(inside && (!target || !contract(target)))errors.push('Intake contract imports implementation: '+specifier);
+    if(inside && (!target || !contract(target)&&!shared.get(file)?.has(target)))errors.push('Intake contract imports implementation: '+specifier);
     if(server(file)) {
       const builtins = new Set(['node:crypto','node:buffer','node:http','node:net']);
       if (!(target ? contract(target)||server(target)||shared.get(file)?.has(target) : builtins.has(specifier))) errors.push('Forbidden intake runtime import: '+specifier);

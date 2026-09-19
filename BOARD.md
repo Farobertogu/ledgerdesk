@@ -5,7 +5,8 @@
 The active new-system work follows the adjusted construction plan (INC-01 through INC-15),
 not the historical 25-card roadmap below. The latter is preserved as provenance, not inherited
 product requirements. INC-01 and INC-02 are accepted within their documented synthetic
-experimental scopes. INC-03 T01–T03 are separately accepted; T04–T06 remain pending.
+experimental scopes. INC-03 T01–T03 are separately accepted. T04 is implemented
+and technically reviewed, pending owner acceptance; T05–T06 remain unstarted.
 The [system overview](docs/SYSTEM_OVERVIEW.md) explains this boundary and the
 [documentation index](docs/README.md) separates current guides from dated evidence.
 LR-AC21 remains partial and R24 is an observed temporal failure; no real-data or production
@@ -14,8 +15,9 @@ use is authorized. The Done records below identify acceptance and execution sepa
 **Working rule: one branch per card (`card/<ID>-<slug>`); a card merges to `main` only after
 its named tests are green and the owner has reviewed the PR (merge `--no-ff`).** Verify
 the final head's complete required workflow, not an earlier green revision. The current
-intake composition has fourteen jobs, including `check`, `db`, `app` and `reading`; see the
-delivery record for each executed composition. Historical tags and the 25-card roadmap
+accepted intake composition has fourteen jobs. The local T04 workflow adds three
+required preparation jobs, for seventeen total; hosted execution of that composition
+is pending. See the delivery record for each executed composition. Historical tags and the 25-card roadmap
 below are retained provenance, not the new-system build order.
 
 ## In review
@@ -26,7 +28,8 @@ below are retained provenance, not the new-system build order.
 
 | Card | Increment | Closing evidence |
 |---|---|---|
-| INC-03 | Material intake: I03-T01 through I03-T03 accepted experimentally; I03-T04 through I03-T06 pending | Foundation and reception retain their separate acceptance in PR #30 and PR #31. Bounded extraction is accepted only in its documented synthetic scope under the localized ADR-038 amendment; see its Done row and [PR #34](https://github.com/Farobertogu/ledgerdesk/pull/34), whose final documentary commit and merge checks remain required. No preparation/candidate producer, real data or production activation. |
+| INC-03 | Material intake: I03-T01 through I03-T03 accepted experimentally; I03-T04 technically reviewed, pending acceptance; I03-T05/I03-T06 pending | Foundation, reception and bounded extraction retain their separate acceptance. The [T04 report](docs/INC-03-T04.md) records the exact preparation/candidate path and its finite verification; the localized preparation amendment remains proposed. No real-data or production activation. |
+| I03-T04 | Exact preparation and candidate constitution — technically reviewed, not accepted | [Implementation, 22-row coverage and evidence](docs/INC-03-T04.md). Independent local technical verification completed on 2026-09-19 without a new essential correction. Hosted T04 execution and owner acceptance remain pending; neither is supplied by this review. R24, BROWSER-I03/J19 and historical unknown causes remain open. |
 
 Active access follow-up: [tracked browser failures and closure criteria](docs/INC-02-T03.md#tracked-browser-follow-up).
 

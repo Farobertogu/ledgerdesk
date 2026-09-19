@@ -25,7 +25,7 @@ export function extractionHostBridge({broker,image,runId,directory,docker}){
       if(item.stopped)abort.abort();
       if(inputFault)await fs.writeFile(path.join(target,'injection.json'),JSON.stringify({boundary:'controller-stdin',fault:'disconnect-before-input'}),{flag:'wx'});
       const result=await(controllerLoss?loseControllerAfterLaunch:launchExtraction)({request:item.request,originalPath,image,runId,
-        directory:target,signal:abort.signal,testInputFault:inputFault,
+        directory:target,signal:abort.signal,testInputFault:inputFault,testHoldInput:hold,
         observe:async event=>{
           events.push(event);await fs.writeFile(path.join(target,'event-'+String(events.length).padStart(3,'0')+'.json'),JSON.stringify(event,null,2),{flag:'wx'});
           if(event.kind==='running'){
@@ -33,12 +33,6 @@ export function extractionHostBridge({broker,image,runId,directory,docker}){
             await fs.writeFile(path.join(target,'launch.json'),JSON.stringify(launch),{flag:'wx'});
             await docker(['cp',path.join(target,'launch.json'),broker+':/output/queue/'+item.channel+'/launch.pending.json']);
             await control('launched',item.channel);
-            if(hold){
-              // Test-only held input: the actual process is alive, with its
-              // actual channel, and has not received any original bytes yet.
-              const until=Date.now()+1200;
-              while(!abort.signal.aborted&&Date.now()<until)await new Promise(resolve=>setTimeout(resolve,10));
-            }
           }
         }});
       const raw=result.retainedStdout,start=events.find(e=>e.kind==='running');
