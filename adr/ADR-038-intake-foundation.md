@@ -119,7 +119,12 @@ See [the reception contract](../docs/intake-contract.md) and
 
 ### Bounded extraction — proposed 2026-09-15
 
-Amendment status: proposed. Decision date: pending acceptance.
+**Amendment status:** accepted
+**Amendment decision date:** 2026-09-19
+
+This localized acceptance covers only I03-T03's documented bounded synthetic extraction.
+The original foundation and reception decisions retain their separate dates and scope.
+The historical heading records when this amendment was proposed, not its current status.
 
 Add separately admitted extraction after receipt; keep receipt, worker dispatch,
 result acceptance and protected disclosure as different effects. Use the closed
@@ -134,10 +139,14 @@ the original generation separate from retry generation; reconcile uncertain
 and known effects before new execution, and conserve failed/partial/unknown
 observations honestly. No confirmed preparation or candidate is created here.
 
-This amendment is not accepted by implementation or a passing contract test.
-The complete worker/service path, resource measurements, coupled regression
-and independent review remain required. R24, browser follow-ups, real-data and
-production restrictions are unchanged.
+Acceptance is based on the identified worker/service path, resource observations,
+coupled regressions and complementary independent reviews recorded in
+[the T03 report](../docs/INC-03-T03.md#current-status). Implementation CI
+[35399188463](https://github.com/Farobertogu/ledgerdesk/actions/runs/35399188463) passed
+all 14 jobs and produced actual current-image qualified Linux memory evidence. The
+documentary acceptance commit still requires its own final-head CI before merge.
+R24, browser follow-ups, the unknown historical quota cause, real-data and production
+restrictions are unchanged. Passing CI alone is not the owner's acceptance.
 
 The worker carries the observation object directly, not an escaped nested JSON
 string. Its exact complete reply remains protected raw evidence. Version 2 is
@@ -176,7 +185,10 @@ current query authority without re-execution. An unconfirmed predecessor cannot
 become a new attempt just because its owner process ended. Separate participant
 recovery and final coupled verification remain required before review closure.
 
-#### Correction clarification — 2026-09-19, still proposed
+#### Correction clarification — 2026-09-19
+
+These clarifications were proposed with correction R2 and are included in the
+bounded acceptance above; they do not alter the earlier foundation/reception scope.
 
 Reserve the finite 56 MiB per-attempt conservation obligation atomically before
 protected input or launch, within a 256 MiB extraction aggregate. Retain pending,
@@ -194,6 +206,7 @@ extraction or a T04 preparation producer.
 Actual controller loss and unresolved private-participant replacement remain
 fail-closed when closure is unconfirmed. A reachable replacement cannot inherit
 authority or invent a stopped predecessor. The qualified L03 mechanism is reused;
-its retained result is not qualification of the current T03 image on this local
-host. That environment-specific execution remains explicit. These clarifications
-do not accept this amendment, close T03/R24 or authorize publication or real data.
+historical or Windows-host results are not qualification of the current T03 image.
+The separate Linux execution and its exact image/proof are recorded in the current
+T03 report. This bounded acceptance does not close R24, accept universal memory or
+hostile-host guarantees, implement preparation/constitution, or authorize real data.

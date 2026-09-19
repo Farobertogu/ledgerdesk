@@ -666,4 +666,4 @@ temporal conformity.
 
 See [the foundation evidence](INC-03-T01.md),
 [the reception implementation and verification status](INC-03-T02.md), and
-[the extraction evidence and incomplete acceptance rows](INC-03-T03.md).
+[the extraction acceptance, evidence and remaining limits](INC-03-T03.md#current-status).
