@@ -213,13 +213,17 @@ hostile-host guarantees, implement preparation/constitution, or authorize real d
 
 ### Exact preparation and constitution — proposed 2026-09-19
 
-**Amendment status:** proposed
-**Amendment decision date:** pending acceptance
+**Amendment status:** accepted
+**Amendment decision date:** 2026-09-20
 
-This localized proposal changes the unmounted preparation/constitution boundary
+This localized decision changes the unmounted preparation/constitution boundary
 only for T04's bounded synthetic implementation. The foundation, reception and
-extraction decisions above keep their historical acceptance and scope. Local
-implementation and green tests do not accept this amendment.
+extraction decisions above keep their historical acceptance and scope. The heading
+retains the proposal date; the status and decision date above record acceptance.
+The owner accepts this finite scope, not full temporal conformity or production.
+The [T04 status](../docs/INC-03-T04.md#current-status) and
+[PR #35](https://github.com/Farobertogu/ledgerdesk/pull/35)
+record implementation evidence and the separate final-head/merge conditions.
 
 Compose eight preparation handlers and the explicit preparation-profile lookup
 at the existing terminal only when `intake-preparation/1` is enabled. Keep

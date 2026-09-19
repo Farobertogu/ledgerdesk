@@ -8,9 +8,10 @@ nine handlers at the existing access terminal, only when an explicit validated
 synthetic intake configuration is supplied. Without that configuration the
 terminal refuses the intake prefix. Next does not proxy or serve these handlers.
 The accepted reception baseline does not enable processing. Bounded extraction
-has its separately accepted amendment. The local T04 preparation/constitution
-implementation has a separate explicit launch profile and a proposed amendment;
-it is not accepted, published or enabled by the reception/extraction setting.
+has its separately accepted amendment. Exact preparation and constitution have
+a separately accepted bounded synthetic amendment dated 2026-09-20 and
+an explicit launch profile. The reception/extraction setting does not enable it;
+acceptance does not approve, publish or insert a candidate into the reader.
 
 This implementation is accepted only within the bounded synthetic experimental
 scope of the localized [T02 amendment to ADR-038](../adr/ADR-038-intake-foundation.md#amendments).
@@ -674,8 +675,9 @@ See [the foundation evidence](INC-03-T01.md),
 
 ## Local exact preparation implementation — intake-preparation/1
 
-This section describes technically reviewed local T04 code pending owner acceptance,
-not an operational deployment. Set the explicit validated preparation option to
+This section describes T04 code accepted on 2026-09-20 only within its
+bounded synthetic scope, not an operational deployment. Set the explicit
+validated preparation option to
 `intake-preparation/1` and send the exact Accept value
 `application/vnd.ledgerdesk.intake-preparation+json`. Missing configuration keeps
 the preparation path closed. Existing intake, session and reading profiles keep
@@ -749,5 +751,7 @@ controlled procedure, not an automatic import or general administration surface.
 At preparation persistence, proposal, constitution and protected handoff, the
 writer-order and writer-free time-expiry cases remain separate. The new expiry
 observations reproduce R24 nonconformity; this code does not close it or permit
-real data. See [the T04 evidence and limitations](INC-03-T04.md), including the
-local executions, independent verification and still-pending hosted T04 execution.
+real data. See [the T04 evidence and limitations](INC-03-T04.md). Implementation
+CI 35447349126 passed all 17 jobs on attempt 1 for the recorded implementation
+head. Verification of the subsequent documentary head and actual main remains
+pending; the implementation run does not establish either future result.
