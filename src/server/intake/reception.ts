@@ -1,12 +1,14 @@
 import { createHash, randomUUID } from 'node:crypto';
 import type { ExactReference, OriginalReference, ReceptionResponse } from '../../contracts/intake_reception.ts';
 import { RECEPTION_RESPONSE } from '../../contracts/intake_reception.ts';
+import {receptionV2,type ReceptionV2} from '../../contracts/intake_reception_v2.ts';
 import { canonicalValue } from '../../contracts/access_canonical.ts';
 import type { Admission } from './authority.ts';
 import type { IntakeConfig } from './config.ts';
 import { RECEPTION_BOUNDS } from './config.ts';
-import { IntakeFailure } from './protocol.ts';
+import { IntakeFailure,IntakeRepresentationFailure } from './protocol.ts';
 import type { IntakeStore } from './postgres/store.ts';
+import {extractionStatus} from './extraction_store.ts';
 
 export function exact(id:string,revision:number,value:unknown):ExactReference {
   return {id,revision,sha256:createHash('sha256').update(canonicalValue(value)).digest('hex')};
@@ -41,7 +43,13 @@ export async function selected(db:IntakeStore,id:string,principal:string,context
   if(!attempt)throw new IntakeFailure(503);
   return {reception,attempt};
 }
-export async function projection(db:IntakeStore,reception:any,attempt:any,operationId:string):Promise<ReceptionResponse> {
+export async function assertReceptionRepresentation(db:IntakeStore,receptionId:string,representation:1|2=1) {
+  if(representation===2)return;
+  const installed=(await db.query("SELECT to_regclass('$INTAKE.extraction_job') IS NOT NULL AS installed")).rows[0].installed;
+  if(installed&&(await db.query(`SELECT 1 FROM $INTAKE.extraction_job j JOIN $INTAKE.work w ON w.id=j.id
+    JOIN $INTAKE.receipt r ON r.id=w.receipt_id WHERE r.reception_id=$1`,[receptionId])).rowCount)throw new IntakeRepresentationFailure();
+}
+export async function projection(db:IntakeStore,reception:any,attempt:any,operationId:string,representation:1|2=1):Promise<ReceptionResponse|ReceptionV2> {
   const receipt=(await db.query('SELECT * FROM $INTAKE.receipt WHERE reception_id=$1',[reception.id])).rows[0];
   const work=receipt?(await db.query('SELECT id,state,dispatchable FROM $INTAKE.work WHERE receipt_id=$1',[receipt.id])).rows[0]:null;
   const availability=receipt?(await db.query('SELECT outcome FROM $INTAKE.availability WHERE artifact_id=$1 ORDER BY recorded_at DESC,id DESC LIMIT 1',[receipt.artifact_id])).rows[0]?.outcome:null;
@@ -51,5 +59,7 @@ export async function projection(db:IntakeStore,reception:any,attempt:any,operat
     configuration:reception.configuration,attempt_expires_at:Number(attempt.expires_at),
     effect:receipt?exact(receipt.effect_id,1,{effectId:receipt.effect_id}):null,work:work??null};
   if(!RECEPTION_RESPONSE(response))throw new IntakeFailure(503);
-  return response;
+  if(representation===1){await assertReceptionRepresentation(db,reception.id,representation);return response;}
+  const installed=(await db.query("SELECT to_regclass('$INTAKE.extraction_job') IS NOT NULL AS installed")).rows[0].installed;
+  return receptionV2(response,installed&&work?await extractionStatus(db,work.id):null);
 }

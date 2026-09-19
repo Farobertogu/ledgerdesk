@@ -99,6 +99,12 @@ export class AccessStore {
       await this.client.query('SELECT pg_advisory_unlock_all()');
     }
   }
+  async reacquireAdmission(exclusive: boolean) {
+    if (!this.healthy || this.locked || this.transaction) throw Error('DB_ADMISSION_STATE');
+    await this.client.query(exclusive ? 'SELECT pg_advisory_lock(20202,1)' : 'SELECT pg_advisory_lock_shared(20202,1)');
+    this.exclusive = exclusive;
+    this.locked = true;
+  }
   async close() {
     try {
       if (this.healthy && this.transaction) await this.client.query('ROLLBACK');

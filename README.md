@@ -12,20 +12,22 @@ definition of the current product.
 
 ## Current implementation
 
-Status at 15 September 2026:
+Status at 19 September 2026:
 
 | Delivery | Available within its accepted experimental scope |
 |---|---|
 | INC-01 | Integrated synthetic material reading: browser, HTTP terminal, PostgreSQL, permitted projections and prior evidence |
 | INC-02 | Synthetic activation, sessions, invitations, scoped authority, census, authenticated material reading and administration |
 | INC-03 T01–T02 | Intake contracts and bounded profile experiments; isolated synthetic reception, conservation and recovery of originals |
+| INC-03 T03 | Separately authorized bounded text/Markdown, CSV and XLSX extraction, protected result queries and explicit recovery; synthetic scope only |
 
 `/material` is the integrated credential-free trial viewer; `/access/material` is the
 session-bearing viewer. Their profiles are explicit and never selected by automatic fallback.
 The terminal performs the protected handoff, without a Next proxy or legacy material.
 Intake's accepted reception routes require their own
-explicit synthetic configuration. Worker processing, preparation and constitution are not
-enabled merely because their contracts exist.
+explicit synthetic configuration. Bounded worker processing is separately admitted under the
+[T03 extraction profile](docs/INC-03-T03.md#current-status). Preparation and constitution remain
+unavailable; no operation is enabled merely because its contract exists.
 
 These deliveries do **not** authorize real data or production use. Writer-free expiry has an
 observed temporal nonconformity (R24); the two tracked browser failures remain open. Successful
@@ -42,7 +44,8 @@ capabilities are not claimed as implemented here.
 
 For isolated reproduction, use [integrated reading](docs/INC-01-T05.md#reproduction),
 [the access whole journey](docs/INC-02-T06.md#execution-and-evidence) or
-[synthetic intake reception](docs/INC-03-T02.md). Their configurations are separate from the
+[synthetic intake reception](docs/INC-03-T02.md) and [bounded extraction](docs/INC-03-T03.md).
+Their configurations are separate from the
 historical database and identity selector below. Do not use that historical setup to start
 the new system. These journeys use synthetic documents and accounts; they require neither
 external mail nor model calls.

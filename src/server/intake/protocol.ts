@@ -1,20 +1,32 @@
 import type { IncomingMessage } from 'node:http';
 import { INTAKE_ROUTES, canonicalIntake, decodeIntake, identifier, validateIntake } from '../../contracts/intake.ts';
-import { resolveReceptionPath, type ReceptionRoute, type ReceptionErrorStatus } from '../../contracts/intake_reception.ts';
+import { resolveReceptionPath, type ReceptionRoute as BaseReceptionRoute, type ReceptionErrorStatus } from '../../contracts/intake_reception.ts';
 import type { SessionTransport } from '../../contracts/access_transport.ts';
 import { canonicalValue } from '../../contracts/access_canonical.ts';
+import {receptionRepresentation} from '../../contracts/intake_extraction.ts';
 
 export class IntakeFailure extends Error {
   readonly status: ReceptionErrorStatus;
   constructor(status: ReceptionErrorStatus) { super('INTAKE_' + status); this.status = status; }
 }
+export class IntakeRepresentationFailure extends IntakeFailure {
+  constructor() {super(409);}
+}
+export type ServingRoute=BaseReceptionRoute|'extraction';
+export function resolveIntakePath(method:string,raw:string,extraction=false):{route:ServingRoute;parameters:Record<string,string>}|null{
+  const existing=resolveReceptionPath(method,raw);if(existing)return existing;
+  if(!extraction||method!=='GET')return null;
+  const match=/^\/api\/intake\/extractions\/([A-Za-z0-9][A-Za-z0-9._:-]{0,127})$/.exec(raw);
+  return match?{route:'extraction',parameters:{id:match[1]}}:null;
+}
 export type ReceptionRequest = {
-  route: ReceptionRoute; parameters: Record<string, string>; method: 'GET' | 'POST';
+  route: ServingRoute; parameters: Record<string, string>; method: 'GET' | 'POST';
   contentLength: number; clientKey: string | null; csrf: string | null;
+  representation?: 2;
 };
-const singleton = new Set(['host', 'origin', 'cookie', 'content-type', 'content-length', 'x-ledgerdesk-csrf', 'x-ledgerdesk-intent']);
-export function receptionEnvelope(request: Pick<IncomingMessage, 'url' | 'method' | 'headers' | 'rawHeaders'>, transport: SessionTransport): ReceptionRequest {
-  const route = resolveReceptionPath(request.method ?? '', request.url ?? '');
+const singleton = new Set(['host', 'origin', 'cookie', 'content-type', 'content-length', 'accept', 'x-ledgerdesk-csrf', 'x-ledgerdesk-intent']);
+export function receptionEnvelope(request: Pick<IncomingMessage, 'url' | 'method' | 'headers' | 'rawHeaders'>, transport: SessionTransport,extraction=false): ReceptionRequest {
+  const route = resolveIntakePath(request.method ?? '', request.url ?? '',extraction);
   if (!route) throw new IntakeFailure(400);
   const seen = new Set<string>();
   for (let i = 0; i < request.rawHeaders.length; i += 2) {
@@ -27,6 +39,9 @@ export function receptionEnvelope(request: Pick<IncomingMessage, 'url' | 'method
       request.headers['if-modified-since'] !== undefined || request.headers.expect !== undefined) throw new IntakeFailure(400);
   if (request.headers.host !== new URL(transport.terminalOrigin).host || request.headers.origin !== transport.uiOrigin) throw new IntakeFailure(403);
   const definition = INTAKE_ROUTES[route.route];
+  const accept = request.headers.accept;
+  const representation = route.route === 'original' || route.route === 'upload_original' ? 1 : receptionRepresentation(accept);
+  if (representation === null) throw new IntakeFailure(400);
   const length = request.headers['content-length'];
   const key = request.headers['x-ledgerdesk-intent'];
   const csrf = request.headers['x-ledgerdesk-csrf'];
@@ -41,7 +56,8 @@ export function receptionEnvelope(request: Pick<IncomingMessage, 'url' | 'method
     if (typeof csrf !== 'string' || !/^[A-Za-z0-9_-]{43}$/.test(csrf)) throw new IntakeFailure(403);
     if (definition.effect === 'intention' ? !identifier(key) : key !== undefined) throw new IntakeFailure(400);
   }
-  return { ...route, method: definition.method, contentLength, clientKey: typeof key === 'string' ? key : null, csrf: typeof csrf === 'string' ? csrf : null };
+  return { ...route, method: definition.method, contentLength, clientKey: typeof key === 'string' ? key : null, csrf: typeof csrf === 'string' ? csrf : null,
+    ...(representation === 2 ? {representation} : {}) };
 }
 export function receptionCommand(request: ReceptionRequest, bytes: Uint8Array): Record<string, any> {
   if (request.method === 'GET') {

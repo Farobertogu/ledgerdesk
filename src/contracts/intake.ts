@@ -80,7 +80,8 @@ export function validateIntake(key: IntakeRoute, value: unknown): boolean {
   return true;
 }
 /** Strict command decoder, including duplicate keys and lexical integer checks. */
-function decodeStrict(bytes: Uint8Array, maxBytes:number): unknown {
+export function decodeStrict(bytes: Uint8Array, maxBytes:number, observationNumbers:boolean|((path:readonly string[])=>boolean)=false): unknown {
+  if(!Number.isSafeInteger(maxBytes)||maxBytes<0)throw Error('INTAKE_DECODER_BOUND');
   if (bytes.byteLength>maxBytes) throw Error('INTAKE_BODY_LIMIT');
   const source=new TextDecoder('utf-8',{fatal:true,ignoreBOM:true}).decode(bytes);
   let i=0;
@@ -92,7 +93,7 @@ function decodeStrict(bytes: Uint8Array, maxBytes:number): unknown {
     }}
     throw Error('INTAKE_STRING');
   };
-  const value=(depth:number):unknown=>{
+  const value=(depth:number,path:string[]=[]):unknown=>{
     if(depth>32) throw Error('INTAKE_DEPTH');
     whitespace();
     if(source[i]==='"') return string();
@@ -100,13 +101,15 @@ function decodeStrict(bytes: Uint8Array, maxBytes:number): unknown {
       i++; whitespace(); const entries:[string,unknown][]=[]; const keys=new Set<string>();
       if(source[i]==='}'){i++;return {};}
       while(true){whitespace();if(source[i]!=='"') throw Error('INTAKE_KEY');const key=string();if(keys.has(key))throw Error('INTAKE_DUPLICATE_KEY');keys.add(key);
-        whitespace();if(source[i++]!==':')throw Error('INTAKE_COLON');entries.push([key,value(depth+1)]);whitespace();const next=source[i++];if(next==='}')break;if(next!==',')throw Error('INTAKE_OBJECT');}
+        whitespace();if(source[i++]!==':')throw Error('INTAKE_COLON');entries.push([key,value(depth+1,[...path,key])]);whitespace();const next=source[i++];if(next==='}')break;if(next!==',')throw Error('INTAKE_OBJECT');}
       return Object.fromEntries(entries);
     }
-    if(source[i]==='['){i++;whitespace();const a:unknown[]=[];if(source[i]===']'){i++;return a;}while(true){a.push(value(depth+1));whitespace();const next=source[i++];if(next===']')break;if(next!==',')throw Error('INTAKE_ARRAY');}return a;}
+    if(source[i]==='['){i++;whitespace();const a:unknown[]=[];if(source[i]===']'){i++;return a;}while(true){a.push(value(depth+1,[...path,String(a.length)]));whitespace();const next=source[i++];if(next===']')break;if(next!==',')throw Error('INTAKE_ARRAY');}return a;}
     for(const [token,result] of [['true',true],['false',false],['null',null]] as const) if(source.startsWith(token,i)){i+=token.length;return result;}
     const token=/^[^,\]}\s]+/.exec(source.slice(i))?.[0]??'';
-    if(!/^(0|[1-9][0-9]*)$/.test(token)||!integer(Number(token)))throw Error('INTAKE_INTEGER');
+    if(typeof observationNumbers==='function'?observationNumbers(path):observationNumbers){
+      if(!/^-?(0|[1-9][0-9]*)(\.[0-9]+)?([eE][+-]?[0-9]+)?$/.test(token)||!Number.isFinite(Number(token)))throw Error('OBSERVATION_NUMBER');
+    }else if(!/^(0|[1-9][0-9]*)$/.test(token)||!integer(Number(token)))throw Error('INTAKE_INTEGER');
     i+=token.length;return Number(token);
   };
   const result=value(0);whitespace();if(i!==source.length)throw Error('INTAKE_TRAILING');
@@ -114,6 +117,10 @@ function decodeStrict(bytes: Uint8Array, maxBytes:number): unknown {
 }
 export function decodeIntake(bytes:Uint8Array):unknown{return decodeStrict(bytes,INTAKE_LIMITS.commandBytes);}
 export function decodePreparedJson(bytes:Uint8Array):unknown{return decodeStrict(bytes,INTAKE_LIMITS.artifactBytes);}
+/** JSON producer observations retain finite numeric values; commands stay integer-only. */
+export function decodeObservedJson(bytes:Uint8Array):unknown{return decodeStrict(bytes,INTAKE_LIMITS.artifactBytes,true);}
+/** Private envelope budget includes base64; it does not widen artifact budgets. */
+export function decodePrivateIntakeJson(bytes:Uint8Array):unknown{return decodeStrict(bytes,16777216,true);}
 /** Uses the caller's existing scalar serializer; never imports an access dispatcher. */
 export function canonicalIntake(key:IntakeRoute, parameters:Record<string,string>, body:unknown, serialize:(v:unknown)=>string):string {
   intakePath(key,parameters);

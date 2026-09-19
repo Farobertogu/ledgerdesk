@@ -6,7 +6,7 @@ import { spawn } from 'node:child_process';
 import assert from 'node:assert/strict';
 import { collectProcessOutput } from '../tests/intake/t01/reviewed/process-output.mjs';
 import { captureClient, tarMemberIdentity } from './intake_l03_observer.mjs';
-import { counters, referenceCase } from './intake_l03_reference.mjs';
+import { counters, referenceCase, t03ProbeArgs } from './intake_l03_reference.mjs';
 
 const socket = 'unix:///var/run/docker.sock';
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -90,7 +90,54 @@ export function startAttached(id, { launch = spawn, milliseconds = 10000 } = {})
     } };
 }
 
-export async function linuxReferencePorts({ image, flags, sourceRoot, save, exec, openReferenceRecovery, registerReference }, mode) {
+export function nativeProbeLaunch({image,flags,executionProfile},mode) {
+  if (executionProfile === undefined) return [...flags,'--network=none',image,
+    'node','--max-old-space-size=128','/work/l03_gate.mjs',mode==='memory'?'memory':'cpu'];
+  assert.equal(executionProfile,'t03-init-probe/1','EXECUTION_PROFILE');
+  return [...flags,'--network=none','--entrypoint','node',image,...t03ProbeArgs(mode)];
+}
+
+export async function observeT03Setup({row,sources,command,readText,snapshot}) {
+  const paths=['/input/original','/work/l03_gate.mjs','/work/probe.mjs'];
+  assert.deepEqual(sources.map(file=>file.destination),paths,'T03_SOURCE_SELECTION');
+  const mounts=row.Mounts.map(mount=>({destination:mount.Destination,type:mount.Type,
+    readOnly:mount.RW===false,matchesSource:sources.some(source=>source.destination===mount.Destination&&source.path===mount.Source)}))
+    .sort((a,b)=>a.destination.localeCompare(b.destination));
+  assert.deepEqual(mounts,paths.map(destination=>({destination,type:'bind',readOnly:true,matchesSource:true})),'T03_MOUNTS');
+  // Only fixed trusted paths and effective controls; no user body or environment.
+  const script="const f=require('fs'),c=require('crypto');const files=['/input/original','/work/l03_gate.mjs','/work/probe.mjs'].map(destination=>{const b=f.readFileSync(destination);return {destination,bytes:b.length,sha256:c.createHash('sha256').update(b).digest('hex')}});const s=f.readFileSync('/proc/self/status','utf8'),l=f.readFileSync('/proc/self/limits','utf8').match(/Max open files\\s+(\\d+)\\s+(\\d+)/),v=n=>f.readFileSync('/sys/fs/cgroup/'+n,'utf8').trim();process.stdout.write(JSON.stringify({files,effective:{uid:process.getuid(),gid:process.getgid(),node:process.version,seccomp:s.match(/^Seccomp:\\s*(\\d+)/m)?.[1],cap:s.match(/^CapEff:\\s*(\\S+)/m)?.[1],nnp:s.match(/^NoNewPrivs:\\s*(\\d+)/m)?.[1],memory:v('memory.max'),swap:v('memory.swap.max'),cpu:v('cpu.max'),pids:v('pids.max'),nofileSoft:Number(l?.[1]),nofileHard:Number(l?.[2])}}));";
+  const observed=JSON.parse(await command(['exec','--user','1000:1000',row.Id,'node','-e',script]));
+  assert.deepEqual(observed.files.map(file=>file.destination),paths,'T03_FILE_OBSERVATION');
+  const files=sources.map((source,index)=>({destination:source.destination,
+    expected:{bytes:source.bytes,sha256:source.sha256},observed:{bytes:observed.files[index].bytes,sha256:observed.files[index].sha256}}));
+  for(const file of files)assert.deepEqual(file.observed,file.expected,'T03_ACTUAL_FILE_BYTES');
+  const initial=await snapshot();
+  assert.equal(initial.children.length,1,'T03_SCOPE');
+  const processIds=initial.children[0].processes;
+  assert.equal(processIds.length,2,'T03_PARTICIPANTS');
+  assert.ok(processIds.includes(row.State.Pid),'T03_INIT_PID');
+  async function participant(pid){
+    const stat=await readText('/proc/'+pid+'/stat');
+    const fields=stat.slice(stat.lastIndexOf(')')+2).split(' ');
+    const membership=(await readText('/proc/'+pid+'/cgroup')).match(/^0::(.+)$/m)?.[1];
+    const argv=(await readText('/proc/'+pid+'/cmdline',8192)).split('\0');
+    assert.equal(argv.pop(),'','T03_COMMAND_TERMINATOR');
+    return {pid,ppid:Number(fields[1]),startTicks:fields[19],membership,argv};
+  }
+  const ids=[row.State.Pid,processIds.find(pid=>pid!==row.State.Pid)];
+  const participants=[];for(const pid of ids)participants.push(await participant(pid));
+  const confirmedParticipants=[];for(const pid of ids)confirmedParticipants.push(await participant(pid));
+  assert.deepEqual(participants,confirmedParticipants,'T03_PROCESS_CHANGED');
+  const armed=await snapshot();
+  const host=row.HostConfig;
+  return {armed,t03:{files,mounts,effective:observed.effective,participants,confirmedParticipants,
+    configuration:{init:host.Init,user:row.Config.User,readOnly:host.ReadonlyRootfs,network:host.NetworkMode,
+      capDrop:host.CapDrop,securityOpt:host.SecurityOpt,nanoCpus:host.NanoCpus,pidsLimit:host.PidsLimit,
+      nofile:{soft:host.Ulimits?.find(value=>value.Name==='nofile')?.Soft,hard:host.Ulimits?.find(value=>value.Name==='nofile')?.Hard},
+      entrypoint:row.Config.Entrypoint,cmd:row.Config.Cmd,tmpfs:host.Tmpfs}}};
+}
+
+export async function linuxReferencePorts({ image, flags, sourceRoot, save, exec, openReferenceRecovery, registerReference, executionProfile, probeSources }, mode) {
   const nonce = randomUUID().replaceAll('-', ''), reference = 'system-ldl03' + nonce + '.slice';
   const name = 'ld-l03-' + nonce, owner = 'L03 reference ' + nonce;
   const base = '/sys/fs/cgroup/system.slice/' + reference;
@@ -245,24 +292,29 @@ export async function linuxReferencePorts({ image, flags, sourceRoot, save, exec
       for (let i = 0; i < 20; i++) { if ((await properties()).ActiveState === 'active') break; if (i === 19) throw Error('SLICE_START_UNCONFIRMED'); await sleep(25); }
       const before = await snapshot(); initialIdentity = before.identity; initialInvocation = before.invocation;
       Object.assign(resource, { identity: initialIdentity, invocation: initialInvocation });
-      return { reference, image, before };
+      return { reference, image, before, ...(executionProfile===undefined?{}:{executionProfile,host:facts}) };
     },
     async arm(record) {
       created = resource.created = true;
       id = await docker(['create', '--name', name, '--label', 'l03.reference=' + nonce,
-        ...flags, '--network=none', '--cgroup-parent=' + reference, '--interactive', image,
-        'node', '--max-old-space-size=128', '/work/l03_gate.mjs', mode === 'memory' ? 'memory' : 'cpu']);
+        '--cgroup-parent=' + reference, '--interactive',
+        ...nativeProbeLaunch({image,flags,executionProfile},mode)]);
       assert.match(id, /^[a-f0-9]{64}$/);
       resource.id = id;
-      const probeMatchesSource = await probeIdentity();
+      let probeMatchesSource = executionProfile===undefined ? await probeIdentity() : false;
       client = startAttached(id);
       await client.ready;
       const row = await inspect(); assert.equal(row.State.Running, true, 'GATED_PROCESS_NOT_RUNNING');
       const pid = row.State.Pid;
       const membership = (await text('/proc/' + pid + '/cgroup')).match(/^0::(.+)$/m)?.[1];
       const stat = await text('/proc/' + pid + '/stat'); const startTicks = stat.slice(stat.lastIndexOf(')') + 2).split(' ')[19];
-      const armed = await snapshot();
-      return { probeMatchesSource, armed, container: { id, pid, membership, startTicks,
+      let armed,t03;
+      if(executionProfile!==undefined){
+        assert.equal(executionProfile,'t03-init-probe/1','EXECUTION_PROFILE');
+        ({armed,t03}=await observeT03Setup({row,sources:probeSources,command:docker,readText:text,snapshot}));
+        probeMatchesSource=true;
+      }else armed=await snapshot();
+      return { probeMatchesSource, armed, ...(t03?{t03}:{}), container: { id, pid, membership, startTicks,
         parent: row.HostConfig.CgroupParent, memory: row.HostConfig.Memory, memorySwap: row.HostConfig.MemorySwap,
         restartCount: row.RestartCount, restartPolicy: row.HostConfig.RestartPolicy.Name, image: row.Image } };
     },

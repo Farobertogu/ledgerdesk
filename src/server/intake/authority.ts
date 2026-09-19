@@ -1,7 +1,8 @@
 import { createHash } from 'node:crypto';
 import { BINDINGS, bindingConsistent } from '../../contracts/intake_bindings.ts';
 import { exactReference, record } from '../../contracts/intake.ts';
-import type { ExactReference, ReceptionRoute } from '../../contracts/intake_reception.ts';
+import type { ExactReference } from '../../contracts/intake_reception.ts';
+import type {ServingRoute as ReceptionRoute} from './protocol.ts';
 import { canonicalValue } from '../../contracts/access_canonical.ts';
 import { InvitationAuthority } from '../access/invitation_authority.ts';
 import { startupAllowed } from '../access/service.ts';
@@ -15,11 +16,26 @@ export type Admission = {
   db: IntakeStore; now: number; deadline: number; session: IntakeSession;
   authority: InvitationAuthority; control: any; treatment: any; entry: any;
   binding: any; executor: ExactReference;
+  extractionView?: 'metadata'|'content';
 };
 const equal = (a: unknown, b: unknown) => canonicalValue(a) === canonicalValue(b);
 const reference = (id: string, revision: number, value: unknown): ExactReference => ({ id, revision,
   sha256: createHash('sha256').update(canonicalValue(value)).digest('hex') });
 const validReference = (value: unknown): value is ExactReference => exactReference(value);
+
+/** Shared live-source check for browser and separately declared processing actors. */
+export async function currentIntakeControl(db:IntakeStore,config:IntakeConfig,now:number) {
+  const control=(await db.query('SELECT * FROM intake_control.live WHERE singleton')).rows[0];
+  const namespace=(await db.query('SELECT * FROM intake_control.namespace_admission WHERE namespace=$1',[config.namespace])).rows[0];
+  if(!control?.enabled||control.source_id!==config.controlSource||control.generation!==config.generation||
+    control.incarnation!==config.incarnation||Number(control.expires_at)<=now||!equal(control.catalog,config.catalog)||
+    !equal(control.configuration,config.configuration)||!equal(control.limits,config.limits)||!namespace?.enabled||
+    namespace.source_id!==control.source_id||namespace.generation!==control.generation||
+    (config.namespace==='intake_restore'&&!namespace.backup_anchor))throw new IntakeFailure(503);
+  const deployment=(await db.query('SELECT * FROM access_trial.deployment')).rows[0];
+  if(!startupAllowed(deployment,now))throw new IntakeFailure(503);
+  return {control,deployment};
+}
 
 /** The adapter resolves controlled inputs; the established evaluator resolves grants. */
 export class IntakeAuthority {
@@ -48,6 +64,15 @@ export class IntakeAuthority {
     // Reuse the established evaluator, including descendant scopes; do not require
     // a root grant or use a target's existence to decide whether to evaluate it.
     await this.resolve(admission,'original',context);
+    return {scope_id:context.scope_id,purpose_id:context.purpose_id};
+  }
+  async beforeExtractionSelection(admission:Admission):Promise<{scope_id:string;purpose_id:string}> {
+    const treatment=(await admission.db.query(`SELECT t.*,c.enabled FROM intake_control.treatment_current c
+      JOIN intake_control.treatment t USING(id,revision) WHERE c.singleton`)).rows[0];
+    if(!treatment?.enabled)throw new IntakeFailure(404);
+    const context={scope_id:treatment.scope_ref,purpose_id:treatment.purpose_ref,
+      treatment_revision:{id:treatment.id,revision:treatment.revision,sha256:treatment.sha256}};
+    await this.resolve(admission,'extraction',context);
     return {scope_id:context.scope_id,purpose_id:context.purpose_id};
   }
   private async evaluateMetadata(admission: Admission, operation: ReceptionRoute): Promise<void> {
@@ -79,16 +104,7 @@ export class IntakeAuthority {
       const intentionKey=principal&&request.clientKey?'intake:intention:'+this.config.deployment+':'+principal+':'+BINDINGS[request.route].basis+':'+request.route+':'+request.clientKey:null;
       await db.begin([...keys, ...(sessionDigest ? ['session:' + sessionDigest] : []),...(intentionKey?[intentionKey]:[])]);
       const now = await db.now();
-      const control = (await db.query('SELECT * FROM intake_control.live WHERE singleton')).rows[0];
-      const namespace = (await db.query('SELECT * FROM intake_control.namespace_admission WHERE namespace=$1', [this.config.namespace])).rows[0];
-      if (!control || !control.enabled || control.source_id !== this.config.controlSource ||
-          control.generation !== this.config.generation || control.incarnation !== this.config.incarnation ||
-          Number(control.expires_at) <= now || !equal(control.catalog, this.config.catalog) ||
-          !equal(control.configuration, this.config.configuration) || !equal(control.limits, this.config.limits) ||
-          !namespace?.enabled || namespace.source_id !== control.source_id || namespace.generation !== control.generation ||
-          (this.config.namespace === 'intake_restore' && !namespace.backup_anchor)) throw new IntakeFailure(503);
-      const deployment = (await db.query('SELECT * FROM access_trial.deployment')).rows[0];
-      if (!startupAllowed(deployment, now)) throw new IntakeFailure(503);
+      const {control,deployment}=await currentIntakeControl(db,this.config,now);
       const session = (await db.query(`SELECT s.*,a.person_ref,a.restricted,a.revision AS account_revision
         FROM access_trial.session s JOIN access_trial.account a ON a.id=s.account_id WHERE s.digest=$1`, [sessionDigest])).rows[0];
       if (!session || session.revoked || session.restricted || Number(session.expires_at) <= now ||
@@ -114,7 +130,7 @@ export class IntakeAuthority {
     const entry = (await db.query('SELECT * FROM intake_control.catalog_entry WHERE operation=$1', [operation])).rows[0];
     if (!entry?.active || !equal(entry.catalog, this.config.catalog) || !equal(entry.definition, BINDINGS[operation]) ||
         !validReference(entry.route_reference) || !validReference(entry.source_comparison)) throw new IntakeFailure(503);
-    const expectedPartition = operation === 'original' ? 'whole_original' : ['lookup_operation', 'reception'].includes(operation)
+    const expectedPartition = operation==='extraction'?(entry.partition==='extraction_record'?'extraction_record':'extraction_content'):operation === 'original' ? 'whole_original' : ['lookup_operation', 'reception'].includes(operation)
       ? 'own_record' : operation === 'profiles' ? 'visible_surfaces' : 'personal_load';
     if (entry.partition !== expectedPartition) throw new IntakeFailure(503);
     const scopeId = context?.scope_id ?? reception?.context?.scope_id ?? entry.scope_ref;
@@ -125,7 +141,7 @@ export class IntakeAuthority {
     if (!scope || !permission || scope.purpose_ref !== purpose || purpose !== entry.purpose_ref ||
         !authority.contains(entry.scope_ref, scopeId) || !authority.allows(actor, permission.id, 'exercise', scopeId)) throw new IntakeFailure(404);
     // Query/whole-original views are scoped to an owned permitted record, not arbitrary selectors.
-    if (reception && reception.principal !== session.account_id) throw new IntakeFailure(404);
+    if (reception && !['extraction_record','extraction_content'].includes(expectedPartition) && reception.principal !== session.account_id) throw new IntakeFailure(404);
     if (expectedPartition === 'personal_load' && reception && reception.origin_session !== session.digest) throw new IntakeFailure(404);
     const selectedGrant = authority.grants.find(g => g.account_id === session.account_id && g.permission_id === permission.id &&
       g.faculty === 'exercise' && authority.contains(g.scope_ref, scopeId) && authority.grantAlive(g));
@@ -144,6 +160,8 @@ export class IntakeAuthority {
     const definition = BINDINGS[operation];
     if (definition.treatment.some(action => !treatment.actions.includes(action)) ||
         (['upload_original', 'finalize_reception', 'original'].includes(operation) && !treatment.fields.includes('original-body'))) throw new IntakeFailure(404);
+    if(operation==='extraction')admission.extractionView=expectedPartition==='extraction_content'&&
+      treatment.fields.includes('extraction-body')?'content':'metadata';
     admission.deadline = Math.min(admission.deadline, authority.deadline, Number(treatment.expires_at));
     const current: Record<string, unknown> = {
       deployment: this.config.deployment, catalog: this.config.catalog,
@@ -153,7 +171,7 @@ export class IntakeAuthority {
       admission: reference('admission:' + this.config.controlSource, admission.control.revision,
         { control: admission.control.revision, treatment: treatmentRef, session: session.digest, scope: scopeId, permission: permission.id }),
       signature: entry.signature,
-      view_partitions: ['whole_original', 'own_record'].includes(expectedPartition) ? [{ id: scopeId, revision: scope.revision }] : [],
+      view_partitions: ['whole_original', 'own_record','extraction_record','extraction_content'].includes(expectedPartition) ? [{ id: scopeId, revision: scope.revision }] : [],
     };
     if (expectedPartition === 'personal_load') {
       if (!reception?.load_reference || !phase) throw new IntakeFailure(503);
@@ -179,6 +197,9 @@ export class IntakeAuthority {
   /** Shape verification itself is processing; no body is opened without its treatment. */
   async permitVerification(admission: Admission): Promise<void> {
     if (!admission.treatment || !['read','conserve','process'].every(action => admission.treatment.actions.includes(action)) ||
-        admission.treatment.processor.kind !== 'bounded-form-verifier') throw new IntakeFailure(404);
+        !(admission.treatment.processor.kind === 'bounded-form-verifier'||
+          admission.treatment.processor.kind === 'bounded-intake-workers' &&
+          admission.treatment.processor.verification?.kind === 'bounded-form-verifier' &&
+          validReference(admission.treatment.processor.verification.reference))) throw new IntakeFailure(404);
   }
 }

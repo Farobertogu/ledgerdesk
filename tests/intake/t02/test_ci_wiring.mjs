@@ -13,7 +13,7 @@ import {publicEvidence,eligibleEvidence,collectPublicEvidence} from '../../../ci
 import {commandDiagnostic} from '../../../ci/intake/command_diagnostic.mjs';
 import {createHash,randomUUID} from 'node:crypto';
 const text=fs.readFileSync(new URL('../../../.github/workflows/ci.yml',import.meta.url),'utf8');
-const expectedProducers=['reading-foundations','intake-reception-behavior','intake-reception-recovery','intake-reception-mutations'];
+const expectedProducers=['reading-foundations','intake-reception-behavior','intake-reception-recovery','intake-reception-mutations','intake-extraction','intake-extraction-recovery','intake-extraction-admission','intake-extraction-boundaries','intake-extraction-resource-guards','intake-extraction-format-guards'];
 const success=()=>Object.fromEntries(expectedProducers.map(n=>[n,{result:'success'}]));
 const root=fileURLToPath(new URL('../../../',import.meta.url));
 function gateProcess(env,script=path.join(root,'ci/reading_result_gate.mjs')){
@@ -22,7 +22,7 @@ function gateProcess(env,script=path.join(root,'ci/reading_result_gate.mjs')){
   const result=spawnSync(process.execPath,[script],{cwd:root,env:environment,encoding:'utf8',timeout:10000,windowsHide:true});
   assert.equal(result.error,undefined);assert.equal(result.signal,null);assert.equal(result.stderr,'');
   assert.ok([0,1].includes(result.status));
-  assert.match(result.stdout,/^(All four mandatory reading producers succeeded\.|Reading verification is incomplete, failed or cancelled\.)\s*$/);
+  assert.match(result.stdout,/^(All mandatory reading producers succeeded\.|Reading verification is incomplete, failed or cancelled\.)\s*$/);
   return result.status;
 }
 // This is a bounded transport fixture, not the Actions expression engine.
@@ -62,7 +62,7 @@ function runningCancellationRoute(workflow,{globalCancellationRequested,delivery
   return {conditionResult,cancellationSelected,statusAtEnv,gateExit:gate.exit,modelledJobConclusion};
 }
 test('the actual workflow retains every mapped command, scenario and artifact',()=>assert.equal(verifyWiring(parseWorkflow(text)),true));
-test('only four explicit producer successes and successful current-job status pass the helper',()=>{
+test('only all explicit producer successes and successful current-job status pass the helper',()=>{
   assert.deepEqual(readingDependencies,expectedProducers);
   assert.equal(readingPassed(success(),'success'),true);assert.equal(readingPassed(success(),'cancelled'),false);
   for(const name of readingDependencies)for(const state of ['failure','cancelled','skipped','unknown',null,undefined]){
@@ -112,13 +112,13 @@ test('CI-CANCEL-01: global cancellation selects the running aggregate; reverting
     evidenceClass:'documentary running-job model plus actual gate process',expected:rejectedCancellation,actual:counterexample,expectedRejectionAssertion:'failed as intended'}));
 });
 test('the actual workflow transport and gate reject every non-success producer and current-job status',t=>{
-  const workflow=parseWorkflow(text),cases=[{label:'four successes',needs:success(),status:'success',exit:0}];
+  const workflow=parseWorkflow(text),cases=[{label:'all producer successes',needs:success(),status:'success',exit:0}];
   for(const name of expectedProducers)for(const state of ['failure','cancelled','skipped','unknown',null,undefined]){
     const needs=success();needs[name]={result:state};cases.push({label:name+':'+state,needs,status:'success',exit:1});
   }
   for(const name of expectedProducers){const needs=success();delete needs[name];cases.push({label:'missing '+name,needs,status:'success',exit:1});}
   for(const status of ['cancelled','failure','skipped','unknown','',undefined,null,'false','true','Success','success '])
-    cases.push({label:'four successes with current status '+status,needs:success(),status,exit:1});
+    cases.push({label:'all producer successes with current status '+status,needs:success(),status,exit:1});
   for(const needs of [null,{},[],false,'success',{unrelated:{result:'success'}}])cases.push({label:'malformed needs '+JSON.stringify(needs),needs,status:'success',exit:1});
   for(const row of cases){
     const observed=workflowGate(workflow,row.needs,row.status);

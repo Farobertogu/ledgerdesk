@@ -9,6 +9,7 @@ export type IntakeConfig = Readonly<{
   controlSource: string; incarnation: string; generation: number;
   catalog: ExactReference; configuration: ExactReference; limits: ExactReference;
   brokerSocket: string; verifierSocket: string; digestKeyVersion: 1;
+  extraction?: 'intake-execution/1';
 }>;
 export const RECEPTION_BOUNDS = Object.freeze({
   originalBytes: 1048576, commandBytes: 65536, chunkBytes: 65536,
@@ -23,9 +24,10 @@ export function intakeConnection(value: string, role: IntakeRole, port: number):
 }
 /** Trusted launch configuration, never a route parameter or restored payload. */
 export function intakeConfig(input: IntakeConfig): IntakeConfig {
-  if (!input || Object.keys(input).sort().join(',') !==
+  if (!input || Object.keys(input).filter(key=>key!=='extraction').sort().join(',') !==
       'brokerSocket,catalog,configuration,connectionString,controlSource,deployment,digestKeyVersion,enabled,expectedPort,generation,incarnation,limits,namespace,profile,readerConnectionString,synthetic,verifierSocket' ||
       input.profile !== 'intake-runtime/1' || input.synthetic !== true || input.enabled !== true ||
+      (Object.hasOwn(input,'extraction')&&input.extraction!=='intake-execution/1') ||
       input.deployment !== 'inc02-synthetic' || !['intake_trial', 'intake_restore'].includes(input.namespace) ||
       !identifier(input.controlSource) || !identifier(input.incarnation) || !revision(input.generation) ||
       input.digestKeyVersion !== 1 || ![input.catalog, input.configuration, input.limits].every(exactReference) ||

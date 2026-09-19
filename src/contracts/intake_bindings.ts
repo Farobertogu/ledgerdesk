@@ -1,4 +1,5 @@
 import {INTAKE_ROUTES, INTAKE_LIMITS, closed, array, choice, identifier, revision, artifactReference, exactReference, text, record, type Rule} from './intake.ts';
+import {EXTRACTION_RAW} from './intake_extraction.ts';
 
 export const BINDING_PROFILE = 'intake-binding/2' as const;
 type Definition = {basis:string; effect:string; holder:string; modes:readonly string[]; parent:string|null; reads:readonly string[]; treatment:readonly string[]; projection:string; point:string; resolution:string};
@@ -61,7 +62,7 @@ const loadOperations=['reserve_reception','upload_original','finalize_reception'
 const processingOperations=['dispatch_extraction','accept_extraction_result'];
 const generic=closed({...common,operation:choice(...Object.keys(BINDINGS).filter(op=>!loadOperations.includes(op)&&!processingOperations.includes(op))),kind:choice('act'),mode:choice('person','authorized_consequence')},{predecessor:exactReference,authorization,comparison:exactReference});
 const personal=closed({...common,operation:choice(...loadOperations),kind:choice('personal_load_phase'),mode:choice('person'),load,phase},{comparison:exactReference});
-const processing=closed({...common,operation:choice(...processingOperations),kind:choice('admitted_processing_phase'),load,phase,work,resolution:v=>equal(v,PROCESSING_RESOLUTION)}, {result:artifactReference});
+const processing=closed({...common,operation:choice(...processingOperations),kind:choice('admitted_processing_phase'),load,phase,work,resolution:v=>equal(v,PROCESSING_RESOLUTION)}, {result:EXTRACTION_RAW});
 export const BINDING_DECLARATION:Rule=v=>generic(v)||personal(v)||processing(v);
 
 /** An exact effect realization of the pinned constraints, not an admission engine. */
@@ -91,7 +92,7 @@ export function bindingConsistent(value:unknown,current:unknown):boolean{
  }
  if((d.resolution==='M04-D02-effect-comparison'||d.resolution==='declared-subtractive-containment')&&!exactReference(value.comparison))return false;
  if(!closed({deployment:identifier,catalog:exactReference,entry:selector,permission:selector,support:selector,scope:selector,purpose:identifier,route:exactReference,treatment:exactReference,admission:exactReference,signature,view_partitions:array(selector)},
-  {predecessor:exactReference,authorization,comparison:exactReference,load,phase,work,resolution:v=>equal(v,PROCESSING_RESOLUTION),result:artifactReference})(current))return false;
+  {predecessor:exactReference,authorization,comparison:exactReference,load,phase,work,resolution:v=>equal(v,PROCESSING_RESOLUTION),result:isWork?EXTRACTION_RAW:artifactReference})(current))return false;
  for(const key of ['catalog','entry','permission','support','scope','purpose','route','treatment','admission']){
    if(!equal(value[key],current[key]))return false;
  }

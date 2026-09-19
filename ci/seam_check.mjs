@@ -67,6 +67,9 @@ function walk(dir, out = []) {
   if (!existsSync(dir)) return out;
   for (const entry of readdirSync(dir)) {
     if (SKIP.has(entry)) continue;
+    // The root evidence directory contains immutable copies of whole checkouts,
+    // not active modules. Do not exempt similarly named paths inside src/.
+    if (dir === ROOT && entry === 'test-results') continue;
     const full = path.join(dir, entry);
     if (statSync(full).isDirectory()) walk(full, out);
     else if (CODE.test(entry)) out.push(full);

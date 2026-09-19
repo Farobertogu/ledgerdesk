@@ -7,6 +7,7 @@ import {plans} from './intake/t02_plan.mjs';
 import {producerFaultGroups} from './intake/reception/producer_fault.mjs';
 import {readingDependencies} from './reading_result_gate.mjs';
 import {guardCases} from './intake_t02_guard_checks.mjs';
+import {extractionGuards} from './intake_extraction_guard_checks.mjs';
 import ts from 'typescript';
 const require=createRequire(import.meta.url),root=fileURLToPath(new URL('../',import.meta.url));
 // Already pinned by @playwright/test. A missing/moved parser fails, never falls
@@ -81,7 +82,7 @@ export function verifyWiring(workflow,executedPlans=plans,mutations=producerFaul
   for(const name of readingDependencies){const job=workflow.jobs[name];assert.ok(job);same(job['runs-on'],'ubuntu-latest');same(job['timeout-minutes'],20);
     same(job.env,previous.jobs.reading.env);assert.ok(!Object.hasOwn(job,'if')&&!Object.hasOwn(job,'continue-on-error')&&!Object.hasOwn(job,'strategy'));
     assert.ok(job.steps.every(s=>!Object.hasOwn(s,'continue-on-error')));
-    for(const s of job.steps)if(Object.hasOwn(s,'run')&&!s.run.startsWith('node ci/intake_t02_artifacts.mjs'))assert.ok(!Object.hasOwn(s,'if'));
+    for(const s of job.steps)if(Object.hasOwn(s,'run')&&!s.run.startsWith('node ci/intake_t02_artifacts.mjs')&&s.run!=='node ci/intake_extraction_artifacts.mjs')assert.ok(!Object.hasOwn(s,'if'));
     assert.ok(job.steps.some(s=>s.uses==='actions/setup-node@v4'&&s.with['node-version']==='22'));
     assert.ok(job.steps.some(s=>s.run==='node --test tests/intake/t02/test_ci_wiring.mjs'));
   }
@@ -93,6 +94,62 @@ export function verifyWiring(workflow,executedPlans=plans,mutations=producerFaul
   }
   same(executedPlans.behavior.map(r=>r[1]),[...requiredNormal,...requiredFinite].map(g=>['--group',g]).concat([['--group','transactions','--receipt-commit-loss']]),'behavior obligation list');
   same(executedPlans['recovery-with-access'].map(r=>r[1]),requiredRecovery.map(args=>['--group',...args]),'recovery obligation list');
+  const extraction=workflow.jobs['intake-extraction'];
+  same(commands(extraction),['npm ci','node --test tests/intake/t02/test_ci_wiring.mjs','node ci/intake_ci_check.mjs',
+    'node --test tests/intake/extraction/ci_evidence.mjs','docker pull postgres:16',
+    'npm run test:intake:extraction:unit','npm run test:intake:extraction:schema','npm run test:intake:extraction:worker -- --qualified-memory',
+    'npm run test:intake:extraction:service','node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases retry',
+    'npm run test:intake:extraction:formats','npm run test:intake:extraction:budgets','npm run test:intake:extraction:semantics','npm run test:intake:extraction:mixed',
+    'node ci/intake_extraction_artifacts.mjs'],'extraction obligation list');
+  const recovery=workflow.jobs['intake-extraction-recovery'];
+  same(commands(recovery),['npm ci','node --test tests/intake/t02/test_ci_wiring.mjs','node ci/intake_ci_check.mjs',
+    'node --test tests/intake/extraction/ci_evidence.mjs','docker pull postgres:16',
+    'npm run test:intake:extraction:restart','npm run test:intake:extraction:restore','npm run test:intake:extraction:storage-recovery',
+    'npm run test:intake:extraction:temporal','npm run test:intake:extraction:fencing','node ci/intake_extraction_artifacts.mjs'],
+    'extraction recovery obligation list');
+  same(scripts['test:intake:extraction:formats'],'node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases formats','extraction format executable');
+  const addedExtraction={
+    'intake-extraction-admission':['authority-original','authority-result','authority-effect','compatibility','capacity','extraction-privileges'],
+    'intake-extraction-boundaries':['resources','associations','lineage','browser-disconnect','containment','private-loss','controller-loss'],
+  };
+  for(const [name,cases]of Object.entries(addedExtraction)){
+    same(commands(workflow.jobs[name]),['npm ci','node --test tests/intake/t02/test_ci_wiring.mjs','node ci/intake_ci_check.mjs',
+      'node --test tests/intake/extraction/ci_evidence.mjs','docker pull postgres:16',
+      ...cases.map(g=>'node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases '+g),
+      'node ci/intake_extraction_artifacts.mjs'],name+' complete finite obligations');
+  }
+  for(const [name,suite]of [['intake-extraction-resource-guards','resources'],['intake-extraction-format-guards','formats']]){
+    same(commands(workflow.jobs[name]),['npm ci','node --test tests/intake/t02/test_ci_wiring.mjs','node ci/intake_ci_check.mjs',
+      'node --test tests/intake/extraction/ci_evidence.mjs','docker pull postgres:16',
+      'node ci/intake_extraction_guard_checks.mjs --suite '+suite,'node ci/intake_extraction_artifacts.mjs'],name+' required directed negatives');
+  }
+  same(extractionGuards.resources.map(c=>[c.group,c.name]),[
+    ['resources','omit-resource-relation-store'],['resources','read-resource-before-validation'],['resources','allow-resource-swap'],
+    ['semantics','omit-condition-store'],['semantics','omit-limitation-store'],['semantics','omit-incident-query']],'resource and semantic negative inventory');
+  same(extractionGuards.formats.map(c=>[c.group,c.name]),[
+    ['format-negatives','xlsx-recalculate-store'],['format-negatives','xlsx-hide-sheet-store'],['format-negatives','xlsx-context-store']],'XLSX internal negative inventory');
+  for(const name of [...Object.keys(addedExtraction),'intake-extraction-resource-guards','intake-extraction-format-guards']){
+    same(workflow.jobs[name].steps.at(-2).if,'always()');
+    same(workflow.jobs[name].steps.at(-1),{uses:'actions/upload-artifact@v4',if:'always()',with:{name:name+'-evidence',
+      path:'test-results/intake-extraction-public/','if-no-files-found':'error'}});
+  }
+  same(scripts['test:intake:extraction:budgets'],'node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases budgets','extraction budget executable');
+  same(scripts['test:intake:extraction:restart'],'node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases restart','extraction process restart executable');
+  same(scripts['test:intake:extraction:restore'],'node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases restore','extraction populated restore executable');
+  same(scripts['test:intake:extraction:storage-recovery'],'node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases storage-recovery','extraction private replacement and interrupted seal executable');
+  same(scripts['test:intake:extraction:semantics'],'node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases semantics','extraction independent internal-content oracle executable');
+  same(scripts['test:intake:extraction:mixed'],'node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases mixed','extraction labeled mixed-component fidelity executable');
+  same(scripts['test:intake:extraction:temporal'],'node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases temporal','extraction temporal executable');
+  same(scripts['test:intake:extraction:fencing'],'node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases fencing','extraction fencing executable');
+  for(const [name,runner,group]of [['unit','intake_extraction_check','units'],['schema','intake_extraction_check','schema'],
+    ['worker','intake_extraction_check','worker'],['service','intake_t02_check','extraction']])
+    same(scripts['test:intake:extraction:'+name],`node --experimental-strip-types ci/${runner}.mjs --group ${group}`,'extraction executable '+name);
+  same(extraction.steps.at(-2).if,'always()');
+  same(extraction.steps.at(-1),{uses:'actions/upload-artifact@v4',if:'always()',with:{name:'intake-extraction-evidence',
+    path:'test-results/intake-extraction-public/','if-no-files-found':'error'}});
+  same(recovery.steps.at(-2).if,'always()');
+  same(recovery.steps.at(-1),{uses:'actions/upload-artifact@v4',if:'always()',with:{name:'intake-extraction-recovery-evidence',
+    path:'test-results/intake-extraction-public/','if-no-files-found':'error'}});
   same(Object.keys(mutations).sort(),[...requiredMutations].sort(),'producer mutation obligations');
   same(guardCases.map(c=>[c.name,c.group,...c.args]),[
     ['pre-capture','boundaries','--boundary-mutation','early-read'],['continuation-epoch','fence-continuation','--omit-epoch-check'],

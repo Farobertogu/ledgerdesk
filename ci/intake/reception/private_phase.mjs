@@ -5,9 +5,10 @@ import {randomUUID,createHash} from 'node:crypto';
 const uuid=value=>typeof value==='string'&&/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(value);
 const digest=value=>createHash('sha256').update(value).digest('hex');
 const exact=(value,keys)=>value&&typeof value==='object'&&!Array.isArray(value)&&Object.keys(value).sort().join(',')===keys.split(',').sort().join(',');
-const actions={objects:['append','create','fence','read','read_stage','seal'],verifier:['verify']};
+const actions={objects:['append','create','fence','read','read_stage','seal'],verifier:['verify'],extraction:['run','read'],outputs:['seal','read']};
 function binding(value,participant){
-  if(!exact(value,'id,incarnation,namespace,original,evidenceId,participant,actions')||!uuid(value.id)||
+  const extraction=['extraction','outputs'].includes(participant);
+  if(!exact(value,'id,incarnation,namespace,original,evidenceId,participant,actions'+(extraction?',subject':''))||!uuid(value.id)||
     typeof value.incarnation!=='string'||!/^[a-zA-Z0-9_-]{1,80}$/.test(value.incarnation)||
     !['intake_trial','intake_restore'].includes(value.namespace)||value.participant!==participant||!uuid(value.evidenceId)||
     !exact(value.original,'id,generation,bytes,sha256')||!uuid(value.original.id)||
@@ -15,10 +16,13 @@ function binding(value,participant){
     !Number.isInteger(value.original.bytes)||value.original.bytes<0||value.original.bytes>1048576||
     !/^[a-f0-9]{64}$/.test(value.original.sha256)||!Array.isArray(value.actions)||!value.actions.length||
     new Set(value.actions).size!==value.actions.length||value.actions.some(action=>!actions[participant].includes(action)))throw Error('PHASE_BINDING');
+  if(extraction&&(!exact(value.subject,'job_id,attempt_generation,channel_id,binding_sha256')||!uuid(value.subject.job_id)||
+    ![1,2].includes(value.subject.attempt_generation)||!uuid(value.subject.channel_id)||!/^[a-f0-9]{64}$/.test(value.subject.binding_sha256)))throw Error('EXTRACTION_PHASE_SUBJECT');
   // Fixed-field private binding, not the public intention canonicalization profile.
   const result={id:value.id,incarnation:value.incarnation,namespace:value.namespace,
     original:{id:value.original.id,generation:value.original.generation,bytes:value.original.bytes,sha256:value.original.sha256},
-    evidenceId:value.evidenceId,participant,actions:[...value.actions].sort()};
+    evidenceId:value.evidenceId,participant,actions:[...value.actions].sort(),...(extraction?{subject:{job_id:value.subject.job_id,
+      attempt_generation:value.subject.attempt_generation,channel_id:value.subject.channel_id,binding_sha256:value.subject.binding_sha256}}:{})};
   return JSON.stringify(result);
 }
 function bounded(promise,milliseconds){
@@ -89,7 +93,8 @@ export class PrivatePhaseJournal{
     if(!uuid(command.id)||command.incarnation!==expected.incarnation||command.namespace!==expected.namespace||
       command.evidenceId!==expected.evidenceId||!exact(command.original,'id,generation,bytes,sha256')||
       Object.keys(expected.original).some(key=>command.original[key]!==expected.original[key])||
-      !expected.actions.includes(command.action))throw Error('PHASE_COMMAND_BINDING');
+      !expected.actions.includes(command.action)||expected.subject&&(!exact(command.subject,'job_id,attempt_generation,channel_id,binding_sha256')||
+        Object.keys(expected.subject).some(key=>command.subject[key]!==expected.subject[key])))throw Error('PHASE_COMMAND_BINDING');
     let operation;
     try{
       operation=start();

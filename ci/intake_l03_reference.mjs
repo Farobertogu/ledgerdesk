@@ -2,6 +2,15 @@ import assert from 'node:assert/strict';
 
 export const L03_REFERENCE = 'l03-exclusive-cgroup/1';
 export const L03_BYTES = 536870912;
+export const T03_EXECUTION_PROFILE = 't03-init-probe/1';
+export const t03ProbeArgs = mode => {
+  assert.ok(['memory', 'external', 'watchdog'].includes(mode), 'CONTROL_MODE');
+  return ['--experimental-strip-types', '--permission',
+    '--allow-fs-read=/app/workers/intake/extraction', '--allow-fs-read=/app/src/contracts',
+    '--allow-fs-read=/input/original', '--allow-fs-read=/work/l03_gate.mjs',
+    '--allow-fs-read=/work/probe.mjs', '--max-old-space-size=128', '/work/l03_gate.mjs',
+    mode === 'memory' ? 'memory' : 'cpu'];
+};
 const fail = (condition, code) => assert.ok(condition, code);
 const equal = (actual, expected, code) => assert.deepEqual(actual, expected, code);
 const eventKeys = ['max', 'oom', 'oom_kill', 'oom_group_kill'];
@@ -22,6 +31,43 @@ export function counters(text) {
 
 function zero(value, code) {
   for (const key of eventKeys) equal(value?.[key], 0, code);
+}
+
+export function validateT03Identity(record) {
+  const {container, armed, before, t03, mode} = record;
+  equal(record.executionProfile, T03_EXECUTION_PROFILE, 'EXECUTION_PROFILE');
+  fail(t03 && Array.isArray(t03.participants) && t03.participants.length === 2, 'T03_PARTICIPANTS');
+  equal(t03.participants, t03.confirmedParticipants, 'T03_PROCESS_CHANGED');
+  const [init, node] = t03.participants;
+  equal(init.pid, container.pid, 'T03_INIT_PID');
+  equal(init.startTicks, container.startTicks, 'T03_INIT_IDENTITY');
+  fail(Number.isSafeInteger(node.pid) && node.pid > 1 && node.pid !== init.pid, 'T03_NODE_PID');
+  equal(node.ppid, init.pid, 'T03_NODE_PARENT');
+  for (const participant of t03.participants) {
+    fail(Number.isSafeInteger(participant.ppid) && participant.ppid >= 0, 'T03_PARENT_IDENTITY');
+    fail(/^[1-9][0-9]*$/.test(participant.startTicks ?? ''), 'T03_START_IDENTITY');
+    equal(participant.membership, before.path + '/docker-' + container.id + '.scope', 'T03_MEMBERSHIP');
+  }
+  const command = ['node', ...t03ProbeArgs(mode)];
+  equal(init.argv, ['/sbin/docker-init', '--', ...command], 'T03_INIT_COMMAND');
+  equal(node.argv, command, 'T03_NODE_COMMAND');
+  equal([...armed.children[0].processes].sort((a,b)=>a-b), [init.pid,node.pid].sort((a,b)=>a-b), 'FOREIGN_REFERENCE_PROCESS');
+  equal(t03.configuration, {init:true,user:'1000:1000',readOnly:true,network:'none',
+    capDrop:['ALL'],securityOpt:['no-new-privileges'],nanoCpus:1000000000,pidsLimit:64,
+    nofile:{soft:128,hard:128},entrypoint:['node'],cmd:t03ProbeArgs(mode),
+    tmpfs:{'/work':'rw,noexec,nosuid,size=67108864,uid=1000,gid=1000',
+      '/tmp':'rw,noexec,nosuid,size=8388608,uid=1000,gid=1000'}}, 'T03_CONFIGURATION');
+  equal(t03.effective, {uid:1000,gid:1000,node:'v22.16.0',seccomp:'2',cap:'0000000000000000',
+    nnp:'1',memory:'536870912',swap:'0',cpu:'100000 100000',pids:'64',nofileSoft:128,nofileHard:128}, 'T03_EFFECTIVE_CONTROLS');
+  const destinations=['/input/original','/work/l03_gate.mjs','/work/probe.mjs'];
+  equal(t03.mounts, destinations.map(destination=>({destination,type:'bind',readOnly:true,matchesSource:true})), 'T03_MOUNTS');
+  equal(t03.files?.map(file=>file.destination),destinations,'T03_FILES');
+  for (const file of t03.files) {
+    fail(Number.isSafeInteger(file.expected?.bytes) && file.expected.bytes > 0 && file.expected.bytes <= 131072,'T03_FILE_SIZE');
+    fail(/^[a-f0-9]{64}$/.test(file.expected.sha256),'T03_FILE_HASH');
+    equal(file.observed,file.expected,'T03_ACTUAL_FILE_BYTES');
+  }
+  return true;
 }
 
 export function validateArmed(record) {
@@ -45,7 +91,8 @@ export function validateArmed(record) {
   equal(armed.children.map(child => child.name), [leaf], 'FOREIGN_REFERENCE_CHILD');
   fail(Number.isSafeInteger(container.pid) && container.pid > 1, 'CONTAINER_PID');
   const child = armed.children[0];
-  equal(child.processes, [container.pid], 'FOREIGN_REFERENCE_PROCESS');
+  if (record.executionProfile === undefined) equal(child.processes, [container.pid], 'FOREIGN_REFERENCE_PROCESS');
+  else validateT03Identity(record);
   equal(child.children, [], 'NESTED_REFERENCE_CHILD');
   equal(container.membership, before.path + '/' + leaf, 'PROCESS_MEMBERSHIP');
   fail(/^[0-9]+$/.test(container.startTicks ?? ''), 'PROCESS_IDENTITY');

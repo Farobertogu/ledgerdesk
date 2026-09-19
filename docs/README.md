@@ -29,6 +29,7 @@ not production deployment instructions.
 | Access construction records | [T01 transport](INC-02-T01.md), [T02 identity](INC-02-T02.md), [T03 invitations](INC-02-T03.md), [T04 authenticated reading](INC-02-T04.md), [T05 administration](INC-02-T05.md) |
 | Intake foundation | [INC-03 T01](INC-03-T01.md), including the original experiments and later acceptance checkpoints |
 | Synthetic intake reception | [INC-03 T02](INC-03-T02.md) and its [coverage map](INC-03-T02-coverage.md) |
+| Bounded synthetic extraction | [INC-03 T03](INC-03-T03.md#current-status), with scoped acceptance, qualified implementation CI, preserved correction history and remaining limits |
 | L03 memory attribution | [Exclusive retained reference](L03-exclusive-reference.md) for the current qualified profile; [bounded diagnostics](L03-diagnostics.md) for the earlier observation method and recorded failures |
 
 The [browser follow-up record](INC-02-T03.md#tracked-browser-follow-up) retains its closure

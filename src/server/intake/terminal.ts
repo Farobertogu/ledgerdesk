@@ -2,9 +2,10 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { AccessConfig } from '../access/config.ts';
 import { sessionToken, corsHeaders, preflightHeaders } from '../access/transport.ts';
 import { receptionProblem, resolveReceptionPath } from '../../contracts/intake_reception.ts';
+import {REPRESENTATION_CONFLICT,EXTRACTION_BOUNDS} from '../../contracts/intake_extraction.ts';
 import { intakeConfig, type IntakeConfig } from './config.ts';
 import { ReceptionService, type IntakeHooks, type PreparedIntake } from './service.ts';
-import { IntakeFailure, receptionCommand, receptionEnvelope } from './protocol.ts';
+import { IntakeFailure,IntakeRepresentationFailure, receptionCommand, receptionEnvelope,resolveIntakePath } from './protocol.ts';
 import { PrivateIntakePort } from './ports.ts';
 import { collectCommand, uploadOriginal } from './stream.ts';
 
@@ -33,9 +34,9 @@ export function createIntakeTerminal(access:AccessConfig,input:IntakeConfig,dige
       try {console.error('INTAKE_OBSERVATION_FAILURE '+JSON.stringify({...event,receiver}));}catch { /* Sink unavailable; admission still closes. */ }
     }
   }
-  function problem(res:ServerResponse,status:400|403|404|409|413|415|429|503) {
+  function problem(res:ServerResponse,status:400|403|404|409|413|415|429|503,representationConflict=false) {
     if(res.headersSent||res.destroyed){res.destroy();return;}
-    const bytes=Buffer.from(JSON.stringify(receptionProblem(status)));
+    const bytes=Buffer.from(JSON.stringify(representationConflict?REPRESENTATION_CONFLICT:receptionProblem(status)));
     res.sendDate=false;res.writeHead(status,{...corsHeaders(access.transport),'content-type':'application/problem+json',
       'content-length':String(bytes.length),'cache-control':'private, no-store'});res.end(bytes);
   }
@@ -43,19 +44,22 @@ export function createIntakeTerminal(access:AccessConfig,input:IntakeConfig,dige
     req.pause();let prepared:PreparedIntake|undefined;
     try {
       if(req.method==='OPTIONS') {
-        const path=resolveReceptionPath(String(req.headers['access-control-request-method']??''),req.url??'');
+        const path=resolveIntakePath(String(req.headers['access-control-request-method']??''),req.url??'',config.extraction==='intake-execution/1');
         const headers=String(req.headers['access-control-request-headers']??'').toLowerCase().split(',').map(s=>s.trim()).sort().join(',');
         if(!path||req.headers.origin!==access.transport.uiOrigin||req.headers.host!==new URL(access.transport.terminalOrigin).host||
-          !['content-type,x-ledgerdesk-csrf','content-type,x-ledgerdesk-csrf,x-ledgerdesk-intent'].includes(headers))throw new IntakeFailure(403);
-        res.sendDate=false;res.writeHead(204,preflightHeaders(access.transport));res.end();return;
+          !['accept','content-type,x-ledgerdesk-csrf','content-type,x-ledgerdesk-csrf,x-ledgerdesk-intent',
+            'accept,content-type,x-ledgerdesk-csrf','accept,content-type,x-ledgerdesk-csrf,x-ledgerdesk-intent'].includes(headers))throw new IntakeFailure(403);
+        res.sendDate=false;res.writeHead(204,{...preflightHeaders(access.transport),
+          'access-control-allow-headers':'accept, content-type, x-ledgerdesk-csrf, x-ledgerdesk-intent'});res.end();return;
       }
-      const request=receptionEnvelope(req,access.transport),token=sessionToken(req.headers.cookie),onLoss=()=>res.destroy();
+      const request=receptionEnvelope(req,access.transport,config.extraction==='intake-execution/1'),token=sessionToken(req.headers.cookie),onLoss=()=>res.destroy();
       if(request.route==='upload_original')prepared=await uploadOriginal(service,request,req,token,onLoss);
       else {
         const bytes=request.method==='POST'?await collectCommand(service,request,req,token,onLoss):Buffer.alloc(0);
         prepared=await service.command(request,receptionCommand(request,bytes),token,onLoss);
       }
       const bytes=prepared.originalBytes??Buffer.from(JSON.stringify(prepared.body));
+      if(request.route==='extraction'&&bytes.length>EXTRACTION_BOUNDS.responseBytes)throw new IntakeFailure(503);
       await service.clock(prepared.admission,'response-handoff',request.route);
       if(res.destroyed){await observe(prepared,'interrupted',0);return;}
       res.sendDate=false;res.writeHead(prepared.status,{...corsHeaders(access.transport),'content-type':'application/json',
@@ -64,7 +68,7 @@ export function createIntakeTerminal(access:AccessConfig,input:IntakeConfig,dige
       await observe(prepared,'handed_off',bytes.length);
     }catch(error){
       const event=diagnostic(error);
-      hooks.failure?.(event);problem(res,event.status);
+      hooks.failure?.(event);problem(res,event.status,error instanceof IntakeRepresentationFailure);
     }
     finally{await prepared?.close();}
   }
