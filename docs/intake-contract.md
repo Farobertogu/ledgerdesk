@@ -7,9 +7,11 @@ representation and test-contained feasibility. The reception implementation adds
 nine handlers at the existing access terminal, only when an explicit validated
 synthetic intake configuration is supplied. Without that configuration the
 terminal refuses the intake prefix. Next does not proxy or serve these handlers.
-The accepted reception baseline does not enable processing. The separately
-configured extraction implementation below is pending review under its proposed
-amendment; editorial handlers remain unmounted.
+The accepted reception baseline does not enable processing. Bounded extraction
+has its separately accepted amendment. Exact preparation and constitution have
+a separately accepted bounded synthetic amendment dated 2026-09-20 and
+an explicit launch profile. The reception/extraction setting does not enable it;
+acceptance does not approve, publish or insert a candidate into the reader.
 
 This implementation is accepted only within the bounded synthetic experimental
 scope of the localized [T02 amendment to ADR-038](../adr/ADR-038-intake-foundation.md#amendments).
@@ -24,8 +26,11 @@ rewritten.
 
 ## Operation inventory
 
-All paths below are under /api/intake. Only the nine T02 operations listed in
-the reception section below have handlers; the others remain contract metadata.
+All paths below are under /api/intake. Reception and extraction have their
+separately accepted handlers. The local preparation implementation mounts its
+eight operations only under the explicit profile described at the end of this
+document; shared operation lookup negotiates that profile without reinterpreting
+historical results. An inventory entry alone does not enable a handler.
 No public or real-data deployment is enabled by this inventory.
 
 | Operation | Method/path suffix | Binding requirement | First service |
@@ -667,3 +672,86 @@ temporal conformity.
 See [the foundation evidence](INC-03-T01.md),
 [the reception implementation and verification status](INC-03-T02.md), and
 [the extraction acceptance, evidence and remaining limits](INC-03-T03.md#current-status).
+
+## Local exact preparation implementation — intake-preparation/1
+
+This section describes T04 code accepted on 2026-09-20 only within its
+bounded synthetic scope, not an operational deployment. Set the explicit
+validated preparation option to
+`intake-preparation/1` and send the exact Accept value
+`application/vnd.ledgerdesk.intake-preparation+json`. Missing configuration keeps
+the preparation path closed. Existing intake, session and reading profiles keep
+their meanings. There is no automatic profile fallback or browser/editor UI.
+
+The eight preparation operations in the inventory and preparation-profile
+operation lookup now have closed command/response validators. The terminal
+rejects unknown fields, malformed exact references and incompatible response
+shapes. Upload is a separately bounded octet-stream, not a JSON command.
+Reserve, finalize, propose and constitute have disjoint intention variants;
+object/revision remain in canonical payload comparison, not the key namespace.
+A current query of a known effect never needs the faculty to create it again.
+An incompatible key/payload conflicts; uncertain state is not a new execution.
+Historical reception intentions and `legacy_t02` access records are unchanged.
+
+`preparation-content/1` describes the selected document. `prepared-material/2`
+fixes the controlled descriptor, payload and exact differences. Digest domains
+exclude their own digest fields. Actual accepted-source records and current
+read admission authenticate the antecedent boundary; arriving integrity metadata
+cannot create that provenance. A valid existing resource can still be the wrong
+one for the selected operation. Source selection, resources and before/after
+pairs are checked both when conserved and when consumed.
+
+A retained preparation revision is immutable. Preserve indispensable relations,
+conditions, component-specific coverage/causes, source positions, selected resource
+bytes and explicit nonliteral transformations. A later revision does not rewrite
+an earlier candidate. A structurally valid reduced document is not proof of
+semantic sufficiency. Independent operation references constrain the tested
+producer; no general automated semantic-fidelity detector is claimed.
+
+Preparation uses the existing authority evaluator through individual
+`preparation-effect-comparison/1` declarations pinned to M04, including the eight
+signature dimensions. Current catalog, scope, purpose, exercise/support and
+applicable treatment must all match. Personal loading is not preparation
+faculty. Protected original, source, preparation, difference, resource,
+comparison and prior-act reads need admission before materialization; protected
+effects need a separate final check and durable evidence. Receiving an admitted
+command is observed separately from reading a retained protected antecedent.
+
+Consequence-mode constitution requires the controlled exact prior human act,
+its express target authorization, issuer/support continuity and current executor
+and treatment. The prototype consumes that governed input; it does not author
+such acts or infer one from a proposal/predecessor. The SQL runtime cannot create
+its own controlled authority. Invalid/hidden antecedents receive a neutral
+projection, not diagnostic details useful to infer their existence.
+
+C9 outcomes distinguish new candidate, authenticated repetition relationship,
+explicit successor and typed unresolved identity/duplicate block. Equal bytes
+alone do not select an outcome. A block can name the defined FN-AMBITO destination
+vacancy without inventing its holder or an adjudication route. A stable slot for
+the preparation revision/logical item, ordered locks and SQL uniqueness constrain
+re-proposals and different client keys to one effect. A new candidate remains
+editorial CANDIDATA, never approved/published material in `reading/1`.
+
+The finite preparation profile permits a 64 KiB command; 8 MiB staged document
+and prepared payload including resources; response overhead up to 64 KiB beyond
+that payload; a 64 MiB retained pool; 32 attempts; 128 input aliases/units;
+10,000 entries/cells; eight sheets; 1,000 CSV records and 64 columns. Idle and
+transfer ceilings remain 5 s and 10 s with one active transfer. These are
+independent preparation limits, not larger extraction limits inherited by
+implication. Oversized closure is refused, not truncated or silently narrowed.
+They do not establish a universal physical memory maximum.
+
+Migrations 008/009 add immutable preparation, difference, proposal, effect,
+outcome, candidate and controlled prior-act structures. Populated restore retains
+exact data/history while live authority/control stays outside the archive. A
+fresh current admission is required after restart/restore; registering or hashing
+an archive does not make it authoritative. The executed restore is a bounded
+controlled procedure, not an automatic import or general administration surface.
+
+At preparation persistence, proposal, constitution and protected handoff, the
+writer-order and writer-free time-expiry cases remain separate. The new expiry
+observations reproduce R24 nonconformity; this code does not close it or permit
+real data. See [the T04 evidence and limitations](INC-03-T04.md). Implementation
+CI 35447349126 passed all 17 jobs on attempt 1 for the recorded implementation
+head. Verification of the subsequent documentary head and actual main remains
+pending; the implementation run does not establish either future result.

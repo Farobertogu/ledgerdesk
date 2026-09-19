@@ -54,8 +54,8 @@ function controls(value, expectedImage, runId) {
 }
 
 /** A trusted controller supplies image and originalPath after current service admission. */
-export async function launchExtraction({request, originalPath, image, runId, observe = async () => {}, signal, testInputFault = false}) {
-  if(typeof testInputFault!=='boolean')throw Error('EXTRACTION_TEST_FAULT_SCOPE');
+export async function launchExtraction({request, originalPath, image, runId, observe = async () => {}, signal, testInputFault = false, testHoldInput = false}) {
+  if(typeof testInputFault!=='boolean'||typeof testHoldInput!=='boolean'||testInputFault&&testHoldInput)throw Error('EXTRACTION_TEST_FAULT_SCOPE');
   if (!WORKER_REQUEST_V3(request) || !/^sha256:[a-f0-9]{64}$/.test(image) || !/^[a-z0-9-]{1,64}$/.test(runId)) throw Error('EXTRACTION_LAUNCH_INPUT');
   if(signal?.aborted)throw Error('EXTRACTION_STOPPED_BEFORE_CREATE');
   const original = await realpath(path.resolve(originalPath)), file = await stat(original);
@@ -117,7 +117,9 @@ export async function launchExtraction({request, originalPath, image, runId, obs
       // Harness-owned transport fault, never a worker/public request field.
       // The normal stdin error listener must classify it and close the real process.
       if(testInputFault)child.stdin.destroy(Object.assign(Error('Injected input disconnect'),{code:'EPIPE'}));
-      else child.stdin.end(JSON.stringify(request));
+      // Test-only held stdin stays withheld until actual cancellation or the
+      // existing wall limit closes the process. Elapsed time never releases it.
+      else if(!testHoldInput)child.stdin.end(JSON.stringify(request));
     }
     const result = await closure;
     clearTimeout(timer);

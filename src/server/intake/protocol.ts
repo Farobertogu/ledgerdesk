@@ -4,6 +4,7 @@ import { resolveReceptionPath, type ReceptionRoute as BaseReceptionRoute, type R
 import type { SessionTransport } from '../../contracts/access_transport.ts';
 import { canonicalValue } from '../../contracts/access_canonical.ts';
 import {receptionRepresentation} from '../../contracts/intake_extraction.ts';
+import type {PreparationRoute} from '../../contracts/intake_preparation.ts';
 
 export class IntakeFailure extends Error {
   readonly status: ReceptionErrorStatus;
@@ -12,7 +13,7 @@ export class IntakeFailure extends Error {
 export class IntakeRepresentationFailure extends IntakeFailure {
   constructor() {super(409);}
 }
-export type ServingRoute=BaseReceptionRoute|'extraction';
+export type ServingRoute=BaseReceptionRoute|'extraction'|PreparationRoute;
 export function resolveIntakePath(method:string,raw:string,extraction=false):{route:ServingRoute;parameters:Record<string,string>}|null{
   const existing=resolveReceptionPath(method,raw);if(existing)return existing;
   if(!extraction||method!=='GET')return null;

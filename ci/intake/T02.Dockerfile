@@ -12,11 +12,14 @@ COPY src/server/intake/ ./src/server/intake/
 COPY src/server/reading/ ./src/server/reading/
 COPY src/server/kb/reading.ts ./src/server/kb/reading.ts
 COPY ci/access_material_schema.mjs ./ci/access_material_schema.mjs
+COPY ci/intake_boundary_check.mjs ci/access_boundary_check.mjs ci/reading_boundary_check.mjs ./ci/
 COPY tests/access/ ./tests/access/
 COPY tests/reading/T04_seed.mjs ./tests/reading/T04_seed.mjs
 COPY tests/reading/timing_comparison.mjs ./tests/reading/timing_comparison.mjs
 COPY tests/intake/t02/ ./tests/intake/t02/
 COPY tests/intake/extraction/ ./tests/intake/extraction/
+COPY tests/intake/preparation/ ./tests/intake/preparation/
+COPY tests/intake/t01/fixtures.mjs ./tests/intake/t01/fixtures.mjs
 COPY tests/intake/t01/fixtures/ ./tests/intake/t01/fixtures/
 COPY tests/intake/t01/boundaries/ ./tests/intake/t01/boundaries/
 RUN mkdir -p /work/output && chown pwuser:pwuser /work/output

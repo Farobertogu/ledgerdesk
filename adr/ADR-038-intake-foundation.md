@@ -210,3 +210,61 @@ historical or Windows-host results are not qualification of the current T03 imag
 The separate Linux execution and its exact image/proof are recorded in the current
 T03 report. This bounded acceptance does not close R24, accept universal memory or
 hostile-host guarantees, implement preparation/constitution, or authorize real data.
+
+### Exact preparation and constitution — proposed 2026-09-19
+
+**Amendment status:** accepted
+**Amendment decision date:** 2026-09-20
+
+This localized decision changes the unmounted preparation/constitution boundary
+only for T04's bounded synthetic implementation. The foundation, reception and
+extraction decisions above keep their historical acceptance and scope. The heading
+retains the proposal date; the status and decision date above record acceptance.
+The owner accepts this finite scope, not full temporal conformity or production.
+The [T04 status](../docs/INC-03-T04.md#current-status) and
+[PR #35](https://github.com/Farobertogu/ledgerdesk/pull/35)
+record implementation evidence and the separate final-head/merge conditions.
+
+Compose eight preparation handlers and the explicit preparation-profile lookup
+at the existing terminal only when `intake-preparation/1` is enabled. Keep
+`intake/1`, `session/1`, `reading/1` and old intentions unchanged. Add closed
+`preparation-content/1`, `prepared-material/2` and command/response shapes with
+separate canonical digest domains. No automatic profile fallback, approval,
+publication, search or preparation UI is introduced.
+
+Conserve the exact selected preparation, antecedents, resources, indispensable
+relations, scoped coverage/causes and pair-bound differences immutably. Current
+admission precedes protected bodies; independent controlled source records, not
+arriving hashes, establish provenance. A documented nonliteral transformation
+keeps its antecedents and differences without claiming verbatim origin or inherited
+approval. A valid schema or a constructor mutation detected by a test is not a
+general guarantee of semantic sufficiency or defense against all producer errors.
+
+Use individual M04-D02 effect comparisons and the existing current authority
+engine. Loading faculty is not a fallback. Keep actual prior human authorization,
+express consequence target, issuer/support, service executor and current
+treatment distinct. The controlled prior-act input is consumed, not newly
+authored through an unapproved route. Unresolved admission closes the operation.
+
+Constitution fixes the inspected preparation revision and logical item. C9
+compares authorized content, conditions and context with the explicit judgment;
+repetition records a relationship, a successor remains explicit, and unresolved
+identity/duplicate outcomes retain their typed FN-AMBITO destination vacancy.
+Ordered item locks and SQL uniqueness constrain different keys and re-proposals
+to one effect. Lost responses reconcile the same historical effect under current
+consultation, even if creation faculty has been withdrawn. Revoked consultation
+hides the result without erasing it or re-executing anything.
+
+Use additive data/control migrations and finite original-preserving recovery.
+Restoring preparation data cannot restore authority. Stage and payload limits
+are independently 8 MiB, with a 64 MiB retained pool; commands and structural
+ceilings remain explicit. An oversized selected closure is refused honestly,
+not narrowed, truncated or enabled by extraction's larger transport budget.
+No universal physical-memory or backup-capacity guarantee follows.
+
+R24 remains an observed temporal nonconformity at the new preparation, proposal,
+constitution and delivery seams. Writer coordination does not stop time. The
+experimental exception does not excuse authentication, permissions, isolation or
+protected pre-read failures and does not authorize real data. Browser follow-ups
+and historical unknown causes stay open. T05/T06 and production are outside this
+amendment. See [the implementation and finite evidence](../docs/INC-03-T04.md).

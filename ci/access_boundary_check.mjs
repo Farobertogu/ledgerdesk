@@ -6,6 +6,9 @@ import { moduleReferences } from './reading_boundary_check.mjs';
 const contract = (name) => /^src\/contracts\/access(?:_[a-z]+)?\.ts$/.test(name);
 const presentation = (name) => name.startsWith('src/components/access/') || ['src/app/access/page.tsx','src/app/access/material/page.tsx'].includes(name);
 const sharedReading = new Map([
+  ['src/contracts/intake_preparation_bindings.ts',new Set(['src/contracts/access_canonical.ts'])],
+  ...['authority','proposals','records','service'].map(name=>['src/server/intake/preparation/'+name+'.ts',new Set(['src/contracts/access_canonical.ts'])]),
+  ['src/server/intake/preparation/terminal.ts',new Set(['src/server/access/transport.ts','src/server/access/config.ts'])],
   ['src/server/access/authenticated_reading.ts',new Set(['src/server/reading/policy.ts','src/server/reading/context.ts','src/server/kb/reading.ts','src/contracts/material_reading.ts'])],
   ['src/server/access/terminal.ts',new Set(['src/server/reading/http.ts','src/contracts/material_reading.ts','src/server/intake/terminal.ts','src/server/intake/config.ts'])],
   ['src/server/intake/protocol.ts',new Set(['src/contracts/access_transport.ts','src/contracts/access_canonical.ts'])],
