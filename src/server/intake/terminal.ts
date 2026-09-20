@@ -9,6 +9,7 @@ import { IntakeFailure,IntakeRepresentationFailure, receptionCommand, receptionE
 import { PrivateIntakePort } from './ports.ts';
 import { collectCommand, uploadOriginal } from './stream.ts';
 import {createPreparationTerminal, preparationPath} from './preparation/terminal.ts';
+import {createWorkspaceTerminal} from './workspace/terminal.ts';
 
 export function createIntakeTerminal(access:AccessConfig,input:IntakeConfig,digest:(value:string)=>string,hooks:IntakeHooks={}) {
   const config=intakeConfig(input);
@@ -42,6 +43,7 @@ export function createIntakeTerminal(access:AccessConfig,input:IntakeConfig,dige
       'content-length':String(bytes.length),'cache-control':'private, no-store'});res.end(bytes);
   }
   const preparation=createPreparationTerminal(access,service,{diagnostic,observe});
+  const workspace=createWorkspaceTerminal(access,service,{diagnostic,observe});
   async function handle(req:IncomingMessage,res:ServerResponse) {
     req.pause();let prepared:PreparedIntake|undefined;
     try {
@@ -56,6 +58,7 @@ export function createIntakeTerminal(access:AccessConfig,input:IntakeConfig,dige
         res.sendDate=false;res.writeHead(204,{...preflightHeaders(access.transport),
           'access-control-allow-headers':'accept, content-type, x-ledgerdesk-csrf, x-ledgerdesk-intent'});res.end();return;
       }
+      if(workspace.handles(req)){await workspace.handle(req,res);return;}
       if(preparation.handles(req)){await preparation.handle(req,res);return;}
       const request=receptionEnvelope(req,access.transport,config.extraction==='intake-execution/1'),token=sessionToken(req.headers.cookie),onLoss=()=>res.destroy();
       if(request.route==='upload_original')prepared=await uploadOriginal(service,request,req,token,onLoss);

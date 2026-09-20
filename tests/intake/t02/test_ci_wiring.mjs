@@ -13,7 +13,7 @@ import {publicEvidence,eligibleEvidence,collectPublicEvidence} from '../../../ci
 import {commandDiagnostic} from '../../../ci/intake/command_diagnostic.mjs';
 import {createHash,randomUUID} from 'node:crypto';
 const text=fs.readFileSync(new URL('../../../.github/workflows/ci.yml',import.meta.url),'utf8');
-const expectedProducers=['reading-foundations','intake-reception-behavior','intake-reception-recovery','intake-reception-mutations','intake-extraction','intake-extraction-recovery','intake-extraction-admission','intake-extraction-boundaries','intake-extraction-resource-guards','intake-extraction-format-guards','intake-preparation-behavior','intake-preparation-admission','intake-preparation-guards'];
+const expectedProducers=['reading-foundations','intake-reception-behavior','intake-reception-recovery','intake-reception-mutations','intake-extraction','intake-extraction-recovery','intake-extraction-admission','intake-extraction-boundaries','intake-extraction-resource-guards','intake-extraction-format-guards','intake-preparation-behavior','intake-preparation-admission','intake-preparation-guards','intake-workspace-behavior','intake-workspace-admission'];
 const success=()=>Object.fromEntries(expectedProducers.map(n=>[n,{result:'success'}]));
 const root=fileURLToPath(new URL('../../../',import.meta.url));
 function gateProcess(env,script=path.join(root,'ci/reading_result_gate.mjs')){
@@ -90,7 +90,7 @@ test('CI-CANCEL-01: global cancellation selects the running aggregate; reverting
   const rejectedProducer={...ordinary,gateExit:1,modelledJobConclusion:'failure'};
   const rejectedCancellation={conditionResult:false,cancellationSelected:true,statusAtEnv:'cancelled',gateExit:1,modelledJobConclusion:'cancelled'};
   const rows=[
-    {name:'normal-four-success',input:{globalCancellationRequested:false},expected:ordinary},
+    {name:'normal-all-producers-success',input:{globalCancellationRequested:false},expected:ordinary},
     {name:'failed-producer-still-runs',input:{globalCancellationRequested:false,needs:failed},expected:rejectedProducer},
     {name:'missing-producer-still-runs',input:{globalCancellationRequested:false,needs:missing},expected:rejectedProducer},
     {name:'global-cancel-before-env',input:{globalCancellationRequested:true},expected:rejectedCancellation},
@@ -147,7 +147,7 @@ test('freezing the transported status to success is rejected even with an intact
   assert.deepEqual(workflowGate(workflow,success(),'cancelled'),{invoked:true,exit:0});
   assert.throws(()=>verifyWiring(workflow),/explicit always gate/);
 });
-test('a directed gate mutation loses cancellation rejection with all four producers still successful',t=>{
+test('a directed gate mutation loses cancellation rejection with all producers still successful',t=>{
   const original=fs.readFileSync(path.join(root,'ci/reading_result_gate.mjs'),'utf8'),target="jobStatus==='success'&&";
   assert.equal(original.split(target).length,2,'Exactly the current-job guard is targeted');
   const temp=fs.mkdtempSync(path.join(os.tmpdir(),'reading-gate-mutation-'));

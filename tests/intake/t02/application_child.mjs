@@ -15,7 +15,7 @@ process.on('message',async message=>{
         const id=++sequence;waits.set(id,{resolve,reject});send({kind:'barrier',id,label,event:observedContext(event)});
       });
       if(process.env.LEDGERDESK_INTAKE_TEMPORAL==='1'||['temporal','fencing'].includes(process.env.LEDGERDESK_EXTRACTION_CASES)||
-        process.env.LEDGERDESK_EXTRACTION_CASES==='preparation'&&['temporal','ordering'].includes(process.env.LEDGERDESK_PREPARATION_CASES))hooks.afterLastClock=event=>hooks.barrier('after_last_clock',event);
+        process.env.LEDGERDESK_EXTRACTION_CASES==='preparation'&&['temporal','ordering','ui-protection'].includes(process.env.LEDGERDESK_PREPARATION_CASES))hooks.afterLastClock=event=>hooks.barrier('after_last_clock',event);
       terminal=await startAccessTerminal({...message.options,intakeHooks:hooks,mailbox:{send:async value=>send({kind:'mailbox',value})}});
       observeRequests(terminal.server,event=>send({kind:'observation',name:'request',event}),
         {preparationBodyCapture:process.env.LEDGERDESK_EXTRACTION_CASES==='preparation'});

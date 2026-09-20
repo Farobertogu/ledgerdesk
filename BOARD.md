@@ -6,7 +6,8 @@ The active new-system work follows the adjusted construction plan (INC-01 throug
 not the historical 25-card roadmap below. The latter is preserved as provenance, not inherited
 product requirements. INC-01 and INC-02 are accepted within their documented synthetic
 experimental scopes. INC-03 T01–T04 are separately accepted within their bounded
-synthetic scopes; T05–T06 remain unstarted.
+synthetic scopes. T05 is technically reviewed within its finite synthetic scope; owner
+acceptance, ADR-039 acceptance and hosted verification remain pending. T06 has not started.
 The [system overview](docs/SYSTEM_OVERVIEW.md) explains this boundary and the
 [documentation index](docs/README.md) separates current guides from dated evidence.
 LR-AC21 remains partial and R24 is an observed temporal failure; no real-data or production
@@ -16,19 +17,22 @@ use is authorized. The Done records below identify acceptance and execution sepa
 its named tests are green and the owner has reviewed the PR (merge `--no-ff`).** Verify
 the final head's complete required workflow, not an earlier green revision. The current
 accepted intake composition has seventeen jobs, including three required preparation
-jobs. Implementation CI has exercised that composition; the documentary final-head
+jobs. T05 adds two required workspace producers; their hosted execution is not yet evidenced.
+Implementation CI has exercised the accepted composition; the documentary final-head
 workflow remains a separate pre-merge requirement. See the delivery record for each executed composition. Historical tags and the 25-card roadmap
 below are retained provenance, not the new-system build order.
 
 ## In review
 
-*(empty)*
+| Card | Scope | State |
+|---|---|---|
+| I03-T05 | Integrated synthetic intake workspace | Branch `card/INC-03-intake-workspace`; [implementation and finite evidence](docs/INC-03-T05.md). Technical review complete, including the post-stop original-action correction. Ready for publication; hosted verification and owner acceptance remain pending. ADR-039 proposed. No real-data, production or T06 authorization. |
 
 ## In progress
 
 | Card | Increment | Closing evidence |
 |---|---|---|
-| INC-03 | Material intake: I03-T01 through I03-T04 accepted experimentally; I03-T05/I03-T06 pending | Foundation, reception, bounded extraction and exact preparation retain their separate finite acceptance. The [T04 status](docs/INC-03-T04.md#current-status) distinguishes the decision, implementation CI and still-required final-head/merge evidence. R24 remains adverse. No real-data or production activation. |
+| INC-03 | Material intake: I03-T01 through I03-T04 accepted experimentally; I03-T05 technically reviewed, publication and owner acceptance pending; I03-T06 pending | Foundation, reception, bounded extraction and exact preparation retain their separate finite acceptance. The [workspace delivery](docs/INC-03-T05.md) records T05 separately. R24 remains adverse. No real-data or production activation. |
 
 Active access follow-up: [tracked browser failures and closure criteria](docs/INC-02-T03.md#tracked-browser-follow-up).
 

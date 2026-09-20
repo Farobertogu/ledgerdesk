@@ -9,7 +9,8 @@ import type {ReceptionService,PreparedIntake} from './service.ts';
 import type {Admission} from './authority.ts';
 
 /** Consultation is neither dispatch nor a repeated acceptance. */
-export async function readExtraction(service:ReceptionService,a:Admission,request:ReceptionRequest):Promise<PreparedIntake>{
+export async function readExtraction(service:ReceptionService,a:Admission,request:ReceptionRequest,
+  project?: (body:any, context:any) => Promise<unknown>):Promise<PreparedIntake>{
   if(service.config.extraction!=='intake-execution/1')throw new IntakeFailure(400);
   const context=await service.authority.beforeExtractionSelection(a),db=a.db;
   const j=(await db.query(`SELECT j.*,r.context,r.principal,rcp.id AS receipt_id,rcp.effect_id AS receipt_effect,
@@ -36,7 +37,7 @@ export async function readExtraction(service:ReceptionService,a:Admission,reques
     }
     await service.evidence(a,'extraction','query',subject);
     if(!EXTRACTION_RESPONSE(body))throw new IntakeFailure(503);
-    return service.prepared(a,request,200,body,null,subject);
+    return service.prepared(a,request,200,project ? await project(body,j.context) : body,null,subject);
   }
   if(j.state==='accepted'){
     const r=(await db.query(`SELECT r.*,o.location_binding,o.normalized_sha256,o.normalized_bytes,o.raw_sha256,
@@ -75,5 +76,5 @@ export async function readExtraction(service:ReceptionService,a:Admission,reques
     a.now=await db.now();await service.authority.resolve(a,'extraction',undefined,reception);
   }else await service.evidence(a,'extraction','query',subject);
   if(!EXTRACTION_RESPONSE(body))throw new IntakeFailure(503);
-  return service.prepared(a,request,200,body,null,subject);
+  return service.prepared(a,request,200,project ? await project(body,j.context) : body,null,subject);
 }

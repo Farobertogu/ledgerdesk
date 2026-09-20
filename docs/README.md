@@ -12,6 +12,7 @@ baseline. A historical result describes its recorded version, not every later re
 | [Reading contract](reading-contract.md) | Exact `reading/1` projections and delivery obligations; explicit transport profiles |
 | [Access contract](access-contract.md) | `access/1` and `session/1`, authority, sessions, invitations, census and administration |
 | [Intake contract](intake-contract.md) | `intake/1`, admitted reception versus later worker/preparation operations, profile limits and trust boundaries |
+| [Intake workspace](intake-workspace.md) | Explicit `intake-workspace/1` queries, browser ownership, exact confirmation and bounded reconciliation |
 | [Architecture decisions](../adr/README.md) | Status, scope and amendments of repository decisions |
 | [Provenance](PROVENANCE.md) | Source and copy manifests; integrity and attribution limits |
 
@@ -30,6 +31,8 @@ not production deployment instructions.
 | Intake foundation | [INC-03 T01](INC-03-T01.md), including the original experiments and later acceptance checkpoints |
 | Synthetic intake reception | [INC-03 T02](INC-03-T02.md) and its [coverage map](INC-03-T02-coverage.md) |
 | Bounded synthetic extraction | [INC-03 T03](INC-03-T03.md#current-status), with scoped acceptance, qualified implementation CI, preserved correction history and remaining limits |
+| Exact preparation and constitution | [INC-03 T04](INC-03-T04.md#current-status), accepted only in its bounded synthetic scope |
+| Integrated intake workspace | [INC-03 T05](INC-03-T05.md), finite browser evidence and reproduction; review and acceptance are separate |
 | L03 memory attribution | [Exclusive retained reference](L03-exclusive-reference.md) for the current qualified profile; [bounded diagnostics](L03-diagnostics.md) for the earlier observation method and recorded failures |
 
 The [browser follow-up record](INC-02-T03.md#tracked-browser-follow-up) retains its closure

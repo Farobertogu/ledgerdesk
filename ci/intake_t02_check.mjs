@@ -26,14 +26,20 @@ import {containmentProbeCopy} from '../tests/intake/extraction/containment_fault
 import {associationBoundaryCopy} from '../tests/intake/extraction/association_fault.mjs';
 import {summarizeNodeTests} from './intake_test_summary.mjs';
 import {preparationFaultCopy} from './intake/preparation_fault.mjs';
+import {workspaceFaultCopy} from './intake/workspace_fault.mjs';
 
 const root=fileURLToPath(new URL('../',import.meta.url));
 const group=process.argv[process.argv.indexOf('--group')+1];
 const extractionCases=process.argv.includes('--extraction-cases')?process.argv[process.argv.indexOf('--extraction-cases')+1]:'service';
 const formatCase=process.argv.includes('--format-case')?process.argv[process.argv.indexOf('--format-case')+1]:null;
 const preparationCases=process.argv.includes('--preparation-cases')?process.argv[process.argv.indexOf('--preparation-cases')+1]:'first-slice';
-if(!['first-slice','fidelity','formats','resources','mixed','identity','concurrency','prior-act','temporal','ordering','units','recovery','disclosure','bounds'].includes(preparationCases)||(preparationCases!=='first-slice'&&(group!=='extraction'||extractionCases!=='preparation')))throw Error('PREPARATION_CASE_SCOPE');
+if(!['first-slice','ui-first-slice','ui-reception','ui-preparation','ui-protection','ui-resources','ui-adoption-reception','ui-adoption-preparation','ui-disclosure-navigation','fidelity','formats','resources','mixed','identity','concurrency','prior-act','temporal','ordering','units','recovery','disclosure','bounds'].includes(preparationCases)||(preparationCases!=='first-slice'&&(group!=='extraction'||extractionCases!=='preparation')))throw Error('PREPARATION_CASE_SCOPE');
+const uiFirstSlice=group==='extraction'&&extractionCases==='preparation'&&['ui-first-slice','ui-reception','ui-preparation','ui-protection','ui-resources','ui-adoption-reception','ui-adoption-preparation','ui-disclosure-navigation'].includes(preparationCases);
 const preparationMutation=process.argv.includes('--preparation-mutation')?process.argv[process.argv.indexOf('--preparation-mutation')+1]:null;
+const workspaceMutation=process.argv.includes('--workspace-mutation')?process.argv[process.argv.indexOf('--workspace-mutation')+1]:null;
+const adoptionSite=process.argv.includes('--adoption-site')?process.argv[process.argv.indexOf('--adoption-site')+1]:null;
+if(workspaceMutation&&(preparationCases!=='ui-adoption-reception'||workspaceMutation!=='omit-post-response-session'||adoptionSite!=='original-inspection'))throw Error('WORKSPACE_MUTATION_SCOPE');
+if(adoptionSite&&(preparationCases!=='ui-adoption-reception'||!['original-inspection','reception-stop'].includes(adoptionSite)))throw Error('WORKSPACE_SITE_SCOPE');
 if(preparationMutation&&!({fidelity:['drop-retained-context'],formats:['drop-retained-limitation'],resources:['swap-resource-at-birth','swap-resource-at-consume'],mixed:['flatten-component-causes'],identity:['ignore-c9-conditions'],concurrency:['drop-item-lock'],'prior-act':['drop-prior-target']}[preparationCases]??[]).includes(preparationMutation))throw Error('PREPARATION_MUTATION_SCOPE');
 if(formatCase&&(group!=='extraction'||extractionCases!=='formats'||!['escaped-limit.csv','combined-limit.csv','control-at-byte-limit.txt'].includes(formatCase)))throw Error('EXTRACTION_FORMAT_FILTER_SCOPE');
 if(!['service','formats','format-negatives','temporal','fencing','budgets','retry','restart','restore','storage-recovery','semantics','mixed','capacity','private-loss','controller-loss','resources','authority-original','authority-result','authority-effect','compatibility','containment','browser-disconnect','extraction-privileges','lineage','associations','preparation'].includes(extractionCases)||(extractionCases!=='service'&&group!=='extraction'))throw Error('EXTRACTION_CASE_SCOPE');
@@ -106,6 +112,8 @@ async function source(relative) {
     }
     if(preparationMutation){const changed=preparationFaultCopy(relative,bytes.toString('utf8'),preparationMutation);
       if(changed!==bytes.toString('utf8')){bytes=Buffer.from(changed);fault=preparationMutation;}}
+    if(workspaceMutation){const changed=workspaceFaultCopy(relative,bytes.toString('utf8'),workspaceMutation);
+      if(changed!==bytes.toString('utf8')){bytes=Buffer.from(changed);fault=workspaceMutation;}}
     if(group==='extraction'&&extractionCases==='containment'&&relative==='workers/intake/extraction/entry.mjs'){
       bytes=Buffer.from(containmentProbeCopy(bytes.toString('utf8')));fault='instrumented-effective-denials-and-timeout';
     }
@@ -218,7 +226,20 @@ async function docker(args,options){const result=await run('docker',args,options
 async function runtimeGroup() {
   for(const target of ['runtime','private_service']) {
     const name='ledgerdesk-intake-t02:'+resourcePrefix+'-'+target;
-    await docker(['build','-f',path.join(directory,'source/ci/intake/T02.Dockerfile'),'--target',target,'--label','intake.t02.run='+resourcePrefix,'-t',name,path.join(directory,'source')],{timeout:240000});
+    const build=extra=>docker(['build',...extra,'-f',path.join(directory,'source/ci/intake/T02.Dockerfile'),
+      '--target',uiFirstSlice&&target==='runtime'?'ui_runtime':target,'--label','intake.t02.run='+resourcePrefix,'-t',name,path.join(directory,'source')],{timeout:240000});
+    if(uiFirstSlice&&target==='runtime')await withSourceComposition(root,path.join(directory,'access-source-composition.json'),
+      async({filename,sha256})=>{
+        if(workspaceMutation){
+          const composition=JSON.parse(await fs.readFile(filename,'utf8')),changed=files.filter(file=>file.fault===workspaceMutation);
+          if(changed.length!==1)throw Error('WORKSPACE_MUTATION_INVENTORY');
+          for(const file of changed){const row=composition.files.find(row=>row.file===file.path);if(!row)throw Error('WORKSPACE_MUTATION_COMPOSITION');row.sha256=file.sha256;}
+          await save('mutated-access-source-composition.json',composition);filename=path.join(directory,'mutated-access-source-composition.json');
+          sha256=hash(await fs.readFile(filename));
+        }
+        return build(['--secret','id=access_composition,src='+filename,'--build-arg','ACCESS_COMPOSITION_SHA256='+sha256]);
+      });
+    else await build([]);
     const item=JSON.parse(await docker(['image','inspect',name]))[0];resources.push({type:'image',name,id:item.Id});
   }
   const image=target=>'ledgerdesk-intake-t02:'+resourcePrefix+'-'+target;
@@ -271,8 +292,10 @@ async function runtimeGroup() {
   }
   const extraction=group==='extraction'?await (await import(pathToFileURL(path.join(directory,'source/ci/intake/extraction/runtime_harness.mjs')))).extractionHarness({
     directory,prefix:resourcePrefix,docker,resources,container,bounded,save,originalParticipant:broker}):null;
-  const runtime=await container('runtime',['--network','none','--group-add','20202','--cap-drop','ALL','--security-opt','no-new-privileges','--memory','1g','--memory-swap','1g','--cpus','2','--pids-limit','192',
+  const runtime=await container('runtime',['--network','none','--group-add','20202','--cap-drop','ALL','--security-opt','no-new-privileges','--memory',uiFirstSlice?'2g':'1g','--memory-swap',uiFirstSlice?'2g':'1g','--cpus','2','--pids-limit',uiFirstSlice?'256':'192',
+    ...(uiFirstSlice?['--shm-size','256m']:[]),
     ...(group==='extraction'&&extractionCases==='preparation'?['--env','LEDGERDESK_PREPARATION_CASES='+preparationCases]:[]),
+    ...(adoptionSite?['--env','LEDGERDESK_UI_ADOPTION_SITE='+adoptionSite]:[]),
     ...(extraction?.runtimeArgs??[]),
     ...(extraction?['--env','LEDGERDESK_EXTRACTION_CASES='+extractionCases]:[]),
     ...(formatCase?['--env','LEDGERDESK_EXTRACTION_FORMAT_CASE='+formatCase]:[]),
@@ -566,9 +589,10 @@ try {
   }
   for(const relative of ['src/contracts','src/server/access','src/server/intake','src/server/reading','src/server/kb/reading.ts','ci/intake','ci/intake_t02_check.mjs','ci/intake_boundary_check.mjs','ci/access_boundary_check.mjs',
     'ci/reading_boundary_check.mjs','ci/access_material_schema.mjs','tests/access','tests/reading/T04_seed.mjs','tests/reading/timing_comparison.mjs','tests/intake/t02','tests/intake/t01/fixtures','tests/intake/t01/reviewed/process-output.mjs','package.json','package-lock.json','tsconfig.app.json'])await source(relative);
-  if(group==='fence-coupled')for(const relative of ['ci/access','ci/access_final_routes.mjs','src/components/access','src/components/reading','src/app/access',
+  if(group==='fence-coupled'||uiFirstSlice)for(const relative of ['ci/access','ci/access_final_routes.mjs','src/components/access','src/components/reading','src/components/intake','src/app/access',
     'src/app/layout.tsx','src/app/globals.css','src/instrumentation.ts','next.config.mjs','postcss.config.mjs',
     'tests/reading/browser_diagnostics.mjs'])await source(relative);
+  if(uiFirstSlice)await source('tests/intake/ui');
   await source('tests/intake/extraction');await source('tests/intake/t01/boundaries');
   await source('tests/intake/preparation');await source('tests/intake/t01/fixtures.mjs');await source('ci/intake_test_summary.mjs');
   if(group==='extraction')await source('workers/intake/extraction');

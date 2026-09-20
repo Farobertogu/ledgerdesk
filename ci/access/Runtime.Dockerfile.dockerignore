@@ -27,6 +27,8 @@
 !src/components/access/**
 !src/components/reading/
 !src/components/reading/**
+!src/components/intake/
+!src/components/intake/**
 !ci/
 !ci/access_material_schema.mjs
 !ci/access_final_routes.mjs

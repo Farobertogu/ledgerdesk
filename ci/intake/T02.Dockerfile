@@ -27,6 +27,24 @@ ENV LEDGERDESK_ACCESS_CONTAINER=1 LEDGERDESK_INTAKE_CONTAINER=1
 USER pwuser
 CMD ["node", "--experimental-strip-types", "--test", "--test-concurrency=1", "tests/intake/t02/test_runtime.mjs"]
 
+FROM runtime AS ui_runtime
+USER root
+COPY src/components/access/ ./src/components/access/
+COPY src/components/reading/ ./src/components/reading/
+COPY src/components/intake/ ./src/components/intake/
+COPY src/app/access/ ./src/app/access/
+COPY src/app/layout.tsx src/app/globals.css ./src/app/
+COPY src/instrumentation.ts ./src/instrumentation.ts
+COPY next.config.mjs postcss.config.mjs tsconfig.app.json ./
+COPY ci/access_final_routes.mjs ./ci/access_final_routes.mjs
+COPY tests/intake/ui/ ./tests/intake/ui/
+COPY tests/reading/browser_diagnostics.mjs ./tests/reading/browser_diagnostics.mjs
+ENV NEXT_TELEMETRY_DISABLED=1
+ARG ACCESS_COMPOSITION_SHA256=""
+ENV ACCESS_COMPOSITION_SHA256=$ACCESS_COMPOSITION_SHA256
+RUN --mount=type=secret,id=access_composition node ci/access_final_routes.mjs && node node_modules/next/dist/bin/next build tests/access/final-ui --webpack && chown -R pwuser:pwuser /work/tests/access/final-ui
+USER pwuser
+
 FROM node_runtime AS private_service
 WORKDIR /work
 COPY ci/intake/reception/package.json ci/intake/reception/package-lock.json ./

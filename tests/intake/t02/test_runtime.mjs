@@ -115,6 +115,11 @@ test('T02 real identity, grant, durable reception and protected original', {time
   }
   if(process.env.LEDGERDESK_INTAKE_EXTRACTION==='1'){
     if(preparing){
+      if(['ui-first-slice','ui-reception','ui-preparation','ui-protection','ui-resources','ui-adoption-reception','ui-adoption-preparation','ui-disclosure-navigation'].includes(process.env.LEDGERDESK_PREPARATION_CASES)){
+        const {workspaceFirstSlice}=await import('../ui/runtime_first_slice.mjs');
+        await workspaceFirstSlice(t,{env,intake,client,request,diagnostics,storage,login,post,master,digestSession:value=>terminal.service.digest(value),
+          setBarrier:action=>{barrierAction=action;}});return;
+      }
       const {preparationRuntimeCases}=await import('../preparation/runtime_cases.mjs');
       await preparationRuntimeCases(t,{env,intake,client,request,diagnostics,storage,admissions,login,clientCalls,requestEvents,
         setBarrier:action=>{barrierAction=action;},post,master,flow,messages,digestSession:value=>terminal.service.digest(value),

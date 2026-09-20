@@ -14,6 +14,7 @@ import { fileURLToPath } from 'node:url';
 const files = [
   'src/app/access/page.tsx',
   'src/app/access/material/page.tsx',
+  'src/app/access/intake/page.tsx',
   'src/app/layout.tsx',
   'src/app/globals.css',
   'src/instrumentation.ts',
@@ -27,6 +28,7 @@ const files = [
 const directories = [
   'src/components/access',
   'src/components/reading',
+  'src/components/intake',
   'src/contracts',
 ];
 const hash = (bytes) => createHash('sha256').update(bytes).digest('hex');
@@ -72,8 +74,9 @@ export function inspectSourceComposition(root) {
       ...['access', ...legacyRoutes].map((name) => [name, 'directory']),
       ...['layout.tsx', 'globals.css', 'page.tsx'].map((name) => [name, 'file']),
     ]),
-    exactChildren(root, 'src/app/access', [['material', 'directory'], ['page.tsx', 'file']]),
+    exactChildren(root, 'src/app/access', [['material', 'directory'], ['intake', 'directory'], ['page.tsx', 'file']]),
     exactChildren(root, 'src/app/access/material', [['page.tsx', 'file']]),
+    exactChildren(root, 'src/app/access/intake', [['page.tsx', 'file']]),
   ];
   const conventions = [];
   for (const directory of ['', 'src']) {

@@ -40,12 +40,13 @@ test('actual exporter preserves a failed result, reads no private sidecar and fa
 test('a command reference cannot make the exporter open another private object',()=>{
   const m=manifest();m.commands[0].file='../raw.json';assert.throws(()=>extractionPublicSummary(m,'a'.repeat(64)),/PUBLIC_COMMAND_REFERENCE/);
 });
-test('the eight earlier jobs remain and all six extraction groups require every execution step',async()=>{
+test('the retained jobs and workspace jobs coexist, and all six extraction groups require every execution step',async()=>{
   const workflow=parseWorkflow(await fs.readFile(new URL('../../../.github/workflows/ci.yml',import.meta.url),'utf8'));
   assert.deepEqual(Object.keys(workflow.jobs).sort(),['check','reading','reading-foundations','intake-reception-behavior',
     'intake-reception-recovery','intake-reception-mutations','intake-extraction','intake-extraction-recovery',
     'intake-extraction-admission','intake-extraction-boundaries','intake-extraction-resource-guards','intake-extraction-format-guards',
-    'intake-preparation-behavior','intake-preparation-admission','intake-preparation-guards','db','app'].sort());
+    'intake-preparation-behavior','intake-preparation-admission','intake-preparation-guards',
+    'intake-workspace-behavior','intake-workspace-admission','db','app'].sort());
   assert.equal(verifyWiring(workflow),true);
   const unqualified=structuredClone(workflow);
   const memory=unqualified.jobs['intake-extraction'].steps.find(step=>step.run==='npm run test:intake:extraction:worker -- --qualified-memory');

@@ -124,8 +124,14 @@ export class IntakeAuthority {
     try{await this.evaluate(admission,operation,context,reception,phase);}
     catch(error){this.observeRefusal(admission,operation,error);throw error;}
   }
+  /** General offer only: common live preconditions, without inventing a personal load.
+   * The eventual reservation must still pass the full object/phase binding. */
+  async receptionOffered(admission: Admission, context: {scope_id: string; purpose_id: string; treatment_revision: ExactReference}): Promise<boolean> {
+    try {await this.evaluate(admission, 'reserve_reception', context, undefined, undefined, true); return true;}
+    catch (error) {if (error instanceof IntakeFailure && error.status === 404) return false; throw error;}
+  }
   private async evaluate(admission: Admission, operation: ReceptionRoute, context?: { scope_id: string; purpose_id: string; treatment_revision: ExactReference },
-    reception?: any, phase?: any): Promise<void> {
+    reception?: any, phase?: any, offerOnly = false): Promise<void> {
     const { db, authority, session } = admission;
     const entry = (await db.query('SELECT * FROM intake_control.catalog_entry WHERE operation=$1', [operation])).rows[0];
     if (!entry?.active || !equal(entry.catalog, this.config.catalog) || !equal(entry.definition, BINDINGS[operation]) ||
@@ -163,6 +169,10 @@ export class IntakeAuthority {
     if(operation==='extraction')admission.extractionView=expectedPartition==='extraction_content'&&
       treatment.fields.includes('extraction-body')?'content':'metadata';
     admission.deadline = Math.min(admission.deadline, authority.deadline, Number(treatment.expires_at));
+    if (offerOnly) {
+      if (operation !== 'reserve_reception' || expectedPartition !== 'personal_load') throw new IntakeFailure(503);
+      return;
+    }
     const current: Record<string, unknown> = {
       deployment: this.config.deployment, catalog: this.config.catalog,
       entry: { id: operation, revision: entry.entry_revision }, permission: { id: permission.id, revision: permission.revision },

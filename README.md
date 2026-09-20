@@ -12,7 +12,7 @@ definition of the current product.
 
 ## Current implementation
 
-Status at 19 September 2026:
+Status at 20 September 2026:
 
 | Delivery | Available within its accepted experimental scope |
 |---|---|
@@ -20,14 +20,21 @@ Status at 19 September 2026:
 | INC-02 | Synthetic activation, sessions, invitations, scoped authority, census, authenticated material reading and administration |
 | INC-03 T01–T02 | Intake contracts and bounded profile experiments; isolated synthetic reception, conservation and recovery of originals |
 | INC-03 T03 | Separately authorized bounded text/Markdown, CSV and XLSX extraction, protected result queries and explicit recovery; synthetic scope only |
+| INC-03 T04 | Exact preparation and candidate constitution, with retained antecedents, differences and distinct candidate/related/blocked results; no approval or publication |
+
+INC-03 T05 adds the [intake workspace](docs/INC-03-T05.md) on this working branch.
+Its executed delivery is separate from the accepted rows above; independent review, ADR-039
+acceptance and publication remain separate steps.
 
 `/material` is the integrated credential-free trial viewer; `/access/material` is the
 session-bearing viewer. Their profiles are explicit and never selected by automatic fallback.
 The terminal performs the protected handoff, without a Next proxy or legacy material.
 Intake's accepted reception routes require their own
 explicit synthetic configuration. Bounded worker processing is separately admitted under the
-[T03 extraction profile](docs/INC-03-T03.md#current-status). Preparation and constitution remain
-unavailable; no operation is enabled merely because its contract exists.
+[T03 extraction profile](docs/INC-03-T03.md#current-status). Exact preparation and constitution
+have their own [T04 profile](docs/INC-03-T04.md#current-status). The T05 consumer at
+`/access/intake` uses direct, explicit session transport; no operation is enabled merely
+because its contract exists.
 
 These deliveries do **not** authorize real data or production use. Writer-free expiry has an
 observed temporal nonconformity (R24); the two tracked browser failures remain open. Successful
@@ -44,7 +51,8 @@ capabilities are not claimed as implemented here.
 
 For isolated reproduction, use [integrated reading](docs/INC-01-T05.md#reproduction),
 [the access whole journey](docs/INC-02-T06.md#execution-and-evidence) or
-[synthetic intake reception](docs/INC-03-T02.md) and [bounded extraction](docs/INC-03-T03.md).
+[synthetic intake reception](docs/INC-03-T02.md), [bounded extraction](docs/INC-03-T03.md),
+[exact preparation](docs/INC-03-T04.md) or [the intake workspace](docs/INC-03-T05.md#reproduction).
 Their configurations are separate from the
 historical database and identity selector below. Do not use that historical setup to start
 the new system. These journeys use synthetic documents and accounts; they require neither

@@ -14,7 +14,7 @@ export class PreparationAuthority {
   readonly config: IntakeConfig;
   constructor(base: IntakeAuthority, config: IntakeConfig) {this.base = base; this.config = config;}
 
-  async resolve(a: Admission, operation: string, context?: Row, consequence?: {predecessor?: Row; authorization?: Row; mode?: string}) {
+  async resolve(a: Admission, operation: string, context?: Row, consequence?: {predecessor?: Row; authorization?: Row; mode?: string}, offerOnly = false) {
     if (operation === 'lookup_operation') {
       await this.base.resolve(a, 'lookup_operation', context as any);
       return {scope_id: a.binding.scope.id, purpose_id: a.binding.purpose, treatment_revision: a.binding.treatment};
@@ -68,6 +68,12 @@ export class PreparationAuthority {
         !same(comparison.reference, referenceFor('preparation-comparison/1', comparison.reference.id, comparison.reference.revision, comparison.body)))
         throw new IntakeFailure(503);
       current.comparison = comparison.reference;
+    }
+    if (offerOnly) {
+      // Configuration and present authority, not an executable continuation.
+      // No reservation/predecessor exists yet; never fabricate one for an offer.
+      a.deadline = Math.min(a.deadline, a.authority.deadline, Number(t.expires_at));
+      return {scope_id: scopeId, purpose_id: purpose, treatment_revision: treatment};
     }
     if (consequence?.predecessor) current.predecessor = consequence.predecessor;
     if (consequence?.authorization) current.authorization = consequence.authorization;

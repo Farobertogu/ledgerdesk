@@ -1,0 +1,128 @@
+import type {ItemAction, ItemPhase, ViewPreferences} from '../view_model';
+
+const en = {
+  title: 'Material intake', filter: 'Filter current work', newMaterial: 'Add material',
+  refresh: 'Refresh', language: 'Control language', theme: 'Colour theme', dark: 'Dark', light: 'Light',
+  checking: 'Checking access…', unavailable: 'Material intake is unavailable.',
+  empty: 'No material in this workspace yet.', noMatch: 'No items match this filter.',
+  choose: 'Select an item or add material to begin.', back: 'Back to list',
+  outsideFilter: 'The selected item is outside this filter.', context: 'Receiving context',
+  scope: 'Scope', purpose: 'Purpose', treatment: 'Treatment', reference: 'Exact reference',
+  revision: 'Revision', generation: 'Generation', hash: 'SHA-256', bytes: 'Bytes',
+  files: 'Files', text: 'Text', chooseFiles: 'Choose files', drop: 'Drop files here, or choose them.',
+  formats: 'Available profiles', profile: 'Processing profile', chooseProfile: 'Choose a profile',
+  maximum: 'Maximum original size', reception: 'Reception', extraction: 'Extraction',
+  available: 'Available', notAvailable: 'Unavailable', noContext: 'No receiving context is available.',
+  fileName: 'File name', capturedText: 'Text to receive', capture: 'Receive this text',
+  captureNote: 'The current field value becomes a UTF-8 original. It does not preserve the bytes of an earlier file or clipboard.',
+  pending: 'Current items', busy: 'Working…', details: 'Details', observations: 'Component observations',
+  execution: 'Execution', coverage: 'Coverage', fidelity: 'Fidelity', limitations: 'Limitations',
+  incidents: 'Incidents', noObservations: 'No component observations were returned.',
+  preparation: 'Human preparation', selection: 'Select extracted elements', antecedents: 'Exact antecedents',
+  original: 'Original', correction: 'Text correction', correct: 'Add a correction', removeCorrection: 'Remove correction',
+  correctionNote: 'A correction is a separate human contribution. It does not overwrite the original.',
+  classification: 'Classification', function: 'Function', basis: 'Basis', scopeAxis: 'Scope of use',
+  unresolved: 'Unresolved', reason: 'Reason', unresolvedReason: 'Reason for leaving this axis unresolved',
+  conditions: 'Conditions', addCondition: 'Add condition', conditionText: 'Condition text', conditionScope: 'Condition scope',
+  remove: 'Remove', dependencies: 'Dependencies', addDependency: 'Add dependency', from: 'From', to: 'To', required: 'Required',
+  examination: 'Examination', examinationOutcome: 'Outcome', coverageClaim: 'I claim coverage of the complete source',
+  coverageReason: 'Coverage explanation', changeReason: 'Reason for this preparation',
+  save: 'Save preparation', discard: 'Discard local draft', cancel: 'Back',
+  tableNotes: 'Table notes', coordinates: 'Source coordinates', resource: 'Resource',
+  downloadResource: 'Download resource', downloadOriginal: 'Download original', mediaType: 'Media type',
+  differences: 'Differences from antecedents', noDifferences: 'No differences were returned.',
+  proposal: 'Candidate proposal', unit: 'Prepared unit', chooseUnit: 'Choose a unit',
+  target: 'Target', new: 'New unit', successor: 'Successor', relationship: 'Relationship',
+  unitId: 'Target unit ID', versionId: 'Exact target version ID', declaration: 'Target declaration',
+  judgment: 'Identity judgment', distinct: 'Distinct material', same_version: 'Same version', possible_duplicate: 'Possible duplicate',
+  comparisonEvidence: 'Use this exact target as comparison evidence',
+  propose: 'Prepare exact proposal', confirmTitle: 'Review the exact proposal',
+  confirmationNote: 'Constitution records this proposal as a candidate, a relationship or a blocked outcome. It does not approve or publish material.',
+  confirm: 'Confirm this proposal', reconcile: 'Check recorded outcome', result: 'Recorded outcome',
+  candidate: 'Candidate', blocked: 'Blocked', noBlocks: 'No content blocks were returned.',
+  captured: 'Captured text', recovered: 'Recovered record', uploaded: 'File',
+};
+
+type Catalogue = {[K in keyof typeof en]: string};
+const es: Catalogue = {
+  title: 'Recepción de material', filter: 'Filtrar trabajo actual', newMaterial: 'Agregar material',
+  refresh: 'Actualizar', language: 'Idioma de los controles', theme: 'Tema de color', dark: 'Oscuro', light: 'Claro',
+  checking: 'Comprobando acceso…', unavailable: 'La recepción de material no está disponible.',
+  empty: 'Todavía no hay material en este espacio.', noMatch: 'Ningún elemento coincide con el filtro.',
+  choose: 'Selecciona un elemento o agrega material para empezar.', back: 'Volver a la lista',
+  outsideFilter: 'El elemento seleccionado está fuera del filtro.', context: 'Contexto de recepción',
+  scope: 'Ámbito', purpose: 'Propósito', treatment: 'Tratamiento', reference: 'Referencia exacta',
+  revision: 'Revisión', generation: 'Generación', hash: 'SHA-256', bytes: 'Bytes',
+  files: 'Archivos', text: 'Texto', chooseFiles: 'Elegir archivos', drop: 'Arrastra archivos aquí o selecciónalos.',
+  formats: 'Perfiles disponibles', profile: 'Perfil de procesamiento', chooseProfile: 'Elige un perfil',
+  maximum: 'Tamaño máximo del original', reception: 'Recepción', extraction: 'Extracción',
+  available: 'Disponible', notAvailable: 'No disponible', noContext: 'No hay un contexto de recepción disponible.',
+  fileName: 'Nombre del archivo', capturedText: 'Texto que se recibirá', capture: 'Recibir este texto',
+  captureNote: 'El valor actual del campo se convierte en un original UTF-8. No conserva los bytes de un archivo o portapapeles anterior.',
+  pending: 'Elementos actuales', busy: 'Procesando…', details: 'Detalles', observations: 'Observaciones por componente',
+  execution: 'Ejecución', coverage: 'Cobertura', fidelity: 'Fidelidad', limitations: 'Limitaciones',
+  incidents: 'Incidentes', noObservations: 'No se devolvieron observaciones por componente.',
+  preparation: 'Preparación humana', selection: 'Seleccionar elementos extraídos', antecedents: 'Antecedentes exactos',
+  original: 'Original', correction: 'Corrección de texto', correct: 'Agregar una corrección', removeCorrection: 'Quitar corrección',
+  correctionNote: 'La corrección es una contribución humana separada. No sobrescribe el original.',
+  classification: 'Clasificación', function: 'Función', basis: 'Fundamento', scopeAxis: 'Ámbito de uso',
+  unresolved: 'Sin resolver', reason: 'Motivo', unresolvedReason: 'Motivo para dejar este eje sin resolver',
+  conditions: 'Condiciones', addCondition: 'Agregar condición', conditionText: 'Texto de la condición', conditionScope: 'Ámbito de la condición',
+  remove: 'Quitar', dependencies: 'Dependencias', addDependency: 'Agregar dependencia', from: 'Desde', to: 'Hasta', required: 'Necesaria',
+  examination: 'Examen', examinationOutcome: 'Resultado', coverageClaim: 'Declaro cobertura de la fuente completa',
+  coverageReason: 'Explicación de cobertura', changeReason: 'Motivo de esta preparación',
+  save: 'Guardar preparación', discard: 'Descartar borrador local', cancel: 'Volver',
+  tableNotes: 'Notas de la tabla', coordinates: 'Coordenadas de origen', resource: 'Recurso',
+  downloadResource: 'Descargar recurso', downloadOriginal: 'Descargar original', mediaType: 'Tipo de medio',
+  differences: 'Diferencias respecto de los antecedentes', noDifferences: 'No se devolvieron diferencias.',
+  proposal: 'Propuesta de candidato', unit: 'Unidad preparada', chooseUnit: 'Elige una unidad',
+  target: 'Destino', new: 'Unidad nueva', successor: 'Sucesora', relationship: 'Relación',
+  unitId: 'ID de la unidad de destino', versionId: 'ID de la versión exacta de destino', declaration: 'Declaración del destino',
+  judgment: 'Juicio de identidad', distinct: 'Material distinto', same_version: 'Misma versión', possible_duplicate: 'Posible duplicado',
+  comparisonEvidence: 'Usar este destino exacto como evidencia de comparación',
+  propose: 'Preparar propuesta exacta', confirmTitle: 'Revisar la propuesta exacta',
+  confirmationNote: 'La constitución registra esta propuesta como candidato, relación o resultado bloqueado. No aprueba ni publica material.',
+  confirm: 'Confirmar esta propuesta', reconcile: 'Consultar resultado registrado', result: 'Resultado registrado',
+  candidate: 'Candidato', blocked: 'Bloqueado', noBlocks: 'No se devolvieron bloques de contenido.',
+  captured: 'Texto capturado', recovered: 'Registro recuperado', uploaded: 'Archivo',
+};
+
+export const COPY: Readonly<Record<ViewPreferences['language'], Catalogue>> = {en, es};
+
+const phaseEN: Record<ItemPhase, string> = {
+  draft: 'Draft', receiving: 'Receiving', received: 'Received', extracting: 'Extracting', extracted: 'Extracted',
+  preparing: 'Preparing', prepared: 'Prepared', proposed: 'Proposed', candidate: 'Candidate', relationship: 'Relationship',
+  blocked: 'Blocked', recorded: 'Operation recorded', uncertain: 'Outcome unconfirmed', unavailable: 'Unavailable', failed: 'Failed', stopped: 'Stopped',
+};
+const phaseES: Record<ItemPhase, string> = {
+  draft: 'Borrador', receiving: 'Recibiendo', received: 'Recibido', extracting: 'Extrayendo', extracted: 'Extraído',
+  preparing: 'Preparando', prepared: 'Preparado', proposed: 'Propuesto', candidate: 'Candidato', relationship: 'Relación',
+  blocked: 'Bloqueado', recorded: 'Operación registrada', uncertain: 'Resultado sin confirmar', unavailable: 'No disponible', failed: 'Fallido', stopped: 'Detenido',
+};
+export const PHASE = {en: phaseEN, es: phaseES};
+const actionsEN: Record<ItemAction, string> = {
+  receive: 'Receive', refresh: 'Refresh', reconcile: 'Check recorded outcome', stop: 'Stop work', discard: 'Discard local draft',
+  inspect_original: 'Inspect original', prepare: 'Prepare', continue_preparation: 'Continue staged preparation', inspect_preparation: 'Inspect preparation', review_proposal: 'Review proposal',
+};
+const actionsES: Record<ItemAction, string> = {
+  receive: 'Recibir', refresh: 'Actualizar', reconcile: 'Consultar resultado registrado', stop: 'Detener trabajo', discard: 'Descartar borrador local',
+  inspect_original: 'Examinar original', prepare: 'Preparar', continue_preparation: 'Continuar preparación conservada', inspect_preparation: 'Examinar preparación', review_proposal: 'Revisar propuesta',
+};
+export const ACTION = {en: actionsEN, es: actionsES};
+
+export const TERMS = {
+  en: {completed: 'Completed', failed: 'Failed', not_attempted: 'Not attempted', unknown: 'Unknown',
+    complete: 'Complete', partial: 'Partial', none: 'None', checked: 'Checked', unchecked: 'Unchecked', disputed: 'Disputed',
+    definitional: 'Definitional', normative: 'Normative', operational: 'Operational', factual: 'Factual',
+    domain_adoption: 'Domain adoption', applicable_external_authority: 'Applicable external authority',
+    verifiable_attestation: 'Verifiable attestation', non_authoritative_reference: 'Non-authoritative reference',
+    reusable_with_conditions: 'Reusable with conditions', situated: 'Situated',
+    classifiable: 'Classifiable', divide: 'Divide', transform: 'Transform', block: 'Block', reject: 'Reject'},
+  es: {completed: 'Completada', failed: 'Fallida', not_attempted: 'No intentada', unknown: 'Desconocida',
+    complete: 'Completa', partial: 'Parcial', none: 'Ninguna', checked: 'Comprobada', unchecked: 'Sin comprobar', disputed: 'Cuestionada',
+    definitional: 'Definitoria', normative: 'Normativa', operational: 'Operativa', factual: 'Fáctica',
+    domain_adoption: 'Adopción del ámbito', applicable_external_authority: 'Autoridad externa aplicable',
+    verifiable_attestation: 'Atestación verificable', non_authoritative_reference: 'Referencia no autoritativa',
+    reusable_with_conditions: 'Reutilizable con condiciones', situated: 'Situada',
+    classifiable: 'Clasificable', divide: 'Dividir', transform: 'Transformar', block: 'Bloquear', reject: 'Rechazar'},
+} as const;

@@ -169,6 +169,18 @@ export function verifyWiring(workflow,executedPlans=plans,mutations=producerFaul
     same(job.steps.at(-1),{uses:'actions/upload-artifact@v4',if:'always()',with:{name:name+'-evidence',
       path:'test-results/intake-extraction-public/','if-no-files-found':'error'}});
   }
+  for(const [part,cases]of Object.entries({behavior:['ui-first-slice','ui-reception','ui-preparation','ui-resources'],
+    admission:['ui-protection','ui-adoption-reception','ui-adoption-preparation','ui-disclosure-navigation']})){
+    const name='intake-workspace-'+part,job=workflow.jobs[name];
+    same(commands(job),['npm ci','node --test tests/intake/t02/test_ci_wiring.mjs','node ci/intake_ci_check.mjs',
+      'node --test tests/intake/ui/test_ci.mjs','docker pull postgres:16',
+      ...(part==='behavior'?['node --experimental-strip-types ci/intake_ui_check.mjs --group units','node --test tests/intake/ui/views/test_views.mjs']:[]),
+      ...cases.map(c=>'node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases preparation --preparation-cases '+c),
+      ...(part==='admission'?['node ci/intake_workspace_guards.mjs']:[]),'node ci/intake_extraction_artifacts.mjs'],name+' finite obligations');
+    same(job.steps.at(-2).if,'always()');
+    same(job.steps.at(-1),{uses:'actions/upload-artifact@v4',if:'always()',with:{name:name+'-evidence',
+      path:'test-results/intake-extraction-public/','if-no-files-found':'error'}});
+  }
   same(scripts['test:intake:preparation:unit'],'node --experimental-strip-types ci/intake_preparation_check.mjs --group contracts');
   same(scripts['test:intake:preparation:schema'],'node --experimental-strip-types ci/intake_preparation_check.mjs --group schema');
   same(base.steps.filter(s=>s.uses==='actions/upload-artifact@v4'),retainedArtifacts,'foundation artifacts');
