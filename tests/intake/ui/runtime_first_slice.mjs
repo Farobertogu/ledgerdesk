@@ -9,9 +9,12 @@ import {preparationControl} from '../preparation/runtime_control.mjs';
 import {ExtractionService} from '../../../src/server/intake/extraction.ts';
 import {uiOrigin, apiOrigin} from '../../access/journey_environment.mjs';
 import {observeBrowser} from '../../reading/browser_diagnostics.mjs';
+import {createWorkspaceCheckpoint} from './diagnostic_checkpoint.mjs';
 
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 export async function workspaceFirstSlice(t, {env, intake, client, request, diagnostics, storage, login, post, master, setBarrier, digestSession}) {
+  const checkpoint = process.env.LEDGERDESK_PREPARATION_CASES === 'ui-protection'
+    ? createWorkspaceCheckpoint('/work/output') : null;
   const receptionOnly = process.env.LEDGERDESK_PREPARATION_CASES === 'ui-reception';
   const preparationOnly = process.env.LEDGERDESK_PREPARATION_CASES === 'ui-preparation';
   const controlled = await preparationControl(env, {allFormats: receptionOnly || preparationOnly});
@@ -24,10 +27,12 @@ export async function workspaceFirstSlice(t, {env, intake, client, request, diag
   Object.assign(process.env, {LEDGERDESK_ACCESS_TRIAL: 'synthetic', LEDGERDESK_ACCESS_UI_ORIGIN: uiOrigin, LEDGERDESK_ACCESS_API_ORIGIN: apiOrigin});
   try {
     app = next({dev: false, dir: path.resolve('tests/access/final-ui'), hostname: 'ui.inc02.test', port: 8443});
+    checkpoint?.mark('app_prepare_enter');
     await app.prepare();
     const handler = app.getRequestHandler(); let leakedCookies = 0;
     server = https.createServer(env.tls, (req, res) => {if (req.headers.cookie?.includes('__Host-ledgerdesk')) leakedCookies++; return handler(req, res);});
     await new Promise((resolve, reject) => {server.once('error', reject); server.listen(8443, '127.0.0.1', resolve);});
+    checkpoint?.mark('chromium_launch_enter');
     browser = await chromium.launch({headless: true, args: ['--host-resolver-rules=MAP *.inc02.test 127.0.0.1', '--no-proxy-server']});
     context = await browser.newContext({viewport: {width: 1200, height: 900}});
     const separator = client.cookie.indexOf('=');
@@ -36,7 +41,8 @@ export async function workspaceFirstSlice(t, {env, intake, client, request, diag
     page = await context.newPage(); page.setDefaultTimeout(15000);
     page.on('pageerror', error => errors.push(error.message));
     page.on('request', req => {const url = new URL(req.url()); if (url.origin === apiOrigin) requests.push({method: req.method(), path: url.pathname});});
-    const observer = observeBrowser(page, '/work/output/browser-diagnostics');
+    const rawObserver = observeBrowser(page, '/work/output/browser-diagnostics');
+    const observer = checkpoint ? checkpoint.wrap(rawObserver) : rawObserver;
     await t.test('W01 identified real Next route receives an original through HTTPS and durable storage', async () => {
       await observer.run('W01', async () => {
         const response = await page.goto(uiOrigin + '/access/intake');
@@ -80,6 +86,7 @@ export async function workspaceFirstSlice(t, {env, intake, client, request, diag
       return;
     }
     if (process.env.LEDGERDESK_PREPARATION_CASES === 'ui-protection') {
+      checkpoint?.mark('protection_enter');
       const {workspaceProtection} = await import('./runtime_protection.mjs');
       await workspaceProtection(t, {env, intake, client, request, controlled, page, context, observer,
         receipt, original, observations, requests, errors, storage, login, post, master, setBarrier, digestSession});
@@ -178,10 +185,16 @@ export async function workspaceFirstSlice(t, {env, intake, client, request, diag
     });
   } finally {
     writeFileSync('/work/output/workspace-observations.json', JSON.stringify({observations, errors, requests}, null, 2), {flag: 'wx'});
-    await context?.close(); await browser?.close();
+    checkpoint?.mark('context_close_enter');
+    await context?.close();
+    checkpoint?.mark('browser_close_enter');
+    await browser?.close();
+    checkpoint?.mark('server_close_enter');
     if (server) {server.closeAllConnections(); await new Promise(resolve => server.close(resolve));}
+    checkpoint?.mark('app_close_enter');
     await app?.close();
     for (const [key, value] of Object.entries(beforeEnvironment)) if (value === undefined) delete process.env[key]; else process.env[key] = value;
+    checkpoint?.mark('workspace_closed');
     console.log('INTAKE_WORKSPACE_CLEANED');
   }
 }
