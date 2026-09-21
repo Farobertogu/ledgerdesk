@@ -118,6 +118,167 @@ function tapFailures(stdout,group) {
   return failures;
 }
 
+const preparationWaitFixtures = Object.freeze({
+  W09: ['first-real-intake.txt'], W10: ['first-real-intake.txt'],
+  'W11-relationship': ['identity-relationship.txt'], 'W11-collision': ['identity-collision.txt'],
+  W12: ['inert.md', 'table.csv', 'cache-discrepant.xlsx', 'unsupported-part.xlsx'], W13: ['staging-recovery.txt'],
+});
+const preparationWaitOperations = new Set([
+  "add.choose-count",
+  "add.files",
+  "add.item-key",
+  "add.open",
+  "add.receive",
+  "add.received",
+  "browser.back",
+  "browser.ready",
+  "candidate.notice-count",
+  "candidate.screenshot",
+  "collision.condition",
+  "confirm.click",
+  "confirm.count",
+  "confirm.detached",
+  "confirm.response",
+  "confirm.response-finished",
+  "confirm.response-json",
+  "csv.cells",
+  "csv.layout",
+  "csv.screenshot",
+  "dependency.add",
+  "dependency.from",
+  "dependency.ids",
+  "dependency.to",
+  "edit.add-condition",
+  "edit.add-correction",
+  "edit.basis",
+  "edit.checkbox",
+  "edit.checkboxes",
+  "edit.condition-scope",
+  "edit.condition-text",
+  "edit.correction-text",
+  "edit.correction-value",
+  "edit.coverage",
+  "edit.examination-outcome",
+  "edit.examination-reason",
+  "edit.function",
+  "edit.function-visible",
+  "edit.initial-values",
+  "edit.prepare",
+  "edit.prepare-visible",
+  "edit.reason",
+  "edit.refresh",
+  "edit.scope",
+  "extractor.accept",
+  "extractor.dispatch",
+  "fixture.read",
+  "http.lookup",
+  "http.original",
+  "inspect.click",
+  "inspect.prepared-visible",
+  "inspect.response",
+  "inspect.response-finished",
+  "inspect.response-json",
+  "loss.before",
+  "loss.body",
+  "loss.continue",
+  "loss.detach",
+  "loss.disable",
+  "loss.enable",
+  "loss.reset",
+  "loss.session",
+  "markdown.active-count",
+  "markdown.text",
+  "proposal.comparison",
+  "proposal.declaration",
+  "proposal.displayed-text",
+  "proposal.judgment",
+  "proposal.reason",
+  "proposal.revision",
+  "proposal.sha256",
+  "proposal.target",
+  "proposal.target-id",
+  "proposal.unit",
+  "proposal.version-id",
+  "propose.click",
+  "propose.confirm-visible",
+  "propose.response",
+  "propose.response-finished",
+  "propose.response-json",
+  "save.click",
+  "save.inspection-visible",
+  "save.response",
+  "save.response-finished",
+  "save.response-json",
+  "source.first-item-key",
+  "sql.accepted-result",
+  "sql.add-source",
+  "sql.candidate",
+  "sql.candidate-count",
+  "sql.effect-count",
+  "w09.reason-visible",
+  "w09.screenshot",
+  "workbook.cells",
+  "workbook.coverage",
+  "workbook.hidden-sheet",
+  "workbook.screenshot"
+]);
+const preparationWaitStages = new Set(['entered', 'returned', 'threw']);
+const preparationOutcomeKeys = ['case', 'fixture', 'jobId', 'resultId', 'effectId', 'state', 'outcome'];
+const preparationUuid = value => typeof value === 'string' && /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(value);
+const preparationPair = (caseId, fixture) => typeof caseId === 'string' && typeof fixture === 'string' &&
+  Object.hasOwn(preparationWaitFixtures, caseId) && preparationWaitFixtures[caseId].includes(fixture);
+
+// This is a closed projection of the selected attached runtime's diagnostic
+// lines, not worker authority, an error parser or proof of the cause of a wait.
+export function projectPreparationWaits(stdout, inputStatus, captureComplete) {
+  const result = {status: inputStatus === 'invalid' ? 'invalid' : inputStatus === 'truncated' ? 'truncated' : 'absent',
+    captureComplete: false, events: 0, entered: 0, returned: 0, threw: 0, invalidMarkers: 0, unmatchedFinishes: 0,
+    markerLimitReached: false, unmatchedCount: 0, unmatched: [], unmatchedOverflow: 0, firstThrow: null, lastEvent: null, accepted: []};
+  if (!['present', 'truncated'].includes(inputStatus) || typeof stdout !== 'string') return result;
+  if (Buffer.byteLength(stdout) > 1048576) return {...result, status: 'truncated'};
+  const pending = new Map(), accepted = new Set(); let markers = 0;
+  for (const line of stdout.split(/\r?\n/)) {
+    const isWait = line.startsWith('# PREPARATION_WAIT '), isAccepted = line.startsWith('# PREPARATION_ACCEPTED ');
+    if (!isWait && !isAccepted) continue;
+    if (++markers > 4096) {result.markerLimitReached = true; break;}
+    if (isWait) {
+      const match = /^# PREPARATION_WAIT (\S+) (\S+) (\S+) (entered|returned|threw)$/.exec(line);
+      if (!match || !preparationPair(match[1], match[2]) || !preparationWaitOperations.has(match[3]) || !preparationWaitStages.has(match[4])) {
+        result.invalidMarkers++; continue;
+      }
+      const [, caseId, fixture, operation, stage] = match;
+      const event = {ordinal: ++result.events, caseId, fixture, operation, stage}, key = caseId + ' ' + fixture + ' ' + operation;
+      result[stage]++; result.lastEvent = event;
+      if (stage === 'entered') {
+        if (!pending.has(key)) pending.set(key, []);
+        pending.get(key).push(event);
+      } else {
+        const entries = pending.get(key);
+        if (entries?.length) {entries.shift(); if (!entries.length) pending.delete(key);}
+        else result.unmatchedFinishes++;
+        if (stage === 'threw' && result.firstThrow === null) result.firstThrow = event;
+      }
+    } else {
+      let value;
+      try {value = JSON.parse(line.slice('# PREPARATION_ACCEPTED '.length));} catch {result.invalidMarkers++; continue;}
+      if (!value || typeof value !== 'object' || Array.isArray(value) || Object.keys(value).length !== preparationOutcomeKeys.length ||
+          !preparationOutcomeKeys.every(key => Object.hasOwn(value, key)) || !preparationPair(value.case, value.fixture) || value.case === 'W10' ||
+          !['jobId', 'resultId', 'effectId'].every(key => preparationUuid(value[key])) || value.state !== 'accepted' ||
+          !['completed', 'partial', 'failed'].includes(value.outcome)) {result.invalidMarkers++; continue;}
+      const key = value.case + ' ' + value.fixture;
+      if (accepted.has(key) || accepted.size === 8) {result.invalidMarkers++; continue;}
+      accepted.add(key);
+      result.accepted.push({caseId: value.case, fixture: value.fixture, state: 'accepted', outcome: value.outcome});
+    }
+  }
+  const unmatched = [...pending.values()].flat().sort((a, b) => a.ordinal - b.ordinal);
+  result.unmatchedCount = unmatched.length; result.unmatched = unmatched.slice(0, 8); result.unmatchedOverflow = Math.max(0, unmatched.length - 8);
+  const truncated = inputStatus === 'truncated' || result.markerLimitReached;
+  result.status = result.invalidMarkers || result.unmatchedFinishes ? 'invalid' : truncated ? 'truncated' : markers ? 'present' : 'absent';
+  result.captureComplete = result.status === 'present' && captureComplete === true;
+  return result;
+}
+
 function completionProjection(commands, name) {
   const unknown = {request: 'unknown', replyPublished: 'unknown', requestOrdinal: null, copyOrdinal: null, publicationOrdinal: null};
   const requests = []; let unavailable = null;
@@ -188,7 +349,8 @@ export function projectWorkspaceDiagnostic({manifest: m, manifestSha256, source,
   return {profile: 'intake-workspace-diagnostic/1', runId: m.runId, manifestSha256, sourceManifestSha256: source.sha256, group,
     inputs: {runtimeCommand: runtimeStatus, runtimeState: stateStatus, checkpoints: checkpointStatus, completion: completion.status},
     runtime, tap, checkpoints: checkpoint, completion: completion.value, container,
-    ...(group==='ui-preparation'?{participants:preparationParticipants(checkpoint,participants)}:{}),
+    ...(group==='ui-preparation'?{participants:preparationParticipants(checkpoint,participants),
+      waits:projectPreparationWaits(stdout,runtimeStatus,runtime?.captureComplete===true)}:{}),
     cleanupMarkers: Object.fromEntries(['INTAKE_WORKSPACE_CLEANED', 'INTAKE_T02_RUNTIME_CLEANED', 'ACCESS_PG_CLEANED']
       .map(k => [k, lines.has(k) || lines.has('# ' + k) ? 'observed' : 'unknown']))};
 }

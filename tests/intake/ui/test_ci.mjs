@@ -10,7 +10,7 @@ import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {createWorkspaceCheckpoint, validateCheckpoint,preparationTestNames} from './diagnostic_checkpoint.mjs';
 import {preparationParticipants} from '../../../ci/intake/workspace_participants.mjs';
-import {projectWorkspaceDiagnostic, readWorkspaceDiagnostic} from '../../../ci/intake/workspace_diagnostic.mjs';
+import {projectWorkspaceDiagnostic, readWorkspaceDiagnostic, projectPreparationWaits} from '../../../ci/intake/workspace_diagnostic.mjs';
 import {exportExtractionEvidence, extractionPublicSummary} from '../../../ci/intake_extraction_artifacts.mjs';
 
 test('both workspace jobs and every finite command are mandatory alongside retained producers',async()=>{
@@ -379,7 +379,7 @@ test('preparation checkpoint keeps the latest bounded stage on overflow and vali
     const copy=structuredClone(retained);alter(copy);assert.throws(()=>validateCheckpoint(copy));
   }
   const runtime=await fs.readFile(new URL('./runtime_preparation.mjs',import.meta.url),'utf8');
-  for(const [mark,action]of [["stage('dispatch_enter'",'await extractor.dispatch('],["stage('accept_enter'",'await extractor.accept(']])
+  for(const [mark,action]of [["stage('dispatch_enter'","wait('extractor.dispatch', () => extractor.dispatch("],["stage('accept_enter'","wait('extractor.accept', () => extractor.accept("]])
     assert.ok(runtime.indexOf(mark)>=0&&runtime.indexOf(mark)<runtime.indexOf(action));
   assert.match(runtime,/if\(label==='extraction_phase_committed'\)checkpoint\?\.stage\('phase_committed',event.jobId,event.phaseId\)/);
   await c.wrap({run:async(_,action)=>action()}).run('W13',async()=>{
@@ -405,4 +405,69 @@ test('preparation exporter reads only correlated bounded participant evidence an
   const names=await fs.readdir(output);assert.equal(names.length,3);assert.ok(names.every(n=>n.endsWith('.json')));
   await fs.writeFile(path.join(directory,'extraction-private/events.ndjson'),'broken PRIVATE_CANARY');
   const bad=await readWorkspaceDiagnostic(directory,f.manifest,f.manifestSha256,f.commands);assert.equal(bad.participants.status,'invalid');
+}));
+
+const waitLine = (operation, stage, caseId = 'W12', fixture = 'inert.md') =>
+  `# PREPARATION_WAIT ${caseId} ${fixture} ${operation} ${stage}\n`;
+const acceptedLine = (outcome = 'completed', extra = {}) => '# PREPARATION_ACCEPTED ' + JSON.stringify({
+  case: 'W12', fixture: 'inert.md', jobId, resultId: phaseId, effectId: channelId, state: 'accepted', outcome, ...extra,
+}) + '\n';
+
+test('preparation waits pair overlapping operations and retain the first throw without exporting error text or identities', () => {
+  const trace = acceptedLine() + waitLine('inspect.response', 'entered') + waitLine('inspect.click', 'entered') +
+    waitLine('inspect.click', 'returned') + waitLine('inspect.response', 'returned') + waitLine('inspect.response-finished', 'entered');
+  const pending = projectPreparationWaits(trace, 'present', true);
+  assert.equal(pending.status, 'present'); assert.equal(pending.captureComplete, true);
+  assert.deepEqual([pending.entered, pending.returned, pending.threw, pending.unmatchedCount], [3, 2, 0, 1]);
+  assert.deepEqual(pending.unmatched[0], {ordinal: 5, caseId: 'W12', fixture: 'inert.md', operation: 'inspect.response-finished', stage: 'entered'});
+  assert.deepEqual(pending.accepted, [{caseId: 'W12', fixture: 'inert.md', state: 'accepted', outcome: 'completed'}]);
+  const thrown = projectPreparationWaits(trace + waitLine('inspect.response-finished', 'threw') +
+    "not ok 1 - case\n  ---\n  error: 'PRIVATE_CANARY'\n    # PREPARATION_WAIT W12 inert.md sql.accepted-result entered\n  ...\n", 'present', true);
+  assert.equal(thrown.unmatchedCount, 0); assert.equal(thrown.threw, 1);
+  assert.equal(thrown.firstThrow.operation, 'inspect.response-finished'); assert.deepEqual(thrown.lastEvent, thrown.firstThrow);
+  for (const secret of ['PRIVATE_CANARY', jobId, phaseId, channelId]) assert.equal(JSON.stringify(thrown).includes(secret), false);
+});
+
+test('preparation wait absence, invalid sequences and incomplete capture remain explicit and bounded', () => {
+  const valid = waitLine('save.response-json', 'entered') + waitLine('save.response-json', 'returned');
+  assert.equal(projectPreparationWaits(finalTap, 'present', true).status, 'absent');
+  assert.equal(projectPreparationWaits(valid, 'absent', false).status, 'absent');
+  assert.equal(projectPreparationWaits(valid, 'invalid', false).status, 'invalid');
+  const partial = projectPreparationWaits(valid, 'truncated', false);
+  assert.equal(partial.status, 'truncated'); assert.equal(partial.captureComplete, false); assert.equal(partial.returned, 1);
+  assert.equal(projectPreparationWaits(valid, 'present', false).captureComplete, false);
+  for (const invalid of [waitLine('PRIVATE_CANARY', 'entered'), waitLine('save.response', 'entered', 'W12', 'PRIVATE_CANARY'),
+    waitLine('save.response', 'entered', 'W09', 'inert.md'), waitLine('save.response', 'returned'),
+    acceptedLine('PRIVATE_CANARY'), acceptedLine('completed', {body: 'PRIVATE_CANARY'}), acceptedLine() + acceptedLine(),
+    acceptedLine('completed', {case: {toString: null}}), acceptedLine('completed', {case: ['W12']}),
+    acceptedLine('completed', {fixture: {toString: null}}), acceptedLine('completed', {fixture: ['inert.md']})]) {
+    const out = projectPreparationWaits(invalid, 'present', true);
+    assert.equal(out.status, 'invalid'); assert.equal(out.captureComplete, false); assert.equal(JSON.stringify(out).includes('PRIVATE_CANARY'), false);
+  }
+  const pending = projectPreparationWaits(waitLine('inspect.response-finished', 'entered').repeat(9), 'present', true);
+  assert.deepEqual([pending.unmatchedCount, pending.unmatched.length, pending.unmatchedOverflow], [9, 8, 1]);
+  const overflow = projectPreparationWaits(valid.repeat(2049), 'present', true);
+  assert.equal(overflow.status, 'truncated'); assert.equal(overflow.markerLimitReached, true); assert.equal(overflow.captureComplete, false);
+  assert.equal(projectPreparationWaits('x'.repeat(1048577), 'present', true).status, 'truncated');
+  assert.ok(Buffer.byteLength(JSON.stringify(pending, null, 2)) < 8192);
+  const partialWorkbook = projectPreparationWaits(acceptedLine('partial', {fixture: 'unsupported-part.xlsx'}), 'present', true);
+  assert.equal(partialWorkbook.accepted[0].outcome, 'partial');
+});
+
+test('the current exporter adds only the safe wait projection and preserves failed summary and companion semantics', async () => temporaryWork(async temporary => {
+  const f = await preparationFixture(), input = path.join(temporary, 'input'), directory = path.join(input, runId), output = path.join(temporary, 'public');
+  replaceRuntime(f, acceptedLine() + waitLine('inspect.response-finished', 'entered') +
+    `    not ok 7 - ${preparationTestNames.W12}\n      ---\n      code: 'ERR_TEST_FAILURE'\n      failureType: 'cancelledByParent'\n      error: 'PRIVATE_CANARY'\n      ...\n`, {code: 1});
+  f.manifest.completed = false;
+  await writeFixture(directory, f);
+  assert.equal(await exportExtractionEvidence(input, output), true);
+  const ordinary = JSON.parse(await fs.readFile(path.join(output, runId + '.json')));
+  assert.equal(ordinary.completed, false);
+  assert.deepEqual(ordinary, extractionPublicSummary(f.manifest, digest(await fs.readFile(path.join(directory, 'manifest.json'))), f.commands));
+  const companion = JSON.parse(await fs.readFile(path.join(output, runId + '-workspace-diagnostic.json')));
+  assert.equal(companion.manifestSha256, ordinary.manifestSha256); assert.equal(companion.waits.unmatchedCount, 1);
+  assert.equal(companion.waits.unmatched[0].operation, 'inspect.response-finished');
+  assert.equal(companion.runtime.firstTestFailure.caseId, 'W12'); assert.equal(companion.runtime.firstTestFailure.failureType, 'cancelledByParent');
+  assert.equal(JSON.stringify(companion).includes('PRIVATE_CANARY'), false);
+  assert.deepEqual((await fs.readdir(output)).sort(), ['PUBLIC-MANIFEST.json', runId + '.json', runId + '-workspace-diagnostic.json'].sort());
 }));
