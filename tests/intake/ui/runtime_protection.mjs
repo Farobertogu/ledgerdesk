@@ -19,8 +19,8 @@ const accept = 'application/vnd.ledgerdesk.intake-preparation+json';
 const workspaceAccept = 'application/vnd.ledgerdesk.intake-workspace+json';
 const hash = value => createHash('sha256').update(value).digest('hex');
 function latch() {let resolve; const promise = new Promise(r => {resolve = r;}); return {promise, resolve};}
-async function bounded(promise, label, ms = 7000) {
-  let timer; try {return await Promise.race([promise, new Promise((_, reject) => {timer = setTimeout(() => reject(Error(label)), ms);})]);}
+async function bounded(promise, label, ms = 7000, code) {
+  let timer; try {return await Promise.race([promise, new Promise((_, reject) => {timer = setTimeout(() => {const error = Error(label); if (code) error.code = code; reject(error);}, ms);})]);}
   finally {clearTimeout(timer);}
 }
 async function eventually(read, predicate, label) {
@@ -34,6 +34,28 @@ async function eventually(read, predicate, label) {
  * actual controller and terminal response throughout the observations. */
 export async function workspaceProtection(t, {env, intake, client, request, controlled, page, context, observer,
   receipt, original, observations, storage, setBarrier, login, digestSession}) {
+  let primaryError = null;
+  const stop = () => { if (primaryError) throw primaryError; if (t.signal.aborted) throw t.signal.reason; };
+  const runCase = async (title, action) => {
+    stop();
+    await t.test(title, async subtest => {
+      try {return await action(subtest);}
+      catch (error) {primaryError ??= error; throw primaryError;}
+    });
+    stop();
+  };
+  const responseBody = async (response, method = 'json') => {
+    try {return await bounded(response[method](), 'WORKSPACE_RESPONSE_BODY', 15000, 'ERR_RESPONSE_BODY_DEADLINE');}
+    catch (error) {
+      const classified = error instanceof Error ? error : new Error('Response body rejected.', {cause: error});
+      if (classified.code !== 'ERR_RESPONSE_BODY_DEADLINE') {
+        const failure = response.request().failure()?.errorText;
+        const network = typeof failure === 'string' && /^net::[A-Z0-9_]{1,64}$/.test(failure) ? ':' + failure : '';
+        classified.code = failure ? 'ERR_RESPONSE_REQUEST_FAILED' + network : 'ERR_RESPONSE_BODY_REJECTED';
+      }
+      throw classified;
+    }
+  };
   const check = (r, code = 200) => assert.equal(r.status, code, JSON.stringify(r.body));
   const call = (path, options = {}) => request('/api/intake' + path, {client, ...options, headers: {accept, ...options.headers}});
   const extraction = new ExtractionService(intake);
@@ -66,8 +88,12 @@ export async function workspaceProtection(t, {env, intake, client, request, cont
     await card().getByRole('button', {name: 'Inspect preparation', exact: true}).waitFor();
     await page.getByText('Working…', {exact: true}).waitFor({state: 'hidden'});
   };
-  const lookupResponse = () => page.waitForResponse(r => r.request().method() === 'POST' && r.url().endsWith('/api/intake/operations/lookup') &&
-    r.request().postDataJSON()?.kind === 'preparation_inspection');
+  const lookupResponse = () => page.waitForResponse(r => {
+    const url = new URL(r.url());
+    if (r.request().method() !== 'POST' || url.origin !== apiOrigin || url.pathname !== '/api/intake/operations/lookup') return false;
+    const body = r.request().postDataJSON();
+    return body?.kind === 'preparation_inspection' && ['id', 'revision', 'sha256'].every(field => body.preparation?.[field] === prepared[field]);
+  });
   const inspect = async () => {const pending = lookupResponse(); await card().getByRole('button', {name: 'Inspect preparation', exact: true}).click(); return pending;};
   const waitInspected = () => page.getByRole('region', {name: 'Human preparation', exact: true}).waitFor();
   const grant = async (permission, withdrawn) => {
@@ -76,10 +102,10 @@ export async function workspaceProtection(t, {env, intake, client, request, cont
   };
   const records = async () => (await env.admin.query('SELECT id,sha256 FROM intake_trial.preparation ORDER BY id')).rows;
 
-  for (const permission of ['intake_prepared_read', 'intake_difference_read']) await t.test('W14 preparation inspection separately requires ' + permission, async () => observer.run(permission === 'intake_prepared_read' ? 'W14-prepared' : 'W14-difference', async () => {
+  for (const permission of ['intake_prepared_read', 'intake_difference_read']) await runCase('W14 preparation inspection separately requires ' + permission, async () => observer.run(permission === 'intake_prepared_read' ? 'W14-prepared' : 'W14-difference', async () => {
     await reset(); const before = await records(), reads = storage.length; await grant(permission, true);
     try {
-      const response = await inspect(); assert.equal(response.status(), 404); await response.finished();
+      const response = await inspect(); assert.equal(response.status(), 404); await responseBody(response, 'body');
       await page.getByText('Working…', {exact: true}).waitFor({state: 'hidden'});
       assert.deepEqual({views: await page.getByRole('region', {name: 'Human preparation', exact: true}).count(), records: await records(), reads: storage.length},
         {views: 0, records: before, reads});
@@ -89,7 +115,7 @@ export async function workspaceProtection(t, {env, intake, client, request, cont
     assert.ok(storage.length > reads); observations.push({case: 'W14', permission, denied: 404, protectedReadsWhileDenied: 0, positive: 200});
   }));
 
-  await t.test('W15 query revocation denies disclosure without deleting the historical preparation effect', async () => observer.run('W15', async () => {
+  await runCase('W15 query revocation denies disclosure without deleting the historical preparation effect', async () => observer.run('W15', async () => {
     await reset(); const before = await records(); await grant('intake_records', true);
     try {
       const response = page.waitForResponse(r => r.request().method() === 'POST' && r.url().endsWith('/api/intake/operations/lookup'));
@@ -103,7 +129,7 @@ export async function workspaceProtection(t, {env, intake, client, request, cont
     await reset(); observations.push({case: 'W15', status: 404, historicalRecordsPreserved: true});
   }));
 
-  await t.test('W16 the actual browser preparation query has durable evidence and writer-ordered handoff', async () => observer.run('W16', async () => {
+  await runCase('W16 the actual browser preparation query has durable evidence and writer-ordered handoff', async () => observer.run('W16', async () => {
     await reset(); const reached = latch(), release = latch(); let paused, delivery, writer, writing, finished = false, response;
     const cdp = await context.newCDPSession(page), ids = new Set(); let receivedBytes = 0, responseHeaders = 0;
     await cdp.send('Network.enable');
@@ -147,7 +173,7 @@ export async function workspaceProtection(t, {env, intake, client, request, cont
     observations.push({case: 'W16-writer-first', status: 404, protectedReads: 0, reAdmittedPositive: 200});
   }));
 
-  for (const expired of [false, true]) await t.test('W17 workspace delivery ' + (expired ? 'records writer-free expiry without claiming R24 closure' : 'has a nonexpired positive'), async () => observer.run('W17-' + expired, async () => {
+  for (const expired of [false, true]) await runCase('W17 workspace delivery ' + (expired ? 'records writer-free expiry without claiming R24 closure' : 'has a nonexpired positive'), async () => observer.run('W17-' + expired, async () => {
     await reset();
     const prior = (await env.admin.query("SELECT id,expires_at FROM access_trial.grant_record WHERE account_id=$1 AND permission_id='intake_prepared_read'", [controlled.account.id])).rows[0];
     const now = async () => Number((await env.admin.query('SELECT floor(extract(epoch FROM clock_timestamp())*1000)::bigint AS now')).rows[0].now);
@@ -164,7 +190,9 @@ export async function workspaceProtection(t, {env, intake, client, request, cont
     });
     try {
       const response = await inspect(); assert.ok(pause, 'An early denial does not exercise the protected temporal point.');
-      await response.finished(); const body = await response.json(), delivered = response.status() === 200 && body.preparation?.reference?.id === prepared.id;
+      const body = await responseBody(response);
+      if (response.status() === 200) assert.deepEqual(body.preparation?.reference, prepared);
+      const delivered = response.status() === 200 && body.preparation?.reference?.id === prepared.id;
       if (!expired) {assert.equal(delivered, true); assert.ok(pause.releasedAtMs < deadline);}
       else assert.ok(pause.releasedAtMs > deadline);
       observations.push({case: 'W17', expired, deadline, pause, status: response.status(), delivered,
@@ -172,7 +200,7 @@ export async function workspaceProtection(t, {env, intake, client, request, cont
     } finally {setBarrier(async () => {}); await env.admin.query('UPDATE access_trial.grant_record SET expires_at=$1 WHERE id=$2', [prior.expires_at, prior.id]);}
   }));
 
-  await t.test('W18 stop is a separately admitted real effect and never erases the original', async subtest => observer.run('W18', async () => {
+  await runCase('W18 stop is a separately admitted real effect and never erases the original', async subtest => observer.run('W18', async () => {
     await reset(); const name = 'explicit-stop.txt', bytes = Buffer.from('Uncompleted synthetic extraction.\n');
     await page.getByLabel('Choose files', {exact: true}).setInputFiles({name, mimeType: 'text/plain', buffer: bytes});
     const row = page.getByRole('region', {name: 'Add material', exact: true}).locator('li[data-item-key]').filter({hasText: name});
@@ -301,7 +329,7 @@ export async function workspaceProtection(t, {env, intake, client, request, cont
       await cdp.send('Fetch.disable'); await cdp.detach(); if (failed) throw failed;}};
   };
   for (const [label, email] of [['same-account', 'reader@example.test'], ['other-account', 'master@example.test']])
-    await t.test('W19 a replaced ' + label + ' session cannot adopt a retained preparation response', async () => observer.run('W19-' + label, async () => {
+    await runCase('W19 a replaced ' + label + ' session cannot adopt a retained preparation response', async () => observer.run('W19-' + label, async () => {
       await cookie(client); await reset(); assert.equal((await inspect()).status(), 200); await waitInspected(); await reset();
       const held = await holdInspection();
       try {
@@ -314,7 +342,7 @@ export async function workspaceProtection(t, {env, intake, client, request, cont
       } finally {await held.finish(); await cookie(client);}
     }));
 
-  await t.test('W20 a same-session selection change cancels the old preparation adoption', async () => observer.run('W20', async () => {
+  await runCase('W20 a same-session selection change cancels the old preparation adoption', async () => observer.run('W20', async () => {
     await reset(); await page.getByLabel('Choose files', {exact: true}).setInputFiles({name: 'Unsent second item', mimeType: 'text/plain', buffer: Buffer.from('B draft')});
     const target = page.locator('aside li[data-item-key]').filter({hasText: 'Unsent second item'}), targetKey = await target.getAttribute('data-item-key');
     const held = await holdInspection();

@@ -94,7 +94,8 @@ function tapProjection(stdout, completeCapture) {
 function tapFailures(stdout,group) {
   const lines = stdout.split(/\r?\n/), failures = [];
   const types = new Set(['testTimeoutFailure', 'cancelledByParent', 'testCodeFailure', 'subtestsFailed']);
-  const codes = new Set(['ERR_ASSERTION', 'ERR_TEST_FAILURE']);
+  const codes = new Set(['ERR_ASSERTION', 'ERR_TEST_FAILURE', 'ERR_RESPONSE_BODY_DEADLINE', 'ERR_RESPONSE_BODY_REJECTED']);
+  const responseFailure = /^ERR_RESPONSE_REQUEST_FAILED(?::net::[A-Z0-9_]{1,64})?$/;
   for (let i = 0; i < lines.length; i++) {
     const start = /^([ ]*)not ok [0-9]+ - ([^\r\n]*)$/.exec(lines[i]);
     if (!start) continue;
@@ -106,7 +107,7 @@ function tapFailures(stdout,group) {
       const field = new RegExp('^' + indent + "(code|failureType): '([^']*)'$").exec(lines[j]);
       if (field) values[field[1]].push(field[2]);
     }
-    const code = ended && values.code.length === 1 && codes.has(values.code[0]) ? values.code[0] : null;
+    const code = ended && values.code.length === 1 && (codes.has(values.code[0]) || responseFailure.test(values.code[0])) ? values.code[0] : null;
     const failureType = ended && values.failureType.length === 1 && types.has(values.failureType[0]) ? values.failureType[0] : null;
     const caseId=Object.keys(preparationTestNames).find(key=>preparationTestNames[key]===start[2])??null;
     failures.push({status: code || failureType ? 'observed' : 'unknown', code, failureType,

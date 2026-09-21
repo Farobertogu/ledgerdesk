@@ -7,13 +7,13 @@ import {CSV_REFERENCES} from '../extraction/references/csv.mjs';
 import {apiOrigin} from '../../access/journey_environment.mjs';
 
 // Test-only lifecycle helpers. A timeout is a failure, never a successful close.
-export async function withDeadline(operation, label, timeoutMs) {
+export async function withDeadline(operation, label, timeoutMs, code) {
   let timer;
   try {
     return await Promise.race([
       Promise.resolve().then(operation),
       new Promise((_, reject) => {
-        timer = setTimeout(() => reject(new Error(`${label} exceeded ${timeoutMs} ms`)), timeoutMs);
+        timer = setTimeout(() => {const error = new Error(`${label} exceeded ${timeoutMs} ms`); if (code) error.code = code; reject(error);}, timeoutMs);
       }),
     ]);
   } finally { clearTimeout(timer); }
@@ -30,7 +30,7 @@ export async function workspacePreparation(t, {env, intake, client, request, con
     'inert.md', 'table.csv', 'cache-discrepant.xlsx', 'unsupported-part.xlsx', 'staging-recovery.txt']);
   const stop = () => { if (primaryError) throw primaryError; if (t.signal.aborted) throw t.signal.reason; };
   const setFixture = name => { stop(); assert.ok(catalogue.has(name)); activeFixture = name; };
-  const wait = async (label, operation, unbounded = false) => {
+  const wait = async (label, operation, unbounded = false, deadlineCode) => {
     stop();
     const name = activeCase, fixtureName = activeFixture;
     const mark = stage => {
@@ -40,7 +40,7 @@ export async function workspacePreparation(t, {env, intake, client, request, con
     mark('entered');
     try {
       // This race cannot cancel operation. runCase stops before another case starts.
-      const value = unbounded ? await withDeadline(operation, name + ' ' + fixtureName + ' ' + label, 15000) : await operation();
+      const value = unbounded ? await withDeadline(operation, name + ' ' + fixtureName + ' ' + label, 15000, deadlineCode) : await operation();
       mark('returned'); return value;
     } catch (error) { primaryError ??= error; mark('threw'); throw error; }
   };
@@ -69,12 +69,24 @@ export async function workspacePreparation(t, {env, intake, client, request, con
   const lookup = async body => wait('http.lookup', () => request('/api/intake/operations/lookup', {client,
     headers: {accept: 'application/vnd.ledgerdesk.intake-workspace+json'}, body: {profile: 'intake-workspace/1', ...body}}));
   const responseTo = (method, suffix, operation) => wait(operation + '.response', () => page.waitForResponse(r => r.request().method() === method && new URL(r.url()).pathname.endsWith(suffix)));
-  const queryResponse = kind => wait('inspect.response', () => page.waitForResponse(r => r.request().method() === 'POST' &&
-    new URL(r.url()).pathname === '/api/intake/operations/lookup' && r.request().postDataJSON()?.kind === kind));
+  const queryResponse = preparation => wait('inspect.response', () => page.waitForResponse(r => {
+    const url = new URL(r.url());
+    if (r.request().method() !== 'POST' || url.origin !== apiOrigin || url.pathname !== '/api/intake/operations/lookup') return false;
+    const body = r.request().postDataJSON();
+    return body?.kind === 'preparation_inspection' && ['id', 'revision', 'sha256'].every(field => body.preparation?.[field] === preparation[field]);
+  }));
   const observedJson = async (response, operation) => {
-    const failure = await wait(operation + '.response-finished', () => response.finished(), true);
-    assert.equal(failure, null, 'The observed response must finish before reading its body.');
-    return wait(operation + '.response-json', () => response.json(), true);
+    // Reading the body rejects transport failure; Playwright finished() can remain pending after requestfailed.
+    try {return await wait(operation + '.response-json', () => response.json(), true, 'ERR_RESPONSE_BODY_DEADLINE');}
+    catch (error) {
+      const classified = error instanceof Error ? error : new Error('Response body rejected.', {cause: error});
+      if (classified.code !== 'ERR_RESPONSE_BODY_DEADLINE') {
+        const failure = response.request().failure()?.errorText;
+        const network = typeof failure === 'string' && /^net::[A-Z0-9_]{1,64}$/.test(failure) ? ':' + failure : '';
+        classified.code = failure ? 'ERR_RESPONSE_REQUEST_FAILED' + network : 'ERR_RESPONSE_BODY_REJECTED';
+      }
+      throw classified;
+    }
   };
   const addSource = async (name, bytes, mime = 'text/plain') => {
     await ready();
@@ -150,10 +162,11 @@ export async function workspacePreparation(t, {env, intake, client, request, con
     await wait('save.inspection-visible', () => byKey(key).getByRole('button', {name: 'Inspect preparation', exact: true}).waitFor()); await ready();
     return effect;
   };
-  const inspect = async key => {
-    const pending = queryResponse('preparation_inspection');
+  const inspect = async (key, preparation) => {
+    const pending = queryResponse(preparation);
     await wait('inspect.click', () => byKey(key).getByRole('button', {name: 'Inspect preparation', exact: true}).click());
     const received = await pending; assert.equal(received.status(), 200); const value = await observedJson(received, 'inspect');
+    assert.deepEqual(value.preparation.reference, preparation);
     await wait('inspect.prepared-visible', () => page.getByLabel('Prepared unit', {exact: true}).waitFor()); await ready(); return value;
   };
   const draftProposal = async (target, judgment = 'distinct') => {
@@ -204,7 +217,7 @@ export async function workspacePreparation(t, {env, intake, client, request, con
 
   await runCase('W09', 'first-real-intake.txt', 'W09 real human preparation persists exact original provenance, a correction and its difference', async () => {
     await edit({key: firstKey, receipt}, {correction: true});
-    const before = await candidateCount(), saved = await save(firstKey), inspected = await inspect(firstKey);
+    const before = await candidateCount(), saved = await save(firstKey), inspected = await inspect(firstKey, saved.result.preparation);
     firstPrepared = inspected.preparation;
     assert.deepEqual(firstPrepared.reference, saved.result.preparation);
     assert.equal(firstPrepared.payload.elements.map(e => e.text).join(''),
@@ -244,7 +257,7 @@ export async function workspacePreparation(t, {env, intake, client, request, con
       const source = await addSource('identity-' + label + '.txt', original);
       const editor = await edit(source, {correction: true});
       if (change) await wait('collision.condition', () => editor.getByLabel('Condition text', {exact: true}).fill('Only applies during a different synthetic interval W.'));
-      await save(source.key); await inspect(source.key); await draftProposal(firstCandidate, 'same_version');
+      const saved = await save(source.key); await inspect(source.key, saved.result.preparation); await draftProposal(firstCandidate, 'same_version');
       await propose(); const before = await candidateCount(), result = await confirm();
       assert.deepEqual({outcome: result.result.outcome, candidateDelta: await candidateCount() - before}, {outcome: expected, candidateDelta: 0});
       assert.equal(await wait('confirm.count', () => page.getByRole('button', {name: 'Confirm this proposal', exact: true}).count(), true), 0);
@@ -258,8 +271,8 @@ export async function workspacePreparation(t, {env, intake, client, request, con
       setFixture(name);
       const input = await wait('fixture.read', () => fixture(name), true), workbook = name.endsWith('.xlsx');
       const source = await addSource(name, input.bytes, workbook ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' : name.endsWith('.md') ? 'text/markdown' : 'text/csv');
-      await edit(source, {withCondition: workbook, dependency: workbook}); await save(source.key);
-      const inspected = await inspect(source.key), region = page.getByRole('region', {name: 'Human preparation', exact: true});
+      await edit(source, {withCondition: workbook, dependency: workbook}); const saved = await save(source.key);
+      const inspected = await inspect(source.key, saved.result.preparation), region = page.getByRole('region', {name: 'Human preparation', exact: true});
       const payload = inspected.preparation.payload;
       if (workbook) {
         const table = region.locator('section[data-block-id="sheet-1"]');
@@ -312,12 +325,15 @@ export async function workspacePreparation(t, {env, intake, client, request, con
     await page.reload(); await byKey(source.key).getByRole('button', {name: 'Check recorded outcome', exact: true}).click();
     await byKey(source.key).getByRole('button', {name: 'Continue staged preparation', exact: true}).waitFor(); await ready();
     assert.equal(await effectCount('finalize_preparation'), before);
+    const finalized = responseTo('POST', '/finalize', 'save');
     await byKey(source.key).getByRole('button', {name: 'Continue staged preparation', exact: true}).click();
+    const finalizedResponse = await finalized; assert.equal(finalizedResponse.status(), 200);
+    const finalizedEffect = await observedJson(finalizedResponse, 'save');
     await byKey(source.key).getByRole('button', {name: 'Inspect preparation', exact: true}).waitFor(); await ready();
     assert.equal(await effectCount('finalize_preparation'), before + 1);
     assert.equal(requests.filter(r => r.method === 'POST' && r.path.endsWith('/content')).length, uploads);
     observations.push({case: 'W13', attempt: lost.result.attempt_id, document: lost.result.document, uploadsRepeated: 0, finalizations: 1});
-    const inspected = await inspect(source.key); assert.equal(inspected.preparation.reference.id, lost.result.preparation.id);
+    const inspected = await inspect(source.key, finalizedEffect.result.preparation); assert.equal(inspected.preparation.reference.id, lost.result.preparation.id);
     await draftProposal();
     const proposalFault = await loseResponse('/api/intake/preparations/*/revisions/*/proposals');
     const proposedBefore = await effectCount('propose');

@@ -471,3 +471,32 @@ test('the current exporter adds only the safe wait projection and preserves fail
   assert.equal(JSON.stringify(companion).includes('PRIVATE_CANARY'), false);
   assert.deepEqual((await fs.readdir(output)).sort(), ['PUBLIC-MANIFEST.json', runId + '.json', runId + '-workspace-diagnostic.json'].sort());
 }));
+
+test('response failures expose only bounded fixed categories and Chromium codes', () => {
+  for (const code of ['ERR_RESPONSE_BODY_DEADLINE', 'ERR_RESPONSE_BODY_REJECTED', 'ERR_RESPONSE_REQUEST_FAILED',
+    'ERR_RESPONSE_REQUEST_FAILED:net::ERR_CONTENT_LENGTH_MISMATCH']) {
+    const f = replaceRuntime(fixture(), "not ok 1 - controlled body\n  ---\n  code: '" + code + "'\n  failureType: 'testCodeFailure'\n  error: 'PRIVATE_CANARY'\n  ...\n", {code: 1});
+    const out = projectWorkspaceDiagnostic(f);
+    assert.equal(out.runtime.firstTestFailure.code, code);
+    assert.equal(JSON.stringify(out).includes('PRIVATE_CANARY'), false);
+  }
+  for (const code of ['PRIVATE_CANARY', 'ERR_RESPONSE_REQUEST_FAILED:net::private', 'ERR_RESPONSE_REQUEST_FAILED:https://private',
+    'ERR_RESPONSE_REQUEST_FAILED:net::' + 'A'.repeat(65), 'ERR_RESPONSE_BODY_REJECTED:PRIVATE_CANARY']) {
+    const f = replaceRuntime(fixture(), "not ok 1 - controlled body\n  ---\n  code: '" + code + "'\n  failureType: 'testCodeFailure'\n  ...\n", {code: 1});
+    const out = projectWorkspaceDiagnostic(f);
+    assert.equal(out.runtime.firstTestFailure.code, null);
+    assert.equal(JSON.stringify(out).includes(code), false);
+  }
+});
+
+test('the existing exporter retains a classified request failure without error prose', async () => temporaryWork(async temporary => {
+  const f = fixture(), input = path.join(temporary, 'input'), directory = path.join(input, runId), output = path.join(temporary, 'public');
+  const code = 'ERR_RESPONSE_REQUEST_FAILED:net::ERR_CONTENT_LENGTH_MISMATCH';
+  replaceRuntime(f, "not ok 1 - controlled body\n  ---\n  code: '" + code + "'\n  failureType: 'testCodeFailure'\n  error: 'PRIVATE_CANARY'\n  ...\n", {code: 1});
+  f.manifest.completed = false; await writeFixture(directory, f);
+  assert.equal(await exportExtractionEvidence(input, output), true);
+  const companion = JSON.parse(await fs.readFile(path.join(output, runId + '-workspace-diagnostic.json')));
+  assert.equal(companion.runtime.firstTestFailure.code, code);
+  assert.equal(JSON.stringify(companion).includes('PRIVATE_CANARY'), false);
+  assert.deepEqual((await fs.readdir(output)).sort(), ['PUBLIC-MANIFEST.json', runId + '.json', runId + '-workspace-diagnostic.json'].sort());
+}));
