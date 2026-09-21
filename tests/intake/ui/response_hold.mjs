@@ -15,7 +15,8 @@ export async function installSession(context, client) {
 
 /** Hold one actual terminal response. No body, status, authority or response is
  * fabricated. Only sanitized route/status metadata leaves this helper. */
-export async function holdResponse(context, page, match) {
+export async function holdResponse(context, page, match, {holdMs = 12000} = {}) {
+  assert.ok(Number.isSafeInteger(holdMs) && holdMs > 0 && holdMs <= 12000, 'The response hold must remain within its existing bound.');
   const cdp = await context.newCDPSession(page), reached = latch(), release = latch(), finished = latch();
   let observation = null, failure = null, claimed = false, closed = false, networkId = null, aborted = false;
   await cdp.send('Network.enable');
@@ -30,7 +31,7 @@ export async function holdResponse(context, page, match) {
       assert.ok([200, 202].includes(event.responseStatusCode), 'The held response must be a successful real control.');
       observation = {method: event.request.method, path: new URL(event.request.url).pathname, status: event.responseStatusCode};
       reached.resolve();
-      await boundedResponse(release.promise, 'HELD_RESPONSE_NOT_RELEASED');
+      await boundedResponse(release.promise, 'HELD_RESPONSE_NOT_RELEASED', holdMs);
       try {
         await cdp.send('Fetch.continueRequest', {requestId: event.requestId});
         observation.transport = 'continued';

@@ -13,6 +13,7 @@ import {preparationCanonical} from '../../../src/contracts/intake_preparation.ts
 import {canonicalValue} from '../../../src/contracts/access_canonical.ts';
 import {preparationContext, preparationTreatment} from '../preparation/runtime_control.mjs';
 import {apiOrigin, uiOrigin} from '../../access/journey_environment.mjs';
+import {holdResponse} from './response_hold.mjs';
 
 const profile = {profile: 'intake/1', representation: 'intake-preparation/1'};
 const accept = 'application/vnd.ledgerdesk.intake-preparation+json';
@@ -309,31 +310,24 @@ export async function workspaceProtection(t, {env, intake, client, request, cont
 
   const cookie = async c => {const split = c.cookie.indexOf('='); await context.addCookies([{name: c.cookie.slice(0, split), value: c.cookie.slice(split + 1),
     url: apiOrigin, secure: true, httpOnly: true, sameSite: 'Strict'}]);};
-  const holdInspection = async () => {
-    const cdp = await context.newCDPSession(page), reached = latch(), release = latch(), finished = latch(); let failed = null;
-    cdp.on('Fetch.requestPaused', async event => {
-      try {
-        if (event.request.method !== 'POST' || !event.request.postData?.includes('preparation_inspection')) {await cdp.send('Fetch.continueRequest', {requestId: event.requestId}); return;}
-        assert.equal(event.responseStatusCode, 200); reached.resolve(); await bounded(release.promise, 'STALE_RESPONSE_NOT_RELEASED');
-        await cdp.send('Fetch.continueRequest', {requestId: event.requestId}); finished.resolve();
-      } catch (error) {failed = error; reached.resolve(); finished.resolve();}
-    });
-    await cdp.send('Fetch.enable', {patterns: [{urlPattern: apiOrigin + '/api/intake/operations/lookup', requestStage: 'Response'}]});
-    return {reached, release, finish: async () => {release.resolve(); await bounded(finished.promise, 'STALE_RESPONSE_NOT_FINISHED');
-      await cdp.send('Fetch.disable'); await cdp.detach(); if (failed) throw failed;}};
-  };
+  const holdInspection = () => holdResponse(context, page, request => {
+    const url = new URL(request.url);
+    if (request.method !== 'POST' || url.origin !== apiOrigin || url.pathname !== '/api/intake/operations/lookup') return false;
+    const body = JSON.parse(request.postData);
+    return body?.kind === 'preparation_inspection' && ['id', 'revision', 'sha256'].every(key => body.preparation?.[key] === prepared[key]);
+  }, {holdMs: 7000});
   for (const [label, email] of [['same-account', 'reader@example.test'], ['other-account', 'master@example.test']])
     await runCase('W19 a replaced ' + label + ' session cannot adopt a retained preparation response', async () => observer.run('W19-' + label, async () => {
       await cookie(client); await reset(); assert.equal((await inspect()).status(), 200); await waitInspected(); await reset();
       const held = await holdInspection();
       try {
-        await card().getByRole('button', {name: 'Inspect preparation', exact: true}).click(); await bounded(held.reached.promise, 'STALE_INSPECTION_NOT_REACHED');
-        const replacement = await login(email); await cookie(replacement); held.release.resolve();
+        await card().getByRole('button', {name: 'Inspect preparation', exact: true}).click(); assert.equal((await bounded(held.wait(), 'STALE_INSPECTION_NOT_REACHED')).status, 200);
+        const replacement = await login(email); await cookie(replacement); await bounded(held.release(), 'STALE_RESPONSE_NOT_RELEASED');
         await page.getByText('The session changed. Refresh and explicitly reconcile retained operations.', {exact: true}).waitFor();
         assert.deepEqual({inspectors: await page.getByRole('region', {name: 'Human preparation', exact: true}).count(), rows: await page.locator('li[data-item-key]').count(),
           text: await page.getByText('Only under synthetic condition Z.', {exact: true}).count()}, {inspectors: 0, rows: 0, text: 0});
         observations.push({case: 'W19', replacement: label, responseStatus: 200, adopted: false, historicalPreparation: prepared});
-      } finally {await held.finish(); await cookie(client);}
+      } finally {await bounded(held.close(), 'STALE_RESPONSE_NOT_CLOSED'); await cookie(client);}
     }));
 
   await runCase('W20 a same-session selection change cancels the old preparation adoption', async () => observer.run('W20', async () => {
@@ -341,12 +335,12 @@ export async function workspaceProtection(t, {env, intake, client, request, cont
     const target = page.locator('aside li[data-item-key]').filter({hasText: 'Unsent second item'}), targetKey = await target.getAttribute('data-item-key');
     const held = await holdInspection();
     try {
-      await card().getByRole('button', {name: 'Inspect preparation', exact: true}).click(); await bounded(held.reached.promise, 'LOCAL_INSPECTION_NOT_REACHED');
-      await target.getByRole('button').click(); held.release.resolve();
+      await card().getByRole('button', {name: 'Inspect preparation', exact: true}).click(); assert.equal((await bounded(held.wait(), 'LOCAL_INSPECTION_NOT_REACHED')).status, 200);
+      await target.getByRole('button').click(); await bounded(held.release(), 'LOCAL_RESPONSE_NOT_RELEASED');
       await page.getByRole('region', {name: 'Add material', exact: true}).getByRole('heading', {name: 'Unsent second item', exact: true}).waitFor();
       assert.deepEqual({current: await target.getByRole('button').getAttribute('aria-current'), inspectors: await page.getByRole('region', {name: 'Human preparation', exact: true}).count()},
         {current: 'true', inspectors: 0});
       observations.push({case: 'W20', selectedLocalItem: targetKey, oldPreparationAdopted: false});
-    } finally {await held.finish();}
+    } finally {await bounded(held.close(), 'STALE_RESPONSE_NOT_CLOSED');}
   }));
 }

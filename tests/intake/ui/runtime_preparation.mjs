@@ -5,6 +5,7 @@ import {ExtractionService} from '../../../src/server/intake/extraction.ts';
 import {original as fixture, MARKDOWN} from '../extraction/references/cases.mjs';
 import {CSV_REFERENCES} from '../extraction/references/csv.mjs';
 import {apiOrigin} from '../../access/journey_environment.mjs';
+import {JOURNAL_KEY, JOURNAL_LIMITS} from '../../../src/components/intake/journal.ts';
 
 // Test-only lifecycle helpers. A timeout is a failure, never a successful close.
 export async function withDeadline(operation, label, timeoutMs, code) {
@@ -75,18 +76,18 @@ export async function workspacePreparation(t, {env, intake, client, request, con
     const body = r.request().postDataJSON();
     return body?.kind === 'preparation_inspection' && ['id', 'revision', 'sha256'].every(field => body.preparation?.[field] === preparation[field]);
   }));
-  const observedJson = async (response, operation) => {
-    // Reading the body rejects transport failure; Playwright finished() can remain pending after requestfailed.
-    try {return await wait(operation + '.response-json', () => response.json(), true, 'ERR_RESPONSE_BODY_DEADLINE');}
-    catch (error) {
-      const classified = error instanceof Error ? error : new Error('Response body rejected.', {cause: error});
-      if (classified.code !== 'ERR_RESPONSE_BODY_DEADLINE') {
-        const failure = response.request().failure()?.errorText;
-        const network = typeof failure === 'string' && /^net::[A-Z0-9_]{1,64}$/.test(failure) ? ':' + failure : '';
-        classified.code = failure ? 'ERR_RESPONSE_REQUEST_FAILED' + network : 'ERR_RESPONSE_BODY_REJECTED';
-      }
-      throw classified;
-    }
+  const observedEffect = async (operation, selector, suffix, click) => {
+    const consumed = await lookupBodies.armEffect(page, {...selector,
+      journal: {key: JOURNAL_KEY, ...JOURNAL_LIMITS}}, {signal: t.signal});
+    try {
+      const pending = responseTo('POST', suffix, operation);
+      await wait(operation + '.click', click);
+      const response = await pending; assert.equal(response.status(), 200);
+      const body = await wait(operation + '.response-json', () => consumed.result), request = response.request();
+      assert.equal(body.status, response.status());
+      assert.deepEqual(body.request, {url: request.url(), method: request.method(), body: request.postData(), intent: request.headers()['x-ledgerdesk-intent'] ?? null});
+      return body.value;
+    } finally {await consumed.dispose();}
   };
   const addSource = async (name, bytes, mime = 'text/plain') => {
     await ready();
@@ -156,9 +157,8 @@ export async function workspacePreparation(t, {env, intake, client, request, con
     return editor;
   };
   const save = async key => {
-    const response = responseTo('POST', '/finalize', 'save');
-    await wait('save.click', () => page.getByRole('button', {name: 'Save preparation', exact: true}).click());
-    const received = await response; assert.equal(received.status(), 200); const effect = await observedJson(received, 'save');
+    const effect = await observedEffect('save', {operation: 'finalize_preparation', itemKey: key}, '/finalize',
+      () => page.getByRole('button', {name: 'Save preparation', exact: true}).click());
     await wait('save.inspection-visible', () => byKey(key).getByRole('button', {name: 'Inspect preparation', exact: true}).waitFor()); await ready();
     return effect;
   };
@@ -189,16 +189,14 @@ export async function workspacePreparation(t, {env, intake, client, request, con
     await wait('proposal.reason', () => page.getByRole('group', {name: 'Candidate proposal', exact: true}).getByLabel('Reason', {exact: true})
       .fill('An explicit comparison of the retained synthetic content and conditions.'));
   };
-  const propose = async () => {
-    const pending = responseTo('POST', '/proposals', 'propose');
-    await wait('propose.click', () => page.getByRole('button', {name: 'Prepare exact proposal', exact: true}).click());
-    const response = await pending; assert.equal(response.status(), 200); const value = await observedJson(response, 'propose');
+  const propose = async (key, preparation) => {
+    const value = await observedEffect('propose', {operation: 'propose', itemKey: key, preparation}, '/proposals',
+      () => page.getByRole('button', {name: 'Prepare exact proposal', exact: true}).click());
     await wait('propose.confirm-visible', () => page.getByRole('button', {name: 'Confirm this proposal', exact: true}).waitFor()); await ready(); return value;
   };
-  const confirm = async () => {
-    const pending = responseTo('POST', '/constitutions', 'confirm');
-    await wait('confirm.click', () => page.getByRole('button', {name: 'Confirm this proposal', exact: true}).click());
-    const response = await pending; assert.equal(response.status(), 200); const value = await observedJson(response, 'confirm');
+  const confirm = async (key, proposal) => {
+    const value = await observedEffect('confirm', {operation: 'constitute', itemKey: key, proposal}, '/constitutions',
+      () => page.getByRole('button', {name: 'Confirm this proposal', exact: true}).click());
     await wait('confirm.detached', () => page.getByRole('button', {name: 'Confirm this proposal', exact: true}).waitFor({state: 'detached'})); await ready(); return value;
   };
   const loseResponse = async (suffix, beforeLoss = async () => {}) => {
@@ -242,12 +240,12 @@ export async function workspacePreparation(t, {env, intake, client, request, con
   });
   if (!firstPrepared) throw Error('WORKSPACE_PREPARATION_PREREQUISITE');
   await runCase('W10', 'first-real-intake.txt', 'W10 exact inspected proposal constitutes one candidate and neither approves nor publishes', async () => {
-    await draftProposal(); const proposed = await propose();
+    await draftProposal(); const proposed = await propose(firstKey, firstPrepared.reference);
     const displayed = page.getByRole('region', {name: 'Review the exact proposal', exact: true});
     assert.ok((await wait('proposal.displayed-text', () => displayed.innerText())).includes(proposed.result.proposal.sha256));
     assert.ok((await wait('proposal.displayed-text', () => displayed.innerText())).includes(firstPrepared.reference.sha256));
     assert.ok((await wait('proposal.displayed-text', () => displayed.innerText())).includes(condition));
-    const before = await candidateCount(), outcome = await confirm(); firstCandidate = outcome.result.candidates[0];
+    const before = await candidateCount(), outcome = await confirm(firstKey, proposed.result.proposal); firstCandidate = outcome.result.candidates[0];
     assert.equal(outcome.result.outcome, 'constituted'); assert.equal(await candidateCount(), before + 1);
     const saved = (await wait('sql.candidate', () => env.admin.query('SELECT * FROM intake_trial.candidate WHERE unit_id=$1', [firstCandidate.id]), true)).rows[0];
     assert.equal(saved.editorial_state, 'candidate'); assert.deepEqual(saved.provenance.preparation, firstPrepared.reference);
@@ -263,7 +261,7 @@ export async function workspacePreparation(t, {env, intake, client, request, con
       const editor = await edit(source, {correction: true});
       if (change) await wait('collision.condition', () => editor.getByLabel('Condition text', {exact: true}).fill('Only applies during a different synthetic interval W.'));
       const saved = await save(source.key); await inspect(source.key, saved.result.preparation); await draftProposal(firstCandidate, 'same_version');
-      await propose(); const before = await candidateCount(), result = await confirm();
+      const proposed = await propose(source.key, saved.result.preparation); const before = await candidateCount(), result = await confirm(source.key, proposed.result.proposal);
       assert.deepEqual({outcome: result.result.outcome, candidateDelta: await candidateCount() - before}, {outcome: expected, candidateDelta: 0});
       assert.equal(await wait('confirm.count', () => page.getByRole('button', {name: 'Confirm this proposal', exact: true}).count(), true), 0);
       if (change) assert.equal(result.result.block_kind, 'identity_collision');
@@ -330,10 +328,9 @@ export async function workspacePreparation(t, {env, intake, client, request, con
     await page.reload(); await byKey(source.key).getByRole('button', {name: 'Check recorded outcome', exact: true}).click();
     await byKey(source.key).getByRole('button', {name: 'Continue staged preparation', exact: true}).waitFor(); await ready();
     assert.equal(await effectCount('finalize_preparation'), before);
-    const finalized = responseTo('POST', '/finalize', 'save');
-    await byKey(source.key).getByRole('button', {name: 'Continue staged preparation', exact: true}).click();
-    const finalizedResponse = await finalized; assert.equal(finalizedResponse.status(), 200);
-    const finalizedEffect = await observedJson(finalizedResponse, 'save');
+    const finalizedEffect = await observedEffect('save', {operation: 'finalize_preparation', itemKey: source.key,
+      attempt: {id: lost.result.attempt_id, revision: lost.result.preparation.revision, document: lost.result.document}}, '/finalize',
+      () => byKey(source.key).getByRole('button', {name: 'Continue staged preparation', exact: true}).click());
     await byKey(source.key).getByRole('button', {name: 'Inspect preparation', exact: true}).waitFor(); await ready();
     assert.equal(await effectCount('finalize_preparation'), before + 1);
     assert.equal(requests.filter(r => r.method === 'POST' && r.path.endsWith('/content')).length, uploads);
