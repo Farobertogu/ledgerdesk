@@ -5,6 +5,7 @@ export const normal = [
   ['browser',['--group','browser']],['phase-lifecycle',['--group','phase-prototype']],
 ];
 export const recovery = [
+  ['creation-recovery',['--group','creation']],
   ['guarded-sql',['--group','fence-sql']],
   ...['sql','runtime','supervisor'].map(kind=>['lost-'+kind,['--group','fence-loss','--loss-kind',kind,'--without-worker-stop']]),
   ...['append','seal','read','close'].map(kind=>['lost-'+kind+'-ack',['--group','fence-ack','--ack-kind',kind]]),

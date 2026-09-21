@@ -19,7 +19,7 @@ export const previousWorkflow=fs.readFileSync(path.join(root,'tests/intake/t02/c
 const previous=parseWorkflow(previousWorkflow);
 const requiredFinite=['authority','missing-catalog','transitions','neutrality','original-scope','fragment-permissions','privileges','transactions','delivery-order','finite-stream','finite-quota','finite-attempts'];
 const requiredNormal=['units','runtime','boundaries','temporal','integrity','browser','phase-prototype'];
-const requiredRecovery=[['fence-sql'],['fence-loss','--loss-kind','sql','--without-worker-stop'],['fence-loss','--loss-kind','runtime','--without-worker-stop'],['fence-loss','--loss-kind','supervisor','--without-worker-stop'],
+const requiredRecovery=[['creation'],['fence-sql'],['fence-loss','--loss-kind','sql','--without-worker-stop'],['fence-loss','--loss-kind','runtime','--without-worker-stop'],['fence-loss','--loss-kind','supervisor','--without-worker-stop'],
   ['fence-ack','--ack-kind','append'],['fence-ack','--ack-kind','seal'],['fence-ack','--ack-kind','read'],['fence-ack','--ack-kind','close'],
   ['fence-commit','--commit-kind','rollback'],['fence-commit','--commit-kind','reply-loss'],['fence-continuation'],['fence-ipc'],['fence-restore'],['fence-coupled']];
 const requiredMutations=['original-selection','actual-digest','actual-chunk-cap','type-recognition','compatible-payload','sealed-as-receipt','whole-original-faculty','delivery-evidence','deferred-dispatch','runtime-source'];
@@ -165,6 +165,18 @@ export function verifyWiring(workflow,executedPlans=plans,mutations=producerFaul
       ...(part==='guards'?['node ci/intake_preparation_guards.mjs']:cases.map(c=>
         'node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases preparation --preparation-cases '+c)),
       'node ci/intake_extraction_artifacts.mjs'],name+' finite obligations');
+    same(job.steps.at(-2).if,'always()');
+    same(job.steps.at(-1),{uses:'actions/upload-artifact@v4',if:'always()',with:{name:name+'-evidence',
+      path:'test-results/intake-extraction-public/','if-no-files-found':'error'}});
+  }
+  for(const [part,cases]of Object.entries({behavior:['ui-first-slice','ui-reception','ui-preparation','ui-resources'],
+    admission:['ui-protection','ui-adoption-reception','ui-adoption-preparation','ui-disclosure-navigation']})){
+    const name='intake-workspace-'+part,job=workflow.jobs[name];
+    same(commands(job),['npm ci','node --test tests/intake/t02/test_ci_wiring.mjs','node ci/intake_ci_check.mjs',
+      'node --test tests/intake/ui/test_ci.mjs','docker pull postgres:16',
+      ...(part==='behavior'?['node --experimental-strip-types ci/intake_ui_check.mjs --group units','node --test tests/intake/ui/views/test_views.mjs']:[]),
+      ...cases.map(c=>'node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases preparation --preparation-cases '+c),
+      ...(part==='admission'?['node ci/intake_workspace_guards.mjs']:[]),'node ci/intake_extraction_artifacts.mjs'],name+' finite obligations');
     same(job.steps.at(-2).if,'always()');
     same(job.steps.at(-1),{uses:'actions/upload-artifact@v4',if:'always()',with:{name:name+'-evidence',
       path:'test-results/intake-extraction-public/','if-no-files-found':'error'}});

@@ -6,6 +6,12 @@ import { moduleReferences } from './reading_boundary_check.mjs';
 const contract = (name) => /^src\/contracts\/access(?:_[a-z]+)?\.ts$/.test(name);
 const presentation = (name) => name.startsWith('src/components/access/') || ['src/app/access/page.tsx','src/app/access/material/page.tsx'].includes(name);
 const sharedReading = new Map([
+  ['src/app/access/intake/page.tsx',new Set(['src/contracts/access_transport.ts'])],
+  ['src/components/intake/IntakeWorkspace.tsx',new Set(['src/contracts/access_transport.ts'])],
+  ['src/components/intake/controller.ts',new Set(['src/contracts/access_transport.ts','src/contracts/access_canonical.ts','src/components/access/view_lifecycle.ts'])],
+  ['src/components/intake/client.ts',new Set(['src/contracts/access.ts','src/contracts/access_transport.ts','src/components/access/view_lifecycle.ts'])],
+  ['src/server/intake/workspace/protocol.ts',new Set(['src/contracts/access_transport.ts'])],
+  ['src/server/intake/workspace/terminal.ts',new Set(['src/server/access/transport.ts','src/server/access/config.ts'])],
   ['src/contracts/intake_preparation_bindings.ts',new Set(['src/contracts/access_canonical.ts'])],
   ...['authority','proposals','records','service'].map(name=>['src/server/intake/preparation/'+name+'.ts',new Set(['src/contracts/access_canonical.ts'])]),
   ['src/server/intake/preparation/terminal.ts',new Set(['src/server/access/transport.ts','src/server/access/config.ts'])],

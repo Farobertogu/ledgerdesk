@@ -14,6 +14,7 @@ COPY src/server/reading ./src/server/reading
 COPY src/server/kb/reading.ts ./src/server/kb/reading.ts
 COPY src/components/access ./src/components/access
 COPY src/components/reading ./src/components/reading
+COPY src/components/intake ./src/components/intake
 COPY ci/access_material_schema.mjs ./ci/access_material_schema.mjs
 COPY ci/access_final_routes.mjs ./ci/access_final_routes.mjs
 COPY src/app/access ./src/app/access

@@ -4,6 +4,7 @@ import {fileURLToPath} from 'node:url';
 import {createHash,randomUUID} from 'node:crypto';
 import assert from 'node:assert/strict';
 import {projectMemoryProof} from './intake/extraction/memory_qualification.mjs';
+import {readWorkspaceDiagnostic} from './intake/workspace_diagnostic.mjs';
 
 const digest=bytes=>createHash('sha256').update(bytes).digest('hex');
 const runPattern=/^intake-extraction-[0-9]{4}-[0-9]{2}-[0-9]{2}[tT][0-9-]+[zZ]-[a-f0-9]{8}$/;
@@ -79,6 +80,8 @@ export async function exportExtractionEvidence(input,output){
       const summary=extractionPublicSummary(m,sha256,observations,memoryProof);
       await fs.writeFile(path.join(output,entry.name+'.json'),JSON.stringify(summary,null,2)+'\n',{flag:'wx'});
       if(memoryProof)await fs.writeFile(path.join(output,entry.name+'-memory.json'),JSON.stringify(memoryProof,null,2)+'\n',{flag:'wx'});
+      const workspace=await readWorkspaceDiagnostic(directory,m,sha256,observations);
+      if(workspace)await fs.writeFile(path.join(output,entry.name+'-workspace-diagnostic.json'),JSON.stringify(workspace,null,2)+'\n',{flag:'wx'});
       rows.push({runId:entry.name,exported:!memoryIncomplete});
     }catch{complete=false;rows.push({runId:entry.name,exported:false});}
   }

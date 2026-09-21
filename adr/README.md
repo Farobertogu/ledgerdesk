@@ -12,6 +12,7 @@ every earlier choice applicable to each new consumer.
 A changed decision needs an explicit dated amendment or a superseding ADR, with the previous
 decision preserved. Read both the original decision and any amendments: ADR-032 and ADR-034
 have scoped extensions, and ADR-038 has separate foundation and reception acceptance. At the
-15 September 2026 documentation checkpoint, both ADR-038 scopes are accepted; worker
-processing and preparation are not thereby implemented. See the [current contracts](../docs/README.md#current-contracts-and-decisions)
+20 September 2026 checkpoint, ADR-038 also has separately accepted extraction and exact-preparation
+amendments. [ADR-039](ADR-039-intake-workspace.md) proposes their bounded browser consumer;
+it is not yet accepted. See the [current contracts](../docs/README.md#current-contracts-and-decisions)
 and [board](../BOARD.md) for their consumers and delivery state.

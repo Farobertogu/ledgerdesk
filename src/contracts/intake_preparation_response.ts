@@ -41,6 +41,7 @@ const envelope = (required: Record<string, Rule>) => closed({profile: choice('in
 const effect = (result: Rule) => envelope({operation_id: identifier, effect: exactReference, result});
 const known = envelope({state: choice('known_effect'), operation_id: identifier, effect: exactReference,
   result: anyOf(reserved, staged, prepared, proposed, outcome)});
+export const PREPARATION_INSPECTION = closed({proposal, preparation: PREPARATION_RECORD_RESPONSE});
 const responses: Record<PreparationRoute | 'lookup_operation', Rule> = {
   reserve_preparation: effect(reserved), upload_preparation: effect(staged), finalize_preparation: effect(prepared),
   preparation: envelope({preparation: PREPARATION_RECORD_RESPONSE}),
@@ -48,7 +49,7 @@ const responses: Record<PreparationRoute | 'lookup_operation', Rule> = {
   resource: envelope({preparation: exactReference, element_id: identifier, local_resource_id: identifier, artifact: artifactReference,
     encoding: choice('base64'), data: value => typeof value === 'string' && value.length % 4 === 0 && /^[A-Za-z0-9+/]*={0,2}$/.test(value)}),
   propose: envelope({operation_id: identifier, effect: exactReference, result: proposed,
-    inspection: closed({proposal, preparation: PREPARATION_RECORD_RESPONSE})}),
+    inspection: PREPARATION_INSPECTION}),
   constitute: effect(outcome), lookup_operation: known,
 };
 

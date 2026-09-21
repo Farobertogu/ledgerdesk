@@ -52,7 +52,7 @@ BEGIN
 END $$;
 CREATE FUNCTION intake_control.begin_phase(p_id uuid,p_namespace text,p_evidence uuid,p_source text,p_incarnation text,p_plan jsonb,p_deadline bigint)
 RETURNS bigint LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog SET lock_timeout='250ms' AS $$
-DECLARE e record; a record; l intake_control.live%ROWTYPE; phase_epoch bigint; participant text; methods jsonb;
+DECLARE e record; a record; l intake_control.live%ROWTYPE; phase_epoch bigint; participant text; methods jsonb; retained_original boolean:=false;
   at_ms bigint:=floor(extract(epoch FROM clock_timestamp())*1000)::bigint;
 BEGIN
   IF session_user NOT IN ('inc03_intake_runtime','inc03_intake_reader') OR p_namespace NOT IN ('intake_trial','intake_restore')
@@ -70,10 +70,17 @@ BEGIN
     THEN RAISE EXCEPTION 'Private phase evidence' USING ERRCODE='42501'; END IF;
   EXECUTE format('SELECT a.*,r.principal,r.stopped,r.generation AS current_generation FROM %I.attempt a JOIN %I.reception r ON r.id=a.reception_id WHERE a.reception_id=$1 AND a.generation=$2',p_namespace,p_namespace)
     INTO a USING e.reception_id,e.generation;
+  -- Stopping work cannot delete a received original or revoke its separately
+  -- admitted consultation. This exception grants only the existing read route,
+  -- tied to a sealed attempt and its immutable receipt; never another phase.
+  IF a.stopped AND e.route='original' AND a.state='sealed' THEN
+    EXECUTE format('SELECT EXISTS(SELECT 1 FROM %I.receipt WHERE reception_id=$1 AND artifact_id=$2 AND generation=$3)',p_namespace)
+      INTO retained_original USING e.reception_id,e.artifact_id,e.generation;
+  END IF;
   IF a.artifact_id IS DISTINCT FROM e.artifact_id OR a.current_generation<>e.generation OR a.principal::text<>e.principal
     OR (a.incarnation<>p_incarnation AND NOT(e.route IN ('cancel_reception','resume_reception') OR
       (e.route IN ('original','finalize_reception') AND a.state='sealed')))
-    OR a.stopped OR (e.route='upload_original' AND a.expires_at<=at_ms)
+    OR (a.stopped AND NOT retained_original) OR (e.route='upload_original' AND a.expires_at<=at_ms)
     THEN RAISE EXCEPTION 'Private phase subject' USING ERRCODE='42501'; END IF;
   IF jsonb_typeof(p_plan)<>'object' OR p_plan='{}' OR NOT p_plan?'objects' OR
     EXISTS(SELECT 1 FROM jsonb_object_keys(p_plan) key WHERE key NOT IN ('objects','verifier'))

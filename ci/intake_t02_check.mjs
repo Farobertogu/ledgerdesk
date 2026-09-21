@@ -9,6 +9,7 @@ import { suspendedAppendCopy,rejectRetainedIncarnationCopy } from './intake/rece
 import {coupledEnvironmentCopy,coupledDockerCopy,coupledIgnoreCopy,coupledLegacyLaunchCopy} from '../tests/intake/t02/access_fence_coupling.mjs';
 import {withSourceComposition} from './access_final_routes.mjs';
 import {lostPrivateAckCopy} from './intake/reception/ack_fault.mjs';
+import {createFailureCopy} from './intake/reception/create_fault.mjs';
 import {privateCommitFaultCopy} from './intake/reception/commit_fault.mjs';
 import {continuationObservedCopy} from './intake/reception/continuation_fault.mjs';
 import {observerFaultCopy} from './intake/reception/observer_fault.mjs';
@@ -26,14 +27,20 @@ import {containmentProbeCopy} from '../tests/intake/extraction/containment_fault
 import {associationBoundaryCopy} from '../tests/intake/extraction/association_fault.mjs';
 import {summarizeNodeTests} from './intake_test_summary.mjs';
 import {preparationFaultCopy} from './intake/preparation_fault.mjs';
+import {workspaceFaultCopy} from './intake/workspace_fault.mjs';
 
 const root=fileURLToPath(new URL('../',import.meta.url));
 const group=process.argv[process.argv.indexOf('--group')+1];
 const extractionCases=process.argv.includes('--extraction-cases')?process.argv[process.argv.indexOf('--extraction-cases')+1]:'service';
 const formatCase=process.argv.includes('--format-case')?process.argv[process.argv.indexOf('--format-case')+1]:null;
 const preparationCases=process.argv.includes('--preparation-cases')?process.argv[process.argv.indexOf('--preparation-cases')+1]:'first-slice';
-if(!['first-slice','fidelity','formats','resources','mixed','identity','concurrency','prior-act','temporal','ordering','units','recovery','disclosure','bounds'].includes(preparationCases)||(preparationCases!=='first-slice'&&(group!=='extraction'||extractionCases!=='preparation')))throw Error('PREPARATION_CASE_SCOPE');
+if(!['first-slice','ui-first-slice','ui-reception','ui-preparation','ui-protection','ui-resources','ui-adoption-reception','ui-adoption-preparation','ui-disclosure-navigation','fidelity','formats','resources','mixed','identity','concurrency','prior-act','temporal','ordering','units','recovery','disclosure','bounds'].includes(preparationCases)||(preparationCases!=='first-slice'&&(group!=='extraction'||extractionCases!=='preparation')))throw Error('PREPARATION_CASE_SCOPE');
+const uiFirstSlice=group==='extraction'&&extractionCases==='preparation'&&['ui-first-slice','ui-reception','ui-preparation','ui-protection','ui-resources','ui-adoption-reception','ui-adoption-preparation','ui-disclosure-navigation'].includes(preparationCases);
 const preparationMutation=process.argv.includes('--preparation-mutation')?process.argv[process.argv.indexOf('--preparation-mutation')+1]:null;
+const workspaceMutation=process.argv.includes('--workspace-mutation')?process.argv[process.argv.indexOf('--workspace-mutation')+1]:null;
+const adoptionSite=process.argv.includes('--adoption-site')?process.argv[process.argv.indexOf('--adoption-site')+1]:null;
+if(workspaceMutation&&(preparationCases!=='ui-adoption-reception'||workspaceMutation!=='omit-post-response-session'||adoptionSite!=='original-inspection'))throw Error('WORKSPACE_MUTATION_SCOPE');
+if(adoptionSite&&(preparationCases!=='ui-adoption-reception'||!['original-inspection','reception-stop'].includes(adoptionSite)))throw Error('WORKSPACE_SITE_SCOPE');
 if(preparationMutation&&!({fidelity:['drop-retained-context'],formats:['drop-retained-limitation'],resources:['swap-resource-at-birth','swap-resource-at-consume'],mixed:['flatten-component-causes'],identity:['ignore-c9-conditions'],concurrency:['drop-item-lock'],'prior-act':['drop-prior-target']}[preparationCases]??[]).includes(preparationMutation))throw Error('PREPARATION_MUTATION_SCOPE');
 if(formatCase&&(group!=='extraction'||extractionCases!=='formats'||!['escaped-limit.csv','combined-limit.csv','control-at-byte-limit.txt'].includes(formatCase)))throw Error('EXTRACTION_FORMAT_FILTER_SCOPE');
 if(!['service','formats','format-negatives','temporal','fencing','budgets','retry','restart','restore','storage-recovery','semantics','mixed','capacity','private-loss','controller-loss','resources','authority-original','authority-result','authority-effect','compatibility','containment','browser-disconnect','extraction-privileges','lineage','associations','preparation'].includes(extractionCases)||(extractionCases!=='service'&&group!=='extraction'))throw Error('EXTRACTION_CASE_SCOPE');
@@ -41,7 +48,7 @@ const extractionMutation=process.argv.includes('--extraction-mutation')?process.
 if(extractionMutation&&(group!=='extraction'||!({semantics:['omit-condition-store','omit-limitation-store','omit-incident-query'],
   resources:['omit-resource-relation-store','read-resource-before-validation','allow-resource-swap'],
   'format-negatives':['xlsx-recalculate-store','xlsx-hide-sheet-store','xlsx-context-store']}[extractionCases]??[]).includes(extractionMutation)))throw Error('EXTRACTION_MUTATION_SCOPE');
-if(!['units','runtime','extraction','authority','missing-catalog','transitions','neutrality','original-scope','fragment-permissions','privileges','transactions','delivery-order','finite-stream','finite-quota','finite-attempts','boundaries','temporal','integrity','browser','observer','observer-canonical','phase-lineage','fencing-probe','phase-prototype','fence-sql','fence-loss','fence-coupled','fence-ack','fence-commit','fence-continuation','fence-ipc','fence-restore'].includes(group))throw Error('Explicit T02 group required');
+if(!['units','runtime','creation','extraction','authority','missing-catalog','transitions','neutrality','original-scope','fragment-permissions','privileges','transactions','delivery-order','finite-stream','finite-quota','finite-attempts','boundaries','temporal','integrity','browser','observer','observer-canonical','phase-lineage','fencing-probe','phase-prototype','fence-sql','fence-loss','fence-coupled','fence-ack','fence-commit','fence-continuation','fence-ipc','fence-restore'].includes(group))throw Error('Explicit T02 group required');
 const isObserver=['observer','observer-canonical'].includes(group);
 const usesObjectObserver=observationActions(group).includes('observe-events');
 const canonicalCase=process.argv.includes('--canonical-case')?process.argv[process.argv.indexOf('--canonical-case')+1]:'same-key';
@@ -106,6 +113,8 @@ async function source(relative) {
     }
     if(preparationMutation){const changed=preparationFaultCopy(relative,bytes.toString('utf8'),preparationMutation);
       if(changed!==bytes.toString('utf8')){bytes=Buffer.from(changed);fault=preparationMutation;}}
+    if(workspaceMutation){const changed=workspaceFaultCopy(relative,bytes.toString('utf8'),workspaceMutation);
+      if(changed!==bytes.toString('utf8')){bytes=Buffer.from(changed);fault=workspaceMutation;}}
     if(group==='extraction'&&extractionCases==='containment'&&relative==='workers/intake/extraction/entry.mjs'){
       bytes=Buffer.from(containmentProbeCopy(bytes.toString('utf8')));fault='instrumented-effective-denials-and-timeout';
     }
@@ -162,6 +171,10 @@ async function source(relative) {
         'ci/access/Runtime.Dockerfile.dockerignore':coupledIgnoreCopy}[relative];
       if(compose){bytes=Buffer.from(compose(bytes.toString('utf8')));fault='test-composition-install-actual-shared-fence';}
     }
+    if(group==='creation'){
+      const changed=createFailureCopy(relative,bytes.toString('utf8'));
+      if(changed!==bytes.toString('utf8')){bytes=Buffer.from(changed);fault='directed-private-create-failure';}
+    }
     if(group==='fence-ack'&&relative==='ci/intake/reception/server.mjs'){
       bytes=Buffer.from(lostPrivateAckCopy(bytes.toString('utf8')));fault='lose-exact-private-completion-ack';
     }
@@ -214,11 +227,27 @@ async function run(program,args,{timeout=60000,limit=8388608}={}) {
   return result;
 }
 const resourcePrefix='ld-i03-t02-'+randomUUID().slice(0,8);
-async function docker(args,options){const result=await run('docker',args,options);if(result.code!==0||result.reason)throw Error('DOCKER_COMMAND_'+index);return result.stdout.trim();}
+async function docker(args,options){const result=await run('docker',args,options);if(result.code!==0||result.reason){
+  if(args[0]==='image'&&args[1]==='rm')console.error('DOCKER_COMMAND_'+index+' '+(result.stderr.includes('is using its referenced image')?'DOCKER_IMAGE_RM_CONTAINER_REFERENCE':'DOCKER_IMAGE_RM_UNCLASSIFIED'));
+  throw Error('DOCKER_COMMAND_'+index);
+}return result.stdout.trim();}
 async function runtimeGroup() {
   for(const target of ['runtime','private_service']) {
     const name='ledgerdesk-intake-t02:'+resourcePrefix+'-'+target;
-    await docker(['build','-f',path.join(directory,'source/ci/intake/T02.Dockerfile'),'--target',target,'--label','intake.t02.run='+resourcePrefix,'-t',name,path.join(directory,'source')],{timeout:240000});
+    const build=extra=>docker(['build',...extra,'-f',path.join(directory,'source/ci/intake/T02.Dockerfile'),
+      '--target',uiFirstSlice&&target==='runtime'?'ui_runtime':target,'--label','intake.t02.run='+resourcePrefix,'-t',name,path.join(directory,'source')],{timeout:240000});
+    if(uiFirstSlice&&target==='runtime')await withSourceComposition(root,path.join(directory,'access-source-composition.json'),
+      async({filename,sha256})=>{
+        if(workspaceMutation){
+          const composition=JSON.parse(await fs.readFile(filename,'utf8')),changed=files.filter(file=>file.fault===workspaceMutation);
+          if(changed.length!==1)throw Error('WORKSPACE_MUTATION_INVENTORY');
+          for(const file of changed){const row=composition.files.find(row=>row.file===file.path);if(!row)throw Error('WORKSPACE_MUTATION_COMPOSITION');row.sha256=file.sha256;}
+          await save('mutated-access-source-composition.json',composition);filename=path.join(directory,'mutated-access-source-composition.json');
+          sha256=hash(await fs.readFile(filename));
+        }
+        return build(['--secret','id=access_composition,src='+filename,'--build-arg','ACCESS_COMPOSITION_SHA256='+sha256]);
+      });
+    else await build([]);
     const item=JSON.parse(await docker(['image','inspect',name]))[0];resources.push({type:'image',name,id:item.Id});
   }
   const image=target=>'ledgerdesk-intake-t02:'+resourcePrefix+'-'+target;
@@ -271,8 +300,10 @@ async function runtimeGroup() {
   }
   const extraction=group==='extraction'?await (await import(pathToFileURL(path.join(directory,'source/ci/intake/extraction/runtime_harness.mjs')))).extractionHarness({
     directory,prefix:resourcePrefix,docker,resources,container,bounded,save,originalParticipant:broker}):null;
-  const runtime=await container('runtime',['--network','none','--group-add','20202','--cap-drop','ALL','--security-opt','no-new-privileges','--memory','1g','--memory-swap','1g','--cpus','2','--pids-limit','192',
+  const runtime=await container('runtime',['--network','none','--group-add','20202','--cap-drop','ALL','--security-opt','no-new-privileges','--memory',uiFirstSlice?'2g':'1g','--memory-swap',uiFirstSlice?'2g':'1g','--cpus','2','--pids-limit',uiFirstSlice?'256':'192',
+    ...(uiFirstSlice?['--shm-size','256m']:[]),
     ...(group==='extraction'&&extractionCases==='preparation'?['--env','LEDGERDESK_PREPARATION_CASES='+preparationCases]:[]),
+    ...(adoptionSite?['--env','LEDGERDESK_UI_ADOPTION_SITE='+adoptionSite]:[]),
     ...(extraction?.runtimeArgs??[]),
     ...(extraction?['--env','LEDGERDESK_EXTRACTION_CASES='+extractionCases]:[]),
     ...(formatCase?['--env','LEDGERDESK_EXTRACTION_FORMAT_CASE='+formatCase]:[]),
@@ -294,6 +325,7 @@ async function runtimeGroup() {
     ...(group==='fence-sql'?['--env','LEDGERDESK_INTAKE_FENCE_SQL=1']:[]),
     ...(group==='fence-loss'?['--env','LEDGERDESK_INTAKE_FENCE_LOSS='+lossKind]:[]),
     ...(group==='fence-ack'?['--env','LEDGERDESK_INTAKE_FENCE_ACK='+ackKind]:[]),
+    ...(group==='creation'?['--env','LEDGERDESK_INTAKE_CREATE_FAILURE=1']:[]),
     ...(group==='fence-commit'?['--env','LEDGERDESK_INTAKE_FENCE_COMMIT='+commitKind]:[]),
     ...(group==='fence-continuation'?['--env','LEDGERDESK_INTAKE_FENCE_CONTINUATION=1']:[]),
     ...(group==='fence-ipc'?['--env','LEDGERDESK_INTAKE_FENCE_IPC=1']:[]),
@@ -329,6 +361,7 @@ async function runtimeGroup() {
     if(!/^[a-f0-9-]{36}$/.test(request.id)||!['backup','restore','inspect','complete',...(group==='extraction'?['observe-extraction','hold-next-extraction','fail-next-extraction-input','fault-extraction-output']:[]),...observationActions(group),...(group==='phase-lineage'?['observe-original']:[]),...(['fencing-probe','fence-loss'].includes(group)?['arm-stall','stall-state','continue-broker']:[]),
       ...(group==='fence-loss'?['observe-stalled-worker','terminate-stalled-worker','fence-private-process-set','recover-private-participant']:[]),
       ...(group==='fence-ack'?['arm-private-ack','private-ack-state']:[]),
+      ...(group==='creation'?['arm-create-fault']:[]),
       ...(['fence-commit','fence-ipc'].includes(group)?['phase-no-dispatch']:[]),
       ...(group==='extraction'&&(extractionCases==='restore'||extractionCases==='preparation'&&preparationCases==='recovery')?['extraction-backup','extraction-restore','extraction-restore-inspect']:[]),
       ...(group==='extraction'&&extractionCases==='lineage'?['replay-extraction-completion']:[]),
@@ -392,6 +425,12 @@ async function runtimeGroup() {
           "const f=require('fs'),id=process.argv[1];const rows=JSON.parse(f.readFileSync('/output/phase-control/phases.json')).rows;const events=f.existsSync('/output/events.ndjson')?f.readFileSync('/output/events.ndjson','utf8').trim().split('\\n').filter(Boolean).map(JSON.parse):[];process.stdout.write(JSON.stringify({row:rows[id]??null,events:events.filter(e=>e.phaseId===id)}));",request.body.phaseId]));
       }
       response=JSON.stringify({ok:true,members});
+    }else if(request.action==='arm-create-fault'){
+      const b=request.body;
+      if(group!=='creation'||!/^[a-f0-9-]{36}$/.test(b.artifactId??'')||b.generation!==1||
+        !['failed','denied','unclosed'].includes(b.mode)||Object.keys(b).sort().join(',')!=='artifactId,generation,mode')throw Error('CREATE_FAULT_SCOPE');
+      await docker(['exec',broker.name,'node','-e',"require('fs').writeFileSync('/output/create-fault.json',process.argv[1])",JSON.stringify(b)]);
+      response=JSON.stringify({ok:true});
     }else if(request.action==='arm-private-ack'){
       const b=request.body;
       if(!/^[a-f0-9-]{36}$/.test(b.artifactId??'')||b.generation!==1||b.action!==ackKind||Object.keys(b).sort().join(',')!=='action,artifactId,generation')throw Error('ACK_FAULT_SCOPE');
@@ -566,9 +605,10 @@ try {
   }
   for(const relative of ['src/contracts','src/server/access','src/server/intake','src/server/reading','src/server/kb/reading.ts','ci/intake','ci/intake_t02_check.mjs','ci/intake_boundary_check.mjs','ci/access_boundary_check.mjs',
     'ci/reading_boundary_check.mjs','ci/access_material_schema.mjs','tests/access','tests/reading/T04_seed.mjs','tests/reading/timing_comparison.mjs','tests/intake/t02','tests/intake/t01/fixtures','tests/intake/t01/reviewed/process-output.mjs','package.json','package-lock.json','tsconfig.app.json'])await source(relative);
-  if(group==='fence-coupled')for(const relative of ['ci/access','ci/access_final_routes.mjs','src/components/access','src/components/reading','src/app/access',
+  if(group==='fence-coupled'||uiFirstSlice)for(const relative of ['ci/access','ci/access_final_routes.mjs','src/components/access','src/components/reading','src/components/intake','src/app/access',
     'src/app/layout.tsx','src/app/globals.css','src/instrumentation.ts','next.config.mjs','postcss.config.mjs',
     'tests/reading/browser_diagnostics.mjs'])await source(relative);
+  if(uiFirstSlice)await source('tests/intake/ui');
   await source('tests/intake/extraction');await source('tests/intake/t01/boundaries');
   await source('tests/intake/preparation');await source('tests/intake/t01/fixtures.mjs');await source('ci/intake_test_summary.mjs');
   if(group==='extraction')await source('workers/intake/extraction');
@@ -577,6 +617,7 @@ try {
   if(group==='units') {
     for(const args of [
       ['--experimental-strip-types','--test','tests/intake/t02/test_contracts.mjs'],
+      ['--experimental-strip-types','--test','tests/intake/t02/test_creation_observation.mjs'],
       ['--test','tests/intake/t02/test_minimum_form.mjs'],
       ['--test','tests/intake/t02/test_bridge.mjs'],
       ['--test','tests/intake/t02/test_request_observer.mjs'],

@@ -12,7 +12,7 @@ import {assertResourceAssociation} from './references/assertions.mjs';
 import {preparationTreatment,preparationContext} from './runtime_control.mjs';
 import {persistDocument,preparationHash as hash,preparationAxis as axis,preparationProfile as profile} from './runtime_helpers.mjs';
 
-export async function preparationResourceCases(t,{env,intake,client,request,call,check,counts,controlled,storage,record}){
+export async function preparationResourceCases(t,{env,intake,client,request,call,check,counts,controlled,storage,record,afterPrepared}){
   const directory=await mkdtemp('/work/output/prepared-resources-');
   const references=['az17','az18'].map(key=>REFERENCES['F-R'][key]);
   const resources=references.map(r=>({id:r.artifact,generation:r.generation,bytes:r.bytes,sha256:r.sha256}));
@@ -98,6 +98,7 @@ export async function preparationResourceCases(t,{env,intake,client,request,call
     record('prepared-resource-selection',{reference:prepared.A.reference,resource:resource.artifact,source:sources.A.reference});
   });
   if(!prepared.A)throw Error('RESOURCE_SELECTION_PREREQUISITE');
+  if(afterPrepared)await afterPrepared(prepared.A);
   await t.test('R03 an intact wrong staged resource is rejected after public validation before preparation persistence',async()=>{
     const input=requestFor(sources.A,sources.B);input.document.elements[0].resource=resources[1];
     const before=await preparedCount();
