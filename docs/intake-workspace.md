@@ -1,6 +1,6 @@
 # Intake workspace
 
-The bounded synthetic workspace adapts the existing intake presentation to the real reception, extraction and preparation services at `/access/intake`. Its implementation, measured coverage and remaining limits are recorded in [INC-03 T05](INC-03-T05.md). Implementation and local execution are not independent acceptance or production authorization. [ADR-039](../adr/ADR-039-intake-workspace.md) remains proposed.
+The bounded synthetic workspace adapts the existing intake presentation to the real reception, extraction and preparation services at `/access/intake`. Its implementation, measured coverage and remaining limits are recorded in [INC-03 T05](INC-03-T05.md). [ADR-039](../adr/ADR-039-intake-workspace.md) was accepted on 2026-09-21 within this bounded synthetic scope. The delivery record distinguishes acceptance, implementation evidence and subsequent final-head/actual-main verification; none authorizes production or real data.
 
 ## Query profile
 
@@ -67,5 +67,7 @@ Discard applies only to unsent local data. It neither deletes durable preparatio
 The executed preparation slice uses the actual Next/browser/HTTPS/PostgreSQL path: a corrected human preparation and its difference, exact proposal/candidate, related and collision outcomes, visible Markdown/CSV/XLSX inspection, and lost staging/proposal/constitution responses. A withdrawn constitution faculty does not prevent authorized reconciliation of its previously recorded effect. CSV fields remain positional and multiline; XLSX formula and observed cache `24.00` remain separate without recalculation. Partial extraction remains partial in preparation.
 
 The finite U01–U12 map and exact executed revisions live in the delivery record. Common guards are not substituted for per-site observations. Browser cases hold actual successful terminal responses; they do not fabricate protected content or authority. Each stale-session case has a successful unchanged-session control. The negative observes cleared protected regions and no unintended follow-on request, not merely a warning.
+
+The [response-observation correction and learning](INC-03-T05.md#response-observation-correction-and-learning) records how the browser tests distinguish complete bytes consumed by the application, exact-request cancellation and permitted view adoption. These are separate properties; headers or a later green run are not substitutes for their evidence.
 
 One development run reported a browser response-body retrieval failure after a 200 response; its cause remains undetermined and subsequent passes do not close it. R24 and the previously tracked browser issues remain open. No production data or operational publication is enabled.

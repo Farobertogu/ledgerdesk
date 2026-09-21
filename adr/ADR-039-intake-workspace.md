@@ -1,13 +1,13 @@
 # ADR-039: Bounded intake workspace
 
-**Status:** proposed
-**Decision date:** pending acceptance
+**Status:** accepted within the bounded synthetic trial
+**Decision date:** 2026-09-21 (Australia/Sydney)
 
 ## Context
 
 ADR-038 separately admits reception, extraction and exact preparation in a synthetic deployment. It does not supply their integrated browser workspace. A visible action must remain an offer from the server, not an authority decision in a component. An interrupted command must remain recoverable without silently repeating its effect.
 
-## Proposed decision
+## Decision
 
 1. Mount `/access/intake` in the existing clean Next composition. Keep the explicit `session/1` HTTPS transport, exact origin and CSRF protections, and the terminal's final protected handoff. Do not introduce a proxy, legacy identity or fallback profile.
 2. Add `intake-workspace/1` as a separately selected query representation on the existing profile, reception, extraction and operation-lookup paths. Retain the shapes and consumers of the existing reception and preparation profiles. Queries disclose only currently authorized context, content and offers; executing an offer still requires fresh admission.
@@ -20,7 +20,7 @@ ADR-038 separately admits reception, extraction and exact preparation in a synth
 
 ## Localized extension of ADR-038
 
-The preparation amendment's statement that it introduces no preparation UI remains true of that delivery. This proposal adds its bounded consumer and the named query representation; it does not retrospectively expand that acceptance or enable later editorial operations. The original worker, preparation and constitution algorithms remain the authority for their effects. Resource downloads use existing exact-resource admission and do not claim native SVG, PDF or OCR support.
+The preparation amendment's statement that it introduces no preparation UI remains true of that delivery. This decision adds its bounded consumer and the named query representation; it does not retrospectively expand that acceptance or enable later editorial operations. The original worker, preparation and constitution algorithms remain the authority for their effects. Resource downloads use existing exact-resource admission and do not claim native SVG, PDF or OCR support.
 
 ## Consequences and limits
 
@@ -28,4 +28,4 @@ The controller is the only request owner, so components cannot independently fet
 
 R24 remains an observed writer-free expiry nonconformity. The workspace records its own adverse temporal observation; it does not inherit conformity from earlier consumers. Authentication, disclosure and isolation failures are not excused by R24. BROWSER-I03/J19 and the unexplained development response-body failure remain open. The scope is synthetic and does not authorize real data, production, approval, publication or whole-increment acceptance.
 
-See [the workspace contract](../docs/intake-workspace.md) and [the implementation evidence](../docs/INC-03-T05.md). This record remains proposed until the reserved acceptance decision.
+See [the workspace contract](../docs/intake-workspace.md) and [the implementation evidence](../docs/INC-03-T05.md). The owner accepted this bounded synthetic scope on 2026-09-21 after independent technical review and [implementation CI 35599086923](https://github.com/Farobertogu/ledgerdesk/actions/runs/35599086923) passed all nineteen jobs for `b987108d39407e6f9f3f9836b48107640aef67f0`. The subsequent documentary head must pass its own complete workflow before merge. [PR #36](https://github.com/Farobertogu/ledgerdesk/pull/36) records the final-head, merge and actual-main evidence only as observed. This decision does not start T06.
