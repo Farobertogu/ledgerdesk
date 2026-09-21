@@ -227,7 +227,10 @@ async function run(program,args,{timeout=60000,limit=8388608}={}) {
   return result;
 }
 const resourcePrefix='ld-i03-t02-'+randomUUID().slice(0,8);
-async function docker(args,options){const result=await run('docker',args,options);if(result.code!==0||result.reason)throw Error('DOCKER_COMMAND_'+index);return result.stdout.trim();}
+async function docker(args,options){const result=await run('docker',args,options);if(result.code!==0||result.reason){
+  if(args[0]==='image'&&args[1]==='rm')console.error('DOCKER_COMMAND_'+index+' '+(result.stderr.includes('is using its referenced image')?'DOCKER_IMAGE_RM_CONTAINER_REFERENCE':'DOCKER_IMAGE_RM_UNCLASSIFIED'));
+  throw Error('DOCKER_COMMAND_'+index);
+}return result.stdout.trim();}
 async function runtimeGroup() {
   for(const target of ['runtime','private_service']) {
     const name='ledgerdesk-intake-t02:'+resourcePrefix+'-'+target;

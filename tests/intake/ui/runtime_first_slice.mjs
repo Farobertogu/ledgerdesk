@@ -10,6 +10,8 @@ import {ExtractionService} from '../../../src/server/intake/extraction.ts';
 import {uiOrigin, apiOrigin} from '../../access/journey_environment.mjs';
 import {observeBrowser} from '../../reading/browser_diagnostics.mjs';
 import {createWorkspaceCheckpoint} from './diagnostic_checkpoint.mjs';
+import {lookupBodyObserver} from './lookup_body.mjs';
+import {PREPARATION_BOUNDS} from '../../../src/contracts/intake_preparation.ts';
 
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 export async function workspaceFirstSlice(t, {env, intake, client, request, diagnostics, storage, login, post, master, setBarrier, digestSession}) {
@@ -35,6 +37,7 @@ export async function workspaceFirstSlice(t, {env, intake, client, request, diag
     checkpoint?.mark('chromium_launch_enter');
     browser = await chromium.launch({headless: true, args: ['--host-resolver-rules=MAP *.inc02.test 127.0.0.1', '--no-proxy-server']});
     context = await browser.newContext({viewport: {width: 1200, height: 900}});
+    const lookupBodies = checkpoint ? await lookupBodyObserver(context, {origin: apiOrigin, maximum: PREPARATION_BOUNDS.responseBytes}) : null;
     const separator = client.cookie.indexOf('=');
     await context.addCookies([{name: client.cookie.slice(0, separator), value: client.cookie.slice(separator + 1),
       url: apiOrigin, secure: true, httpOnly: true, sameSite: 'Strict'}]);
@@ -88,14 +91,14 @@ export async function workspaceFirstSlice(t, {env, intake, client, request, diag
     if (process.env.LEDGERDESK_PREPARATION_CASES === 'ui-protection') {
       checkpoint?.mark('protection_enter');
       const {workspaceProtection} = await import('./runtime_protection.mjs');
-      await workspaceProtection(t, {env, intake, client, request, controlled, page, context, observer,
+      await workspaceProtection(t, {env, intake, client, request, controlled, page, context, observer, lookupBodies,
         receipt, original, observations, requests, errors, storage, login, post, master, setBarrier, digestSession});
       return;
     }
     if (preparationOnly) {
       checkpoint?.mark('preparation_enter');
       const {workspacePreparation} = await import('./runtime_preparation.mjs');
-      await workspacePreparation(t, {env, intake, client, request, controlled, page, context, observer,
+      await workspacePreparation(t, {env, intake, client, request, controlled, page, context, observer, lookupBodies,
         reference, receipt, original, observations, requests, errors,checkpoint});
       return;
     }

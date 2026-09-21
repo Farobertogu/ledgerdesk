@@ -23,7 +23,7 @@ export async function withDeadline(operation, label, timeoutMs, code) {
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const condition = 'Under condition Z, receipt R replaces receipt Q.';
 const cause = 'Explicit human preparation retains the source and declares its applicable condition.';
-export async function workspacePreparation(t, {env, intake, client, request, controlled, page, context, observer,
+export async function workspacePreparation(t, {env, intake, client, request, controlled, page, context, observer, lookupBodies,
   reference, receipt, original, observations, requests, errors,checkpoint}) {
   let activeCase = 'W09', activeFixture = 'first-real-intake.txt', primaryError = null;
   const catalogue = new Set(['first-real-intake.txt', 'identity-relationship.txt', 'identity-collision.txt',
@@ -163,11 +163,16 @@ export async function workspacePreparation(t, {env, intake, client, request, con
     return effect;
   };
   const inspect = async (key, preparation) => {
-    const pending = queryResponse(preparation);
-    await wait('inspect.click', () => byKey(key).getByRole('button', {name: 'Inspect preparation', exact: true}).click());
-    const received = await pending; assert.equal(received.status(), 200); const value = await observedJson(received, 'inspect');
-    assert.deepEqual(value.preparation.reference, preparation);
-    await wait('inspect.prepared-visible', () => page.getByLabel('Prepared unit', {exact: true}).waitFor()); await ready(); return value;
+    const consumed = await lookupBodies.arm(page, preparation, {signal: t.signal});
+    try {
+      const pending = queryResponse(preparation);
+      await wait('inspect.click', () => byKey(key).getByRole('button', {name: 'Inspect preparation', exact: true}).click());
+      const received = await pending; assert.equal(received.status(), 200);
+      const body = await wait('inspect.response-json', () => consumed.result);
+      assert.equal(body.status, received.status()); const value = body.value;
+      assert.deepEqual(value.preparation.reference, preparation);
+      await wait('inspect.prepared-visible', () => page.getByLabel('Prepared unit', {exact: true}).waitFor()); await ready(); return value;
+    } finally {await consumed.dispose();}
   };
   const draftProposal = async (target, judgment = 'distinct') => {
     await wait('proposal.unit', () => page.getByLabel('Prepared unit', {exact: true}).selectOption('selected-material'));

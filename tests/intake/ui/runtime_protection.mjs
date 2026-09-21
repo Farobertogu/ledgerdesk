@@ -32,7 +32,7 @@ async function eventually(read, predicate, label) {
 /** The journal locators below refer to real public effects. They are recovery
  * input, not seeded authority or prepared output. The browser consumes the
  * actual controller and terminal response throughout the observations. */
-export async function workspaceProtection(t, {env, intake, client, request, controlled, page, context, observer,
+export async function workspaceProtection(t, {env, intake, client, request, controlled, page, context, observer, lookupBodies,
   receipt, original, observations, storage, setBarrier, login, digestSession}) {
   let primaryError = null;
   const stop = () => { if (primaryError) throw primaryError; if (t.signal.aborted) throw t.signal.reason; };
@@ -43,18 +43,6 @@ export async function workspaceProtection(t, {env, intake, client, request, cont
       catch (error) {primaryError ??= error; throw primaryError;}
     });
     stop();
-  };
-  const responseBody = async (response, method = 'json') => {
-    try {return await bounded(response[method](), 'WORKSPACE_RESPONSE_BODY', 15000, 'ERR_RESPONSE_BODY_DEADLINE');}
-    catch (error) {
-      const classified = error instanceof Error ? error : new Error('Response body rejected.', {cause: error});
-      if (classified.code !== 'ERR_RESPONSE_BODY_DEADLINE') {
-        const failure = response.request().failure()?.errorText;
-        const network = typeof failure === 'string' && /^net::[A-Z0-9_]{1,64}$/.test(failure) ? ':' + failure : '';
-        classified.code = failure ? 'ERR_RESPONSE_REQUEST_FAILED' + network : 'ERR_RESPONSE_BODY_REJECTED';
-      }
-      throw classified;
-    }
   };
   const check = (r, code = 200) => assert.equal(r.status, code, JSON.stringify(r.body));
   const call = (path, options = {}) => request('/api/intake' + path, {client, ...options, headers: {accept, ...options.headers}});
@@ -95,6 +83,13 @@ export async function workspaceProtection(t, {env, intake, client, request, cont
     return body?.kind === 'preparation_inspection' && ['id', 'revision', 'sha256'].every(field => body.preparation?.[field] === prepared[field]);
   });
   const inspect = async () => {const pending = lookupResponse(); await card().getByRole('button', {name: 'Inspect preparation', exact: true}).click(); return pending;};
+  const inspectBody = async () => {
+    const consumed = await lookupBodies.arm(page, prepared, {signal: t.signal});
+    try {
+      const response = await inspect(), body = await consumed.result;
+      assert.equal(body.status, response.status()); return {response, body: body.value};
+    } finally {await consumed.dispose();}
+  };
   const waitInspected = () => page.getByRole('region', {name: 'Human preparation', exact: true}).waitFor();
   const grant = async (permission, withdrawn) => {
     const updated = await env.admin.query('UPDATE access_trial.grant_record SET withdrawn=$1 WHERE account_id=$2 AND permission_id=$3', [withdrawn, controlled.account.id, permission]);
@@ -105,7 +100,7 @@ export async function workspaceProtection(t, {env, intake, client, request, cont
   for (const permission of ['intake_prepared_read', 'intake_difference_read']) await runCase('W14 preparation inspection separately requires ' + permission, async () => observer.run(permission === 'intake_prepared_read' ? 'W14-prepared' : 'W14-difference', async () => {
     await reset(); const before = await records(), reads = storage.length; await grant(permission, true);
     try {
-      const response = await inspect(); assert.equal(response.status(), 404); await responseBody(response, 'body');
+      const {response} = await inspectBody(); assert.equal(response.status(), 404);
       await page.getByText('Working…', {exact: true}).waitFor({state: 'hidden'});
       assert.deepEqual({views: await page.getByRole('region', {name: 'Human preparation', exact: true}).count(), records: await records(), reads: storage.length},
         {views: 0, records: before, reads});
@@ -189,8 +184,7 @@ export async function workspaceProtection(t, {env, intake, client, request, cont
       pause.releasedAtMs = await now(); pause.after = await authority(); assert.equal(pause.before, pause.after);
     });
     try {
-      const response = await inspect(); assert.ok(pause, 'An early denial does not exercise the protected temporal point.');
-      const body = await responseBody(response);
+      const {response, body} = await inspectBody(); assert.ok(pause, 'An early denial does not exercise the protected temporal point.');
       if (response.status() === 200) assert.deepEqual(body.preparation?.reference, prepared);
       const delivered = response.status() === 200 && body.preparation?.reference?.id === prepared.id;
       if (!expired) {assert.equal(delivered, true); assert.ok(pause.releasedAtMs < deadline);}
