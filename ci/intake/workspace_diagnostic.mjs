@@ -1,7 +1,8 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
-import {validateCheckpoint, checkpointFailureMarker} from '../../tests/intake/ui/diagnostic_checkpoint.mjs';
+import {validateCheckpoint, checkpointFailureMarker,preparationTestNames} from '../../tests/intake/ui/diagnostic_checkpoint.mjs';
+import {preparationParticipants,dispatchPhases} from './workspace_participants.mjs';
 
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const runPattern = /^intake-extraction-\d{4}-\d{2}-\d{2}[tT][0-9-]+[zZ]-[a-f0-9]{8}$/;
@@ -23,9 +24,10 @@ const succeeded = c => c.code === 0 && c.signal === null && (c.reason === undefi
 
 // Read only named members, rejecting symlinked ancestors as well as the member.
 // No worker, browser, object-store or directory enumeration is performed here.
-async function member(directory, name, limit) {
+export async function workspaceMember(directory, name, limit,ndjson=false) {
   try {
-    if (!['source-manifest.json', 'runtime-inspect.json', 'runtime-state.json', 'runtime/workspace-checkpoints.json'].includes(name))
+    if (!['source-manifest.json', 'runtime-inspect.json', 'runtime-state.json', 'runtime/workspace-checkpoints.json','extraction-private/events.ndjson'].includes(name)&&
+      !/^worker-bridge\/[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}\/(?:request|completion)\.json$/.test(name))
       return {status: 'invalid'};
     const root = await fs.lstat(directory);
     if (!root.isDirectory() || root.isSymbolicLink()) return {status: 'invalid'};
@@ -41,10 +43,12 @@ async function member(directory, name, limit) {
       while (length < bytes.length) {const r = await handle.read(bytes, length, bytes.length - length, null); if (!r.bytesRead) break; length += r.bytesRead;}
       if (length > limit) return {status: 'truncated'};
       const retained = bytes.subarray(0, length);
-      return {status: 'present', value: JSON.parse(new TextDecoder('utf-8', {fatal: true}).decode(retained)), sha256: hash(retained)};
+      const decoded=new TextDecoder('utf-8', {fatal:true}).decode(retained);
+      return {status: 'present', value:ndjson?decoded.trim().split('\n').filter(Boolean).map(line=>JSON.parse(line)):JSON.parse(decoded), sha256: hash(retained)};
     } finally {await handle.close();}
   } catch (error) {return {status: error.code === 'ENOENT' ? 'absent' : 'invalid'};}
 }
+const member=workspaceMember;
 
 function runtimeIdentity(m, inspection) {
   if (m.group !== 'extraction') return null;
@@ -52,7 +56,7 @@ function runtimeIdentity(m, inspection) {
   const i = inspection[0], env = i?.Config?.Env;
   if (!Array.isArray(env)) throw Error('WORKSPACE_RUNTIME_ASSOCIATION');
   const selected = env.filter(e => typeof e === 'string' && e.startsWith('LEDGERDESK_PREPARATION_CASES='));
-  if (selected.length === 0 || selected.length === 1 && selected[0] !== 'LEDGERDESK_PREPARATION_CASES=ui-protection') return null;
+  if (selected.length === 0 || selected.length === 1 && !['LEDGERDESK_PREPARATION_CASES=ui-protection','LEDGERDESK_PREPARATION_CASES=ui-preparation'].includes(selected[0])) return null;
   if (selected.length !== 1 || env.filter(e => typeof e === 'string' && e.startsWith('LEDGERDESK_EXTRACTION_CASES=')).length !== 1 ||
       !env.includes('LEDGERDESK_EXTRACTION_CASES=preparation')) throw Error('WORKSPACE_RUNTIME_ASSOCIATION');
   const name = typeof i.Name === 'string' ? i.Name.slice(1) : '', match = /^ld-i03-t02-([a-f0-9]{8})-runtime$/.exec(name);
@@ -87,12 +91,12 @@ function tapProjection(stdout, completeCapture) {
 
 // Only a Node diagnostic block immediately following a failed TAP result can
 // establish the fixed timeout classification. Product error text is not parsed.
-function tapFailures(stdout) {
+function tapFailures(stdout,group) {
   const lines = stdout.split(/\r?\n/), failures = [];
   const types = new Set(['testTimeoutFailure', 'cancelledByParent', 'testCodeFailure', 'subtestsFailed']);
   const codes = new Set(['ERR_ASSERTION', 'ERR_TEST_FAILURE']);
   for (let i = 0; i < lines.length; i++) {
-    const start = /^([ ]*)not ok [0-9]+ - [^\r\n]*$/.exec(lines[i]);
+    const start = /^([ ]*)not ok [0-9]+ - ([^\r\n]*)$/.exec(lines[i]);
     if (!start) continue;
     const indent = start[1] + '  ', values = {code: [], failureType: []}; let ended = false, consumed = i;
     if (lines[i + 1] === indent + '---') for (let j = i + 2; j < lines.length; j++) {
@@ -104,7 +108,9 @@ function tapFailures(stdout) {
     }
     const code = ended && values.code.length === 1 && codes.has(values.code[0]) ? values.code[0] : null;
     const failureType = ended && values.failureType.length === 1 && types.has(values.failureType[0]) ? values.failureType[0] : null;
-    failures.push({status: code || failureType ? 'observed' : 'unknown', code, failureType});
+    const caseId=Object.keys(preparationTestNames).find(key=>preparationTestNames[key]===start[2])??null;
+    failures.push({status: code || failureType ? 'observed' : 'unknown', code, failureType,
+      ...(group==='ui-preparation'?{caseId,name:caseId?preparationTestNames[caseId]:null}:{})});
     // A diagnostic's literal error/stack can contain a complete-looking TAP
     // result. It is data inside this block, never another reported test.
     i = consumed;
@@ -139,13 +145,14 @@ function completionProjection(commands, name) {
 
 // Inputs are retained local evidence, not authenticated claims from a worker.
 // Identity and closed construction prevent unrelated commands acquiring meaning.
-export function projectWorkspaceDiagnostic({manifest: m, manifestSha256, source, inspection, commands, state, checkpoints}) {
+export function projectWorkspaceDiagnostic({manifest: m, manifestSha256, source, inspection, commands, state, checkpoints,participants}) {
   if (!runPattern.test(m.runId) || !shaPattern.test(manifestSha256) || !Array.isArray(m.commands) || m.commands.length > 10000 ||
       m.commands.length !== commands.length || new Set(m.commands.map(c => c.file)).size !== commands.length ||
       m.commands.some((c, i) => !commandPattern.test(c.file) || c.code !== commands[i]?.code || (c.reason ?? null) !== (commands[i]?.reason ?? null)))
     throw Error('WORKSPACE_COMMAND_ASSOCIATION');
   const name = runtimeIdentity(m, inspection);
   if (!name) return null;
+  const group=inspection[0].Config.Env.find(e=>e.startsWith('LEDGERDESK_PREPARATION_CASES=')).split('=')[1];
   if (source.status !== 'present' || !shaPattern.test(source.sha256) || source.sha256 !== m.sourceManifestSha256 ||
       source.value?.runId !== m.runId || source.value.profile !== 'intake-t02-source/1') throw Error('WORKSPACE_SOURCE_ASSOCIATION');
   const selected = commands.flatMap((c, i) => docker(c) && equal(c.args, ['start', '-a', name]) ? [{c, ordinal: i + 1}] : []);
@@ -154,17 +161,18 @@ export function projectWorkspaceDiagnostic({manifest: m, manifestSha256, source,
     const {c, ordinal} = selected[0]; runtimeStatus = capture(c);
     const captureComplete = runtimeStatus === 'present' && (c.reason === undefined || c.reason === null) && c.signal === null;
     stdout = runtimeStatus === 'invalid' ? '' : c.stdout;
-    const failures = tapFailures(stdout);
+    const failures = tapFailures(stdout,group);
     runtime = {ordinal, exitCode: Number.isSafeInteger(c.code) ? c.code : null, durationMs: integer(c.milliseconds),
       termination: c.reason === 'worker_timeout' ? 'worker_timeout' : c.reason ? 'other' : c.signal ? 'other' : 'none',
       captureComplete, innerTimeout: failures.some(f => f.failureType === 'testTimeoutFailure') ? 'observed' : captureComplete ? 'not_observed_in_complete_capture' : 'unknown',
-      firstTestFailure: failures[0] ?? {status: captureComplete ? 'not_observed_in_complete_capture' : 'unknown', code: null, failureType: null}};
+      firstTestFailure: failures[0] ?? {status: captureComplete ? 'not_observed_in_complete_capture' : 'unknown', code: null, failureType: null},
+      ...(group==='ui-preparation'?{failedCases:failures.slice(0,16),failureOverflow:Math.max(0,failures.length-16)}:{})};
     tap = tapProjection(stdout, captureComplete);
   }
   let checkpointStatus = inputStatuses.has(checkpoints.status) ? checkpoints.status : 'invalid', checkpoint = null;
   if (checkpointStatus === 'present') {
-    try {checkpoint = validateCheckpoint(checkpoints.value); if (checkpoint.overflow) checkpointStatus = 'truncated';}
-    catch {checkpointStatus = 'invalid';}
+    try {checkpoint = validateCheckpoint(checkpoints.value);if(checkpoint.group!==group)throw Error('WORKSPACE_CHECKPOINT_GROUP'); if (checkpoint.overflow) checkpointStatus = 'truncated';}
+    catch {checkpointStatus = 'invalid';checkpoint=null;}
   }
   if (stdout.split(/\r?\n/).some(line => line === '# ' + checkpointFailureMarker || line === checkpointFailureMarker)) {
     checkpointStatus = 'invalid'; checkpoint = null;
@@ -177,9 +185,10 @@ export function projectWorkspaceDiagnostic({manifest: m, manifestSha256, source,
   }
   const completion = completionProjection(commands, name);
   const lines = new Set(stdout.split(/\r?\n/));
-  return {profile: 'intake-workspace-diagnostic/1', runId: m.runId, manifestSha256, sourceManifestSha256: source.sha256, group: 'ui-protection',
+  return {profile: 'intake-workspace-diagnostic/1', runId: m.runId, manifestSha256, sourceManifestSha256: source.sha256, group,
     inputs: {runtimeCommand: runtimeStatus, runtimeState: stateStatus, checkpoints: checkpointStatus, completion: completion.status},
     runtime, tap, checkpoints: checkpoint, completion: completion.value, container,
+    ...(group==='ui-preparation'?{participants:preparationParticipants(checkpoint,participants)}:{}),
     cleanupMarkers: Object.fromEntries(['INTAKE_WORKSPACE_CLEANED', 'INTAKE_T02_RUNTIME_CLEANED', 'ACCESS_PG_CLEANED']
       .map(k => [k, lines.has(k) || lines.has('# ' + k) ? 'observed' : 'unknown']))};
 }
@@ -191,8 +200,23 @@ export async function readWorkspaceDiagnostic(directory, manifest, manifestSha25
   if (inspection.status !== 'present') throw Error('WORKSPACE_RUNTIME_ASSOCIATION');
   if (!runtimeIdentity(manifest, inspection.value)) return null;
   if (path.basename(directory) !== manifest.runId) throw Error('WORKSPACE_RUN_ASSOCIATION');
+  const checkpoints=await member(directory,'runtime/workspace-checkpoints.json',16384);
+  let participants;
+  if(inspection.value[0].Config.Env.includes('LEDGERDESK_PREPARATION_CASES=ui-preparation')){
+    const events=await member(directory,'extraction-private/events.ndjson',1048576,true),bridges={};
+    // Only channels associated with a retained, validated phase are eligible.
+    let phases=[];try{phases=dispatchPhases(validateCheckpoint(checkpoints.value));}catch{}
+    if(events.status==='present')for(const event of events.value){
+      const channel=event?.subject?.channel_id;
+      if(event.kind!=='private-worker-closed'||!phases.some(p=>p.phaseId===event.phaseId&&p.jobId===event.subject?.job_id)||
+        !/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(channel??'')||Object.keys(bridges).length>=16)continue;
+      if(!bridges[channel])bridges[channel]={request:await member(directory,`worker-bridge/${channel}/request.json`,262144),
+        completion:await member(directory,`worker-bridge/${channel}/completion.json`,262144)};
+    }
+    participants={events,bridges};
+  }
   return projectWorkspaceDiagnostic({manifest, manifestSha256, commands, inspection: inspection.value,
     source: await member(directory, 'source-manifest.json', 8388608),
     state: await member(directory, 'runtime-state.json', 65536),
-    checkpoints: await member(directory, 'runtime/workspace-checkpoints.json', 16384)});
+    checkpoints,participants});
 }

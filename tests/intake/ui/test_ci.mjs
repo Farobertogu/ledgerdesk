@@ -8,7 +8,8 @@ import {qualifyExtractionGuard} from '../../../ci/intake_extraction_guard_checks
 import os from 'node:os';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
-import {createWorkspaceCheckpoint, validateCheckpoint} from './diagnostic_checkpoint.mjs';
+import {createWorkspaceCheckpoint, validateCheckpoint,preparationTestNames} from './diagnostic_checkpoint.mjs';
+import {preparationParticipants} from '../../../ci/intake/workspace_participants.mjs';
 import {projectWorkspaceDiagnostic, readWorkspaceDiagnostic} from '../../../ci/intake/workspace_diagnostic.mjs';
 import {exportExtractionEvidence, extractionPublicSummary} from '../../../ci/intake_extraction_artifacts.mjs';
 
@@ -302,15 +303,106 @@ test('removing the action-start mark loses the independently expected pending-ca
 
 test('workspace marks precede their exact boundaries without changing the existing 180/240-second controls', async () => {
   const runtime = await fs.readFile(new URL('./runtime_first_slice.mjs', import.meta.url), 'utf8');
-  for (const [mark, consumer] of [["createWorkspaceCheckpoint('/work/output')", 'await preparationControl('],
+  for (const [mark, consumer] of [["createWorkspaceCheckpoint('/work/output',{group:process.env.LEDGERDESK_PREPARATION_CASES})", 'await preparationControl('],
     ["mark('app_prepare_enter')", 'await app.prepare()'], ["mark('chromium_launch_enter')", 'await chromium.launch('],
     ["mark('protection_enter')", 'await workspaceProtection('], ["mark('context_close_enter')", 'await context?.close()'],
     ["mark('browser_close_enter')", 'await browser?.close()'], ["mark('app_close_enter')", 'await app?.close()']]) {
     assert.ok(runtime.includes(mark) && runtime.indexOf(mark) < runtime.indexOf(consumer), mark);
   }
   assert.ok(runtime.indexOf("mark('workspace_closed')") > runtime.indexOf('await app?.close()'));
-  assert.match(runtime, /process\.env\.LEDGERDESK_PREPARATION_CASES === 'ui-protection'\s*\? createWorkspaceCheckpoint/);
+  assert.match(runtime, /\['ui-protection','ui-preparation'\]\.includes\(process\.env\.LEDGERDESK_PREPARATION_CASES\)\s*\? createWorkspaceCheckpoint/);
   const parent = await fs.readFile(new URL('../t02/test_runtime.mjs', import.meta.url), 'utf8');
   const runner = await fs.readFile(new URL('../../../ci/intake_t02_check.mjs', import.meta.url), 'utf8');
   assert.match(parent, /\?300000:180000/); assert.match(runner, /\?330000:240000/);
 });
+
+const jobId='11111111-1111-4111-8111-111111111111',phaseId='22222222-2222-4222-8222-222222222222',
+  channelId='33333333-3333-4333-8333-333333333333',preparationRequestId='44444444-4444-4444-8444-444444444444';
+async function preparationFixture(){
+  const f=fixture();f.inspection[0].Config.Env[0]='LEDGERDESK_PREPARATION_CASES=ui-preparation';
+  const c=createWorkspaceCheckpoint('unused',{group:'ui-preparation',persist:(_,bytes)=>{f.checkpoints={status:'present',value:JSON.parse(bytes)};}});
+  await c.wrap({run:async(_,action)=>action()}).run('W11-collision',async()=>{
+    c.stage('dispatch_enter',jobId);c.stage('phase_committed',jobId,phaseId);c.stage('input_dispatch_enter',jobId);
+  });
+  const subject={job_id:jobId,attempt_generation:1,channel_id:channelId,binding_sha256:'a'.repeat(64)};
+  f.participants={events:{status:'present',value:[{kind:'private-worker-closed',phaseId,subject,parserConfirmed:false,
+    termination:{profile:'intake-child-stop/1',requestId:preparationRequestId,workerPid:41,startedAtMs:100,closedAtMs:200,exitCode:null,signal:'SIGKILL',reason:'deadline'},
+    failureCode:'EXTRACTION_PRIVATE_FAILURE'}]},bridges:{[channelId]:{
+    request:{status:'present',value:{id:preparationRequestId,channel:channelId,subject}},
+    completion:{status:'present',value:{requestId:preparationRequestId,subject,closed:false,failed:true,metadata:null}},
+  }}};
+  return f;
+}
+test('preparation preserves named failed cases without inferring them from totals or exposing failure text',async()=>{
+  const f=await preparationFixture(),bad=`    not ok 3 - ${preparationTestNames.W09}\n      ---\n      code: 'ERR_ASSERTION'\n      failureType: 'testCodeFailure'\n      error: 'PRIVATE_CANARY'\n      ...\n`;
+  replaceRuntime(f,bad+`    not ok 5 - ${preparationTestNames['W11-collision']}\n      ---\n      code: 'ERR_TEST_FAILURE'\n      failureType: 'cancelledByParent'\n      ...\n`,{code:1});
+  const out=projectWorkspaceDiagnostic(f);
+  assert.deepEqual(out.runtime.failedCases.map(x=>[x.caseId,x.failureType]),[['W09','testCodeFailure'],['W11-collision','cancelledByParent']]);
+  assert.equal(out.runtime.firstTestFailure.name,preparationTestNames.W09);assert.ok(!JSON.stringify(out).includes('PRIVATE_CANARY'));
+  replaceRuntime(f,bad.replace(preparationTestNames.W09,preparationTestNames.W09+' PRIVATE_CANARY'),{code:1});
+  assert.equal(projectWorkspaceDiagnostic(f).runtime.firstTestFailure.caseId,null);
+});
+test('preparation phase, job, request and channel association distinguish relay closure from parser completion',async()=>{
+  const f=await preparationFixture(),out=projectWorkspaceDiagnostic(f),observed=out.participants.observations[0];
+  assert.equal(out.participants.status,'present');assert.equal(observed.caseId,'W11-collision');
+  assert.deepEqual([observed.privateWorker.closed,observed.privateWorker.parserConfirmed,observed.bridge.closed],[true,false,false]);
+  assert.equal(observed.privateWorker.reason,'deadline');
+  const completed=structuredClone(f);completed.participants.events.value[0].parserConfirmed=true;
+  completed.participants.bridges[channelId].completion.value={requestId:preparationRequestId,subject:f.participants.events.value[0].subject,closed:true,failed:false,
+    metadata:{channel_id:channelId,exit_code:0,reason:null,private:'PRIVATE_CANARY'}};
+  assert.equal(projectWorkspaceDiagnostic(completed).participants.observations[0].bridge.closed,true);
+  assert.ok(!JSON.stringify(projectWorkspaceDiagnostic(completed)).includes('PRIVATE_CANARY'));
+  for(const alter of [v=>v.events.value[0].subject.job_id=requestId,v=>v.events.value[0].phaseId=requestId]){
+    const p=structuredClone(f.participants);alter(p);assert.equal(preparationParticipants(f.checkpoints.value,p).status,'no_correlated_observation');
+  }
+  for(const alter of [v=>v.bridges[channelId].request.value.id=phaseId,v=>v.bridges[channelId].completion.value.subject={...v.events.value[0].subject,attempt_generation:2}]){
+    const p=structuredClone(f.participants);alter(p);const result=preparationParticipants(f.checkpoints.value,p);
+    assert.equal(result.observations[0].bridge.completion,'invalid');assert.equal(result.observations[0].bridge.closed,null);
+  }
+  for(const state of ['absent','invalid','truncated'])assert.equal(preparationParticipants(f.checkpoints.value,{events:{status:state}}).status,state);
+  assert.equal(preparationParticipants(f.checkpoints.value).status,'unavailable');
+  const acceptance=structuredClone(f.checkpoints.value);
+  for(const event of acceptance.events)if(event.stage==='input_dispatch_enter')event.stage='accept_returned';
+  acceptance.lastOperation.stage='accept_returned';
+  assert.equal(preparationParticipants(acceptance,f.participants).status,'no_correlated_observation');
+});
+test('preparation checkpoint keeps the latest bounded stage on overflow and validates group-specific cases',async()=>{
+  let retained;
+  const c=createWorkspaceCheckpoint('unused',{group:'ui-preparation',persist:(_,bytes)=>{assert.ok(bytes.length<=16384);retained=JSON.parse(bytes);}});
+  await c.wrap({run:async(_,action)=>action()}).run('W12',async()=>{
+    for(let i=0;i<70;i++)c.stage('dispatch_enter',jobId);
+  });
+  assert.equal(retained.events.length,64);assert.ok(retained.overflow>0);assert.equal(retained.lastEvent.stage,'observer_settled');
+  assert.equal(retained.lastOperation.stage,'dispatch_enter');assert.ok(retained.lastOperation.seq>64);
+  assert.deepEqual(validateCheckpoint(retained),retained);
+  for(const alter of [v=>v.lastEvent.jobId='PRIVATE_CANARY',v=>v.events[1].caseId='W14-prepared',v=>v.lastEvent.secret='PRIVATE_CANARY']){
+    const copy=structuredClone(retained);alter(copy);assert.throws(()=>validateCheckpoint(copy));
+  }
+  const runtime=await fs.readFile(new URL('./runtime_preparation.mjs',import.meta.url),'utf8');
+  for(const [mark,action]of [["stage('dispatch_enter'",'await extractor.dispatch('],["stage('accept_enter'",'await extractor.accept(']])
+    assert.ok(runtime.indexOf(mark)>=0&&runtime.indexOf(mark)<runtime.indexOf(action));
+  assert.match(runtime,/if\(label==='extraction_phase_committed'\)checkpoint\?\.stage\('phase_committed',event.jobId,event.phaseId\)/);
+  await c.wrap({run:async(_,action)=>action()}).run('W13',async()=>{
+    c.stage('dispatch_enter',jobId);assert.equal(retained.lastOperation.phaseId,null);
+    c.stage('phase_committed',jobId,phaseId);c.stage('input_dispatch_enter',jobId);
+    assert.equal(retained.lastOperation.phaseId,phaseId);
+    c.stage('accept_enter',jobId);assert.equal(retained.lastOperation.phaseId,null);
+  });
+});
+test('preparation exporter reads only correlated bounded participant evidence and publishes no raw stream',async()=>temporaryWork(async temporary=>{
+  const f=await preparationFixture(),input=path.join(temporary,'input'),directory=path.join(input,runId),output=path.join(temporary,'public');
+  await writeFixture(directory,f);await fs.mkdir(path.join(directory,'runtime'));
+  await fs.writeFile(path.join(directory,'runtime/workspace-checkpoints.json'),JSON.stringify(f.checkpoints.value));
+  await fs.mkdir(path.join(directory,'extraction-private'));
+  await fs.writeFile(path.join(directory,'extraction-private/events.ndjson'),f.participants.events.value.map(e=>JSON.stringify({...e,body:'PRIVATE_CANARY'})).join('\n'));
+  const bridge=path.join(directory,'worker-bridge',channelId);await fs.mkdir(bridge,{recursive:true});
+  for(const name of ['request','completion'])await fs.writeFile(path.join(bridge,name+'.json'),JSON.stringify(f.participants.bridges[channelId][name].value));
+  assert.equal(await exportExtractionEvidence(input,output),true);
+  const out=JSON.parse(await fs.readFile(path.join(output,runId+'-workspace-diagnostic.json')));
+  assert.equal(out.group,'ui-preparation');assert.equal(out.participants.observations[0].privateWorker.parserConfirmed,false);
+  assert.equal(out.participants.observations[0].bridge.closed,false);
+  assert.ok(!JSON.stringify(out).includes('PRIVATE_CANARY'));
+  const names=await fs.readdir(output);assert.equal(names.length,3);assert.ok(names.every(n=>n.endsWith('.json')));
+  await fs.writeFile(path.join(directory,'extraction-private/events.ndjson'),'broken PRIVATE_CANARY');
+  const bad=await readWorkspaceDiagnostic(directory,f.manifest,f.manifestSha256,f.commands);assert.equal(bad.participants.status,'invalid');
+}));

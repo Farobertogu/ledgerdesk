@@ -110,6 +110,12 @@ test('T02 real identity, grant, durable reception and protected original', {time
     assert.equal(grants.length,runtimePermissionIds.length);assert.ok(grants.every(g=>g.faculty==='exercise'&&g.acceptance_id));
     assert.deepEqual((await env.admin.query('SELECT * FROM material_trial.material')).rows,before);
   });
+  if(process.env.LEDGERDESK_INTAKE_CREATE_FAILURE==='1'){
+    const {creationCases}=await import('./creation_cases.mjs');
+    try{await creationCases(t,{env,intake,client,request,storage,incomplete});}
+    finally{writeFileSync('/work/output/runtime-observations.json',JSON.stringify({storage,comparisons,barriers,transfers,incomplete,admissions},null,2));}
+    return;
+  }
   if(process.env.LEDGERDESK_INTAKE_BROWSER==='1'){
     await browserRoundTrip(t,{env,terminal,setBarrier:action=>{barrierAction=action;}});return;
   }

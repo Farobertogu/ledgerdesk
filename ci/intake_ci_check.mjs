@@ -19,7 +19,7 @@ export const previousWorkflow=fs.readFileSync(path.join(root,'tests/intake/t02/c
 const previous=parseWorkflow(previousWorkflow);
 const requiredFinite=['authority','missing-catalog','transitions','neutrality','original-scope','fragment-permissions','privileges','transactions','delivery-order','finite-stream','finite-quota','finite-attempts'];
 const requiredNormal=['units','runtime','boundaries','temporal','integrity','browser','phase-prototype'];
-const requiredRecovery=[['fence-sql'],['fence-loss','--loss-kind','sql','--without-worker-stop'],['fence-loss','--loss-kind','runtime','--without-worker-stop'],['fence-loss','--loss-kind','supervisor','--without-worker-stop'],
+const requiredRecovery=[['creation'],['fence-sql'],['fence-loss','--loss-kind','sql','--without-worker-stop'],['fence-loss','--loss-kind','runtime','--without-worker-stop'],['fence-loss','--loss-kind','supervisor','--without-worker-stop'],
   ['fence-ack','--ack-kind','append'],['fence-ack','--ack-kind','seal'],['fence-ack','--ack-kind','read'],['fence-ack','--ack-kind','close'],
   ['fence-commit','--commit-kind','rollback'],['fence-commit','--commit-kind','reply-loss'],['fence-continuation'],['fence-ipc'],['fence-restore'],['fence-coupled']];
 const requiredMutations=['original-selection','actual-digest','actual-chunk-cap','type-recognition','compatible-payload','sealed-as-receipt','whole-original-faculty','delivery-evidence','deferred-dispatch','runtime-source'];

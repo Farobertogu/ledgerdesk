@@ -10,8 +10,12 @@ const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const condition = 'Under condition Z, receipt R replaces receipt Q.';
 const cause = 'Explicit human preparation retains the source and declares its applicable condition.';
 export async function workspacePreparation(t, {env, intake, client, request, controlled, page, context, observer,
-  reference, receipt, original, observations, requests, errors}) {
-  const extractor = new ExtractionService(intake), rows = () => page.getByRole('region', {name: 'Add material', exact: true}).locator('li[data-item-key]');
+  reference, receipt, original, observations, requests, errors,checkpoint}) {
+  const extractor = new ExtractionService(intake,{barrier:async(label,event)=>{
+    if(label==='extraction_phase_committed')checkpoint?.stage('phase_committed',event.jobId,event.phaseId);
+    if(label==='before_extraction_input_dispatch')checkpoint?.stage('input_dispatch_enter',event.jobId);
+    if(label==='after_extraction_launch')checkpoint?.stage('parser_launch_observed',event.jobId,event.phaseId);
+  }}), rows = () => page.getByRole('region', {name: 'Add material', exact: true}).locator('li[data-item-key]');
   const byKey = key => page.getByRole('region', {name: 'Add material', exact: true}).locator(`li[data-item-key="${key}"]`);
   const ready = () => page.getByText('Working…', {exact: true}).waitFor({state: 'hidden'});
   const back = async () => {await page.getByRole('button', {name: 'Back', exact: true}).first().click(); await ready();};
@@ -41,7 +45,12 @@ export async function workspacePreparation(t, {env, intake, client, request, con
     return {key, receipt: found[0]};
   };
   const edit = async (source, {withCondition = true, correction = false, dependency = false} = {}) => {
-    await extractor.dispatch(source.receipt.job_id); await extractor.accept(source.receipt.job_id);
+    checkpoint?.stage('dispatch_enter',source.receipt.job_id);
+    await extractor.dispatch(source.receipt.job_id);
+    checkpoint?.stage('dispatch_returned',source.receipt.job_id);
+    checkpoint?.stage('accept_enter',source.receipt.job_id);
+    await extractor.accept(source.receipt.job_id);
+    checkpoint?.stage('accept_returned',source.receipt.job_id);
     await byKey(source.key).getByRole('button', {name: 'Refresh', exact: true}).click();
     await byKey(source.key).getByRole('button', {name: 'Prepare', exact: true}).waitFor(); await ready();
     await byKey(source.key).getByRole('button', {name: 'Prepare', exact: true}).click();

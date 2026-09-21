@@ -459,6 +459,25 @@ statuses are 400 (invalid input/framing), 403 (transport/session refusal),
 429 (finite capacity) and 503 (unavailable control or technical failure).
 Internal causes and input values are not copied into those bodies.
 
+An unsuccessful private creation distinguishes `denied` (409) from `failed`
+(503). The public status does not alone decide effect uncertainty. A failed
+creation may become `interrupted` only after every participant acknowledges
+closure, the phase is durably retired and the current fence/continuation is
+verified. Resume then fences the retained predecessor and allocates a new
+artifact and generation. It never recreates that identity or deletes its files.
+If that completion path is not established, the attempt remains `uncertain`
+and cannot resume. No failure creates a receipt or extraction work. This rule
+applies to both the first nonempty capture and an empty-original verification.
+Lost acknowledgments elsewhere retain their existing conservative treatment.
+
+The optional `create-result` and `create-closure` diagnostics are not effect
+authority. Failure of either observation must not replace the operation's error,
+change its established certainty or prevent incomplete-transfer bookkeeping.
+This isolation does not suppress participant, admission, phase, database or
+bookkeeping failures. Diagnostic termination signal/reason fields accept only
+primitive strings from their fixed catalogues, or explicit null; malformed
+values use the closed fallback without string coercion.
+
 The terminal requires the exact HTTPS origin/host and session transport.
 Every POST, including lookup and binary transfer, requires current CSRF.
 Intention keys appear only on intention-bearing operations. JSON is bounded to

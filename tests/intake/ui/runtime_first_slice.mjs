@@ -13,8 +13,8 @@ import {createWorkspaceCheckpoint} from './diagnostic_checkpoint.mjs';
 
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 export async function workspaceFirstSlice(t, {env, intake, client, request, diagnostics, storage, login, post, master, setBarrier, digestSession}) {
-  const checkpoint = process.env.LEDGERDESK_PREPARATION_CASES === 'ui-protection'
-    ? createWorkspaceCheckpoint('/work/output') : null;
+  const checkpoint = ['ui-protection','ui-preparation'].includes(process.env.LEDGERDESK_PREPARATION_CASES)
+    ? createWorkspaceCheckpoint('/work/output',{group:process.env.LEDGERDESK_PREPARATION_CASES}) : null;
   const receptionOnly = process.env.LEDGERDESK_PREPARATION_CASES === 'ui-reception';
   const preparationOnly = process.env.LEDGERDESK_PREPARATION_CASES === 'ui-preparation';
   const controlled = await preparationControl(env, {allFormats: receptionOnly || preparationOnly});
@@ -93,9 +93,10 @@ export async function workspaceFirstSlice(t, {env, intake, client, request, diag
       return;
     }
     if (preparationOnly) {
+      checkpoint?.mark('preparation_enter');
       const {workspacePreparation} = await import('./runtime_preparation.mjs');
       await workspacePreparation(t, {env, intake, client, request, controlled, page, context, observer,
-        reference, receipt, original, observations, requests, errors});
+        reference, receipt, original, observations, requests, errors,checkpoint});
       return;
     }
     if (receptionOnly) {

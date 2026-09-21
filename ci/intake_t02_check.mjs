@@ -9,6 +9,7 @@ import { suspendedAppendCopy,rejectRetainedIncarnationCopy } from './intake/rece
 import {coupledEnvironmentCopy,coupledDockerCopy,coupledIgnoreCopy,coupledLegacyLaunchCopy} from '../tests/intake/t02/access_fence_coupling.mjs';
 import {withSourceComposition} from './access_final_routes.mjs';
 import {lostPrivateAckCopy} from './intake/reception/ack_fault.mjs';
+import {createFailureCopy} from './intake/reception/create_fault.mjs';
 import {privateCommitFaultCopy} from './intake/reception/commit_fault.mjs';
 import {continuationObservedCopy} from './intake/reception/continuation_fault.mjs';
 import {observerFaultCopy} from './intake/reception/observer_fault.mjs';
@@ -47,7 +48,7 @@ const extractionMutation=process.argv.includes('--extraction-mutation')?process.
 if(extractionMutation&&(group!=='extraction'||!({semantics:['omit-condition-store','omit-limitation-store','omit-incident-query'],
   resources:['omit-resource-relation-store','read-resource-before-validation','allow-resource-swap'],
   'format-negatives':['xlsx-recalculate-store','xlsx-hide-sheet-store','xlsx-context-store']}[extractionCases]??[]).includes(extractionMutation)))throw Error('EXTRACTION_MUTATION_SCOPE');
-if(!['units','runtime','extraction','authority','missing-catalog','transitions','neutrality','original-scope','fragment-permissions','privileges','transactions','delivery-order','finite-stream','finite-quota','finite-attempts','boundaries','temporal','integrity','browser','observer','observer-canonical','phase-lineage','fencing-probe','phase-prototype','fence-sql','fence-loss','fence-coupled','fence-ack','fence-commit','fence-continuation','fence-ipc','fence-restore'].includes(group))throw Error('Explicit T02 group required');
+if(!['units','runtime','creation','extraction','authority','missing-catalog','transitions','neutrality','original-scope','fragment-permissions','privileges','transactions','delivery-order','finite-stream','finite-quota','finite-attempts','boundaries','temporal','integrity','browser','observer','observer-canonical','phase-lineage','fencing-probe','phase-prototype','fence-sql','fence-loss','fence-coupled','fence-ack','fence-commit','fence-continuation','fence-ipc','fence-restore'].includes(group))throw Error('Explicit T02 group required');
 const isObserver=['observer','observer-canonical'].includes(group);
 const usesObjectObserver=observationActions(group).includes('observe-events');
 const canonicalCase=process.argv.includes('--canonical-case')?process.argv[process.argv.indexOf('--canonical-case')+1]:'same-key';
@@ -169,6 +170,10 @@ async function source(relative) {
         'tests/access/test_invitations.mjs':coupledLegacyLaunchCopy,'ci/access/Runtime.Dockerfile':coupledDockerCopy,
         'ci/access/Runtime.Dockerfile.dockerignore':coupledIgnoreCopy}[relative];
       if(compose){bytes=Buffer.from(compose(bytes.toString('utf8')));fault='test-composition-install-actual-shared-fence';}
+    }
+    if(group==='creation'){
+      const changed=createFailureCopy(relative,bytes.toString('utf8'));
+      if(changed!==bytes.toString('utf8')){bytes=Buffer.from(changed);fault='directed-private-create-failure';}
     }
     if(group==='fence-ack'&&relative==='ci/intake/reception/server.mjs'){
       bytes=Buffer.from(lostPrivateAckCopy(bytes.toString('utf8')));fault='lose-exact-private-completion-ack';
@@ -317,6 +322,7 @@ async function runtimeGroup() {
     ...(group==='fence-sql'?['--env','LEDGERDESK_INTAKE_FENCE_SQL=1']:[]),
     ...(group==='fence-loss'?['--env','LEDGERDESK_INTAKE_FENCE_LOSS='+lossKind]:[]),
     ...(group==='fence-ack'?['--env','LEDGERDESK_INTAKE_FENCE_ACK='+ackKind]:[]),
+    ...(group==='creation'?['--env','LEDGERDESK_INTAKE_CREATE_FAILURE=1']:[]),
     ...(group==='fence-commit'?['--env','LEDGERDESK_INTAKE_FENCE_COMMIT='+commitKind]:[]),
     ...(group==='fence-continuation'?['--env','LEDGERDESK_INTAKE_FENCE_CONTINUATION=1']:[]),
     ...(group==='fence-ipc'?['--env','LEDGERDESK_INTAKE_FENCE_IPC=1']:[]),
@@ -352,6 +358,7 @@ async function runtimeGroup() {
     if(!/^[a-f0-9-]{36}$/.test(request.id)||!['backup','restore','inspect','complete',...(group==='extraction'?['observe-extraction','hold-next-extraction','fail-next-extraction-input','fault-extraction-output']:[]),...observationActions(group),...(group==='phase-lineage'?['observe-original']:[]),...(['fencing-probe','fence-loss'].includes(group)?['arm-stall','stall-state','continue-broker']:[]),
       ...(group==='fence-loss'?['observe-stalled-worker','terminate-stalled-worker','fence-private-process-set','recover-private-participant']:[]),
       ...(group==='fence-ack'?['arm-private-ack','private-ack-state']:[]),
+      ...(group==='creation'?['arm-create-fault']:[]),
       ...(['fence-commit','fence-ipc'].includes(group)?['phase-no-dispatch']:[]),
       ...(group==='extraction'&&(extractionCases==='restore'||extractionCases==='preparation'&&preparationCases==='recovery')?['extraction-backup','extraction-restore','extraction-restore-inspect']:[]),
       ...(group==='extraction'&&extractionCases==='lineage'?['replay-extraction-completion']:[]),
@@ -415,6 +422,12 @@ async function runtimeGroup() {
           "const f=require('fs'),id=process.argv[1];const rows=JSON.parse(f.readFileSync('/output/phase-control/phases.json')).rows;const events=f.existsSync('/output/events.ndjson')?f.readFileSync('/output/events.ndjson','utf8').trim().split('\\n').filter(Boolean).map(JSON.parse):[];process.stdout.write(JSON.stringify({row:rows[id]??null,events:events.filter(e=>e.phaseId===id)}));",request.body.phaseId]));
       }
       response=JSON.stringify({ok:true,members});
+    }else if(request.action==='arm-create-fault'){
+      const b=request.body;
+      if(group!=='creation'||!/^[a-f0-9-]{36}$/.test(b.artifactId??'')||b.generation!==1||
+        !['failed','denied','unclosed'].includes(b.mode)||Object.keys(b).sort().join(',')!=='artifactId,generation,mode')throw Error('CREATE_FAULT_SCOPE');
+      await docker(['exec',broker.name,'node','-e',"require('fs').writeFileSync('/output/create-fault.json',process.argv[1])",JSON.stringify(b)]);
+      response=JSON.stringify({ok:true});
     }else if(request.action==='arm-private-ack'){
       const b=request.body;
       if(!/^[a-f0-9-]{36}$/.test(b.artifactId??'')||b.generation!==1||b.action!==ackKind||Object.keys(b).sort().join(',')!=='action,artifactId,generation')throw Error('ACK_FAULT_SCOPE');
@@ -601,6 +614,7 @@ try {
   if(group==='units') {
     for(const args of [
       ['--experimental-strip-types','--test','tests/intake/t02/test_contracts.mjs'],
+      ['--experimental-strip-types','--test','tests/intake/t02/test_creation_observation.mjs'],
       ['--test','tests/intake/t02/test_minimum_form.mjs'],
       ['--test','tests/intake/t02/test_bridge.mjs'],
       ['--test','tests/intake/t02/test_request_observer.mjs'],
