@@ -255,6 +255,11 @@ export async function workspacePreparation(t, {env, intake, client, request, con
     await wait('candidate.screenshot', () => page.screenshot({path: '/work/output/workspace-candidate.png', fullPage: true})); await back();
   });
   if (!firstCandidate) throw Error('WORKSPACE_CANDIDATE_PREREQUISITE');
+  if (process.env.LEDGERDESK_INTAKE_WHOLE_JOURNEY === '1') {
+    const {finishWholeJourney} = await import('./runtime_whole_journey.mjs');
+    await finishWholeJourney(t, {env, receipt, original, firstPrepared, firstCandidate, observations, errors});
+    return;
+  }
   for (const [label, change, expected] of [['relationship', false, 'relationship_recorded'], ['collision', true, 'blocked']]) {
     await runCase('W11-' + label, 'identity-' + label + '.txt', 'W11 ' + label + ' is a distinct real disposition without another candidate', async () => {
       const source = await addSource('identity-' + label + '.txt', original);

@@ -68,12 +68,12 @@ export async function preparationIdentityCases(t,{env,intake,client,request,call
     record('c9-collision',{kind,preparation:p.reference,effect:result.effect,block:result.result.blocks[0]});
   });
   await t.test('C03 possible duplicate remains unresolved; changed explanatory prose is not a new effect slot',async()=>{
-    const p=await create(),before=await counts();
+    const p=await create(),before=await counts(),relationshipsBefore=await relationshipCount();
     const proposed=await propose(p,target('relationship'),judgment('possible_duplicate'));
     const result=await confirm(proposed),after=await counts();
     assert.deepEqual({outcome:result.result.outcome,block:result.result.block_kind,candidates:after.candidates-before.candidates,
-      continuation:result.result.blocks[0].continuation},
-      {outcome:'blocked',block:'possible_duplicate',candidates:0,continuation:'awaiting_separate_adjudication'});
+      continuation:result.result.blocks[0]?.continuation??null,relationships:(await relationshipCount())-relationshipsBefore},
+      {outcome:'blocked',block:'possible_duplicate',candidates:0,continuation:'awaiting_separate_adjudication',relationships:0});
     const rewrapped=await propose(p,{...target('relationship'),declaration:'Different prose, same target.'},
       {...judgment('same_version'),reason:'This new wrapper does not adjudicate the previous unresolved disposition.'});
     const replay=await confirm(rewrapped);

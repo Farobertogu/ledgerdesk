@@ -24,13 +24,14 @@ import {deliveryOrderCases} from './delivery_order_cases.mjs';
 import {observationFailureCases} from './observation_failure_cases.mjs';
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 const preparing=process.env.LEDGERDESK_EXTRACTION_CASES==='preparation';
+const wholeJourney=process.env.LEDGERDESK_INTAKE_WHOLE_JOURNEY==='1';
 const runtimePermissionIds=process.env.LEDGERDESK_INTAKE_EXTRACTION==='1'?[...permissionIds,'intake_processing','intake_extraction_read',
   ...(preparing?['intake_prepare','intake_prepared_read','intake_difference_read','intake_resource_read','intake_constitute']:[])]:permissionIds;
 // The separate extraction temporal group has fourteen real worker/effect cases
 // and seven declared five-second expiry windows; older groups keep their bound.
 test('T02 real identity, grant, durable reception and protected original', {timeout:process.env.LEDGERDESK_EXTRACTION_CASES==='temporal'?300000:180000}, async t=>{
   console.log('INTAKE_RUNTIME_IDENTITY '+JSON.stringify({uid:process.getuid(),gid:process.getgid(),groups:process.getgroups()}));
-  const env=await journeyEnvironment({facultiesTransform:faculties=>[...faculties,...runtimePermissionIds.map(permission_id=>({
+  const env=await journeyEnvironment({installMaterial:!wholeJourney,facultiesTransform:faculties=>[...faculties,...runtimePermissionIds.map(permission_id=>({
     permission_id,exercise_or_grant:'grant',scope_ref:'organisation',support_ref:'domain',permission_revision:1,scope_revision:1,support_revision:1,expires_at:Date.now()+3500000}))]});
   let terminal;const messages=[],storage=[],comparisons=[],barriers=[],transfers=[],privilegeProbes=[],incomplete=[],admissions=[],diagnostics=[];
   let barrierAction=async()=>{};
@@ -281,6 +282,19 @@ test('T02 real identity, grant, durable reception and protected original', {time
     await phaseLineageCapture(t,{env,intake,client,request,requestEvents,clientCalls,admissions,comparisons,incumbentComparisons,evidenceInserts,selections,privateDispatches,
       setBarrier:action=>{barrierAction=action;}});return;
   }
+  await t.test('incomplete original cannot be reported as received or acquire receipt and work',async()=>{
+    const reference={status:409,state:'reserved',receipts:0,jobs:0,reportedReceived:false};
+    writeFileSync('/work/output/incomplete-reference.json',JSON.stringify(reference,null,2),{flag:'wx'});
+    const response=await request(`/api/intake/receptions/${reserved.reception_id}/finalize`,{client,key:randomUUID(),body:{
+      profile:'intake/1',expected_revision:reserved.revision,original:reserved.original,format_profile:'text-utf8/1'}});
+    const row=(await env.admin.query(`SELECT state,
+      (SELECT count(*)::int FROM intake_trial.receipt WHERE reception_id=$1) receipts,
+      (SELECT count(*)::int FROM intake_trial.work w JOIN intake_trial.receipt r ON r.id=w.receipt_id WHERE r.reception_id=$1) jobs
+      FROM intake_trial.reception WHERE id=$1`,[reserved.reception_id])).rows[0];
+    const observed={status:response.status,...row,reportedReceived:response.body?.state==='received'};
+    writeFileSync('/work/output/incomplete-observed.json',JSON.stringify(observed,null,2),{flag:'wx'});
+    assert.deepEqual(observed,reference);
+  });
   await t.test('binary continuation stages exact bytes with evidence before capture',async()=>{
     const result=await request(`/api/intake/receptions/${reserved.reception_id}/attempts/1/original`,{bytes:original,client});
     assert.equal(result.status,200,JSON.stringify(result.body));staged=result.body;

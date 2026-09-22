@@ -1,6 +1,6 @@
 # System overview
 
-Status reference: 22 September 2026. This overview summarizes the current design and its
+Status reference: 23 September 2026. This overview summarizes the current design and its
 implementation boundary. It is not a replacement construction plan or a claim that every
 designed capability is available. [BOARD](../BOARD.md) tracks delivery; the contracts and dated
 records linked below specify and evidence the implemented profiles.
@@ -81,6 +81,7 @@ implemented response shapes, transport profiles and remaining limits.
 | Bounded extraction | INC-03 T03, separately admitted worker processing, protected result acceptance/query, finite conservation and explicit recovery | Text/Markdown, CSV and cell-oriented XLSX within the documented synthetic profile; no preparation, candidate, native visual extraction or universal semantic/memory guarantee |
 | Exact preparation | INC-03 T04, retained selection, antecedents, differences and exact candidate constitution | Candidate, related and blocked remain distinct; no approval, publication or real data |
 | Integrated intake workspace | INC-03 T05, browser access to the accepted reception, extraction and preparation operations | Bounded synthetic profile; no whole-increment, real-data or production acceptance |
+| Integrated intake acceptance | INC-03 T06, empty-corpus visible journey, exact durable candidate and downstream references; accepted on 23 September 2026 | Bounded synthetic scope only; hosted publication pending; no real data, production or automatic INC-04 |
 
 The [T05 workspace](INC-03-T05.md) was accepted on 21 September 2026 under
 [ADR-039](../adr/ADR-039-intake-workspace.md) and merged through
@@ -100,8 +101,9 @@ not an interchangeable total of product guarantees.
 
 ## What remains open
 
-- INC-03 T06 whole-increment acceptance has not started. Acceptance of T01–T05 is limited
-  to their separate synthetic scopes and does not authorize production processing.
+- [INC-03 T06](INC-03-T06.md) was accepted on 23 September 2026 within its reviewed
+  synthetic scope. Hosted publication and final-head/actual-main verification remain pending;
+  acceptance does not authorize production processing or automatically start INC-04.
 - The historical finite-quota failure has no established cause. The current behavior producer
   passes; that result does not retrospectively diagnose or correct the earlier failure.
 - The historical bootstrap failure has no established cause. The subsequent

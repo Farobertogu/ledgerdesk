@@ -1,0 +1,34 @@
+{
+  "base": {
+    "name": "baseline.xlsx",
+    "sha256": "41667ef76c98f71f8add0d4058c287b6a8b3965b87b3f23904c455cbd6410093"
+  },
+  "files": [
+    {
+      "name": "repacked.xlsx",
+      "expected": "produced",
+      "bytes": 13210,
+      "sha256": "8f41d9c9eb7e4c75de43eb5fe1b51ad03eb095fdbd392fc6d29480a4cff6d8fd"
+    },
+    {
+      "name": "macro-declared.xlsx",
+      "expected": "unsupported_workbook_type",
+      "bytes": 13188,
+      "sha256": "7280c0b66269ba7079472c40b848abf8a281ab666c8cc065b210cc8be6db4199"
+    },
+    {
+      "name": "entity-declared.xlsx",
+      "expected": "xml_declaration_forbidden",
+      "bytes": 13296,
+      "sha256": "57abd574ff96e532e2069b4fb5b233d167ef909284865d1c38377d0fc6e0ca17"
+    }
+  ],
+  "scope": "Fixed-entry workbook-profile and XML-declaration rejection. No executable VBA is supplied; no universal hostile-code or external-entity defense is inferred.",
+  "independentExpectation": {
+    "normalType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml",
+    "macroType": "application/vnd.ms-excel.sheet.macroEnabled.main+xml",
+    "declaration": "<!DOCTYPE workbook [<!ENTITY outside SYSTEM \"file:///not-mounted/t06-entity-canary\">]>",
+    "formula": "B2*C2",
+    "cachedValue": "25.00"
+  }
+}

@@ -34,6 +34,8 @@ const group=process.argv[process.argv.indexOf('--group')+1];
 const extractionCases=process.argv.includes('--extraction-cases')?process.argv[process.argv.indexOf('--extraction-cases')+1]:'service';
 const formatCase=process.argv.includes('--format-case')?process.argv[process.argv.indexOf('--format-case')+1]:null;
 const preparationCases=process.argv.includes('--preparation-cases')?process.argv[process.argv.indexOf('--preparation-cases')+1]:'first-slice';
+const wholeJourney=process.argv.includes('--whole-journey');
+if(wholeJourney&&(group!=='extraction'||extractionCases!=='preparation'||preparationCases!=='ui-preparation'))throw Error('WHOLE_JOURNEY_SCOPE');
 if(!['first-slice','ui-first-slice','ui-reception','ui-preparation','ui-protection','ui-resources','ui-adoption-reception','ui-adoption-preparation','ui-disclosure-navigation','fidelity','formats','resources','mixed','identity','concurrency','prior-act','temporal','ordering','units','recovery','disclosure','bounds'].includes(preparationCases)||(preparationCases!=='first-slice'&&(group!=='extraction'||extractionCases!=='preparation')))throw Error('PREPARATION_CASE_SCOPE');
 const uiFirstSlice=group==='extraction'&&extractionCases==='preparation'&&['ui-first-slice','ui-reception','ui-preparation','ui-protection','ui-resources','ui-adoption-reception','ui-adoption-preparation','ui-disclosure-navigation'].includes(preparationCases);
 const preparationMutation=process.argv.includes('--preparation-mutation')?process.argv[process.argv.indexOf('--preparation-mutation')+1]:null;
@@ -41,12 +43,12 @@ const workspaceMutation=process.argv.includes('--workspace-mutation')?process.ar
 const adoptionSite=process.argv.includes('--adoption-site')?process.argv[process.argv.indexOf('--adoption-site')+1]:null;
 if(workspaceMutation&&(preparationCases!=='ui-adoption-reception'||workspaceMutation!=='omit-post-response-session'||adoptionSite!=='original-inspection'))throw Error('WORKSPACE_MUTATION_SCOPE');
 if(adoptionSite&&(preparationCases!=='ui-adoption-reception'||!['original-inspection','reception-stop'].includes(adoptionSite)))throw Error('WORKSPACE_SITE_SCOPE');
-if(preparationMutation&&!({fidelity:['drop-retained-context'],formats:['drop-retained-limitation'],resources:['swap-resource-at-birth','swap-resource-at-consume'],mixed:['flatten-component-causes'],identity:['ignore-c9-conditions'],concurrency:['drop-item-lock'],'prior-act':['drop-prior-target']}[preparationCases]??[]).includes(preparationMutation))throw Error('PREPARATION_MUTATION_SCOPE');
+if(preparationMutation&&!({fidelity:['drop-retained-context'],formats:['drop-retained-limitation'],resources:['swap-resource-at-birth','swap-resource-at-consume'],mixed:['flatten-component-causes'],identity:['ignore-c9-conditions','hash-identity'],disclosure:['hidden-duplicate-status'],'ui-preparation':['auto-publish-candidate'],concurrency:['drop-item-lock'],'prior-act':['drop-prior-target']}[preparationCases]??[]).includes(preparationMutation))throw Error('PREPARATION_MUTATION_SCOPE');
 if(formatCase&&(group!=='extraction'||extractionCases!=='formats'||!['escaped-limit.csv','combined-limit.csv','control-at-byte-limit.txt'].includes(formatCase)))throw Error('EXTRACTION_FORMAT_FILTER_SCOPE');
 if(!['service','formats','format-negatives','temporal','fencing','budgets','retry','restart','restore','storage-recovery','semantics','mixed','capacity','private-loss','controller-loss','resources','authority-original','authority-result','authority-effect','compatibility','containment','browser-disconnect','extraction-privileges','lineage','associations','preparation'].includes(extractionCases)||(extractionCases!=='service'&&group!=='extraction'))throw Error('EXTRACTION_CASE_SCOPE');
 const extractionMutation=process.argv.includes('--extraction-mutation')?process.argv[process.argv.indexOf('--extraction-mutation')+1]:null;
 if(extractionMutation&&(group!=='extraction'||!({semantics:['omit-condition-store','omit-limitation-store','omit-incident-query'],
-  resources:['omit-resource-relation-store','read-resource-before-validation','allow-resource-swap'],
+  resources:['omit-resource-relation-store','read-resource-before-validation','allow-resource-swap'],mixed:['unknown-inventory-complete'],
   'format-negatives':['xlsx-recalculate-store','xlsx-hide-sheet-store','xlsx-context-store']}[extractionCases]??[]).includes(extractionMutation)))throw Error('EXTRACTION_MUTATION_SCOPE');
 if(!['units','runtime','creation','extraction','authority','missing-catalog','transitions','neutrality','original-scope','fragment-permissions','privileges','transactions','delivery-order','finite-stream','finite-quota','finite-attempts','boundaries','temporal','integrity','browser','observer','observer-canonical','phase-lineage','fencing-probe','phase-prototype','fence-sql','fence-loss','fence-coupled','fence-ack','fence-commit','fence-continuation','fence-ipc','fence-restore'].includes(group))throw Error('Explicit T02 group required');
 const isObserver=['observer','observer-canonical'].includes(group);
@@ -125,14 +127,14 @@ async function source(relative) {
     if(group==='extraction'&&extractionCases==='storage-recovery'&&relative==='ci/intake/extraction/seal.mjs'){
       bytes=Buffer.from(interruptedSealCopy(bytes.toString('utf8')));fault='actual-private-child-kill-after-raw-seal';
     }
-    if(extractionMutation){
-      const changed=semanticFaultCopy(relative,bytes.toString('utf8'),extractionMutation);
-      if(changed!==bytes.toString('utf8')){bytes=Buffer.from(changed);fault=extractionMutation;}
-    }
     if(group==='extraction'&&(extractionCases==='mixed'||extractionCases==='preparation'&&preparationCases==='mixed')&&relative==='src/server/intake/extraction_output.ts'){
       bytes=Buffer.from(mixedComponentsCopy(bytes.toString('utf8')));fault='instrumented-three-component-outcome';
       if(extractionCases==='preparation') bytes=Buffer.from(bytes.toString('utf8').replace("    outcome='partial';",
         "    outcome='partial';\n    if(body.elements[0]?.text === 'Known component source.\\n') body.inventory='known';"));
+    }
+    if(extractionMutation){
+      const changed=semanticFaultCopy(relative,bytes.toString('utf8'),extractionMutation);
+      if(changed!==bytes.toString('utf8')){bytes=Buffer.from(changed);fault=extractionMutation;}
     }
     if(group==='extraction'&&extractionCases==='preparation'&&preparationCases==='fidelity'){
       const changed=preparationAssociationCopy(relative,bytes.toString('utf8'));
@@ -209,7 +211,9 @@ async function source(relative) {
       bytes=Buffer.from(text.replace(needle,needle+"if(!row)return{profile:'intake-phase-closed/1',id,participant:this.participant};"));fault='forget-unseen-close';
     }
     await fs.mkdir(path.dirname(target),{recursive:true});await fs.writeFile(target,bytes,{flag:'wx'});
-    files.push({path:relative,bytes:bytes.length,sha256:hash(bytes),...(hash(bytes)!==originalSha256?{originalSha256,fault}:{})});}
+    files.push({path:relative,bytes:bytes.length,sha256:hash(bytes),...(hash(bytes)!==originalSha256?{originalSha256,fault}:{}),
+      ...(extractionMutation==='unknown-inventory-complete'&&relative==='src/server/intake/extraction_output.ts'?
+        {instrumentation:'instrumented-three-component-outcome'}:{})});}
 }
 async function run(program,args,{timeout=60000,limit=8388608}={}) {
   const start=Date.now();
@@ -303,6 +307,7 @@ async function runtimeGroup() {
   const runtime=await container('runtime',['--network','none','--group-add','20202','--cap-drop','ALL','--security-opt','no-new-privileges','--memory',uiFirstSlice?'2g':'1g','--memory-swap',uiFirstSlice?'2g':'1g','--cpus','2','--pids-limit',uiFirstSlice?'256':'192',
     ...(uiFirstSlice?['--shm-size','256m']:[]),
     ...(group==='extraction'&&extractionCases==='preparation'?['--env','LEDGERDESK_PREPARATION_CASES='+preparationCases]:[]),
+    ...(wholeJourney?['--env','LEDGERDESK_INTAKE_WHOLE_JOURNEY=1']:[]),
     ...(adoptionSite?['--env','LEDGERDESK_UI_ADOPTION_SITE='+adoptionSite]:[]),
     ...(extraction?.runtimeArgs??[]),
     ...(extraction?['--env','LEDGERDESK_EXTRACTION_CASES='+extractionCases]:[]),

@@ -19,6 +19,7 @@ export async function workspaceFirstSlice(t, {env, intake, client, request, diag
     ? createWorkspaceCheckpoint('/work/output',{group:process.env.LEDGERDESK_PREPARATION_CASES}) : null;
   const receptionOnly = process.env.LEDGERDESK_PREPARATION_CASES === 'ui-reception';
   const preparationOnly = process.env.LEDGERDESK_PREPARATION_CASES === 'ui-preparation';
+  const wholeJourney = process.env.LEDGERDESK_INTAKE_WHOLE_JOURNEY === '1';
   const controlled = await preparationControl(env, {allFormats: receptionOnly || preparationOnly});
   const original = Buffer.from('AZ-17\nFor procedure AZ-17, receipt Q is required.\nUnder condition Z, receipt R replaces receipt Q.\n', 'utf8');
   const reference = {name: 'first-real-intake.txt', bytes: original.length, sha256: hash(original), text: original.toString('utf8')};
@@ -38,14 +39,20 @@ export async function workspaceFirstSlice(t, {env, intake, client, request, diag
     browser = await chromium.launch({headless: true, args: ['--host-resolver-rules=MAP *.inc02.test 127.0.0.1', '--no-proxy-server']});
     context = await browser.newContext({viewport: {width: 1200, height: 900}});
     const lookupBodies = checkpoint ? await lookupBodyObserver(context, {origin: apiOrigin, maximum: PREPARATION_BOUNDS.responseBytes}) : null;
-    const separator = client.cookie.indexOf('=');
-    await context.addCookies([{name: client.cookie.slice(0, separator), value: client.cookie.slice(separator + 1),
-      url: apiOrigin, secure: true, httpOnly: true, sameSite: 'Strict'}]);
+    if (!wholeJourney) {
+      const separator = client.cookie.indexOf('=');
+      await context.addCookies([{name: client.cookie.slice(0, separator), value: client.cookie.slice(separator + 1),
+        url: apiOrigin, secure: true, httpOnly: true, sameSite: 'Strict'}]);
+    }
     page = await context.newPage(); page.setDefaultTimeout(15000);
     page.on('pageerror', error => errors.push(error.message));
     page.on('request', req => {const url = new URL(req.url()); if (url.origin === apiOrigin) requests.push({method: req.method(), path: url.pathname});});
     const rawObserver = observeBrowser(page, '/work/output/browser-diagnostics');
     const observer = checkpoint ? checkpoint.wrap(rawObserver) : rawObserver;
+    if (wholeJourney) {
+      const {startWholeJourney} = await import('./runtime_whole_journey.mjs');
+      await startWholeJourney(t, {env, page, context, client, controlled, observations, observer: rawObserver});
+    }
     await t.test('W01 identified real Next route receives an original through HTTPS and durable storage', async () => {
       await observer.run('W01', async () => {
         const response = await page.goto(uiOrigin + '/access/intake');

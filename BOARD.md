@@ -2,7 +2,7 @@
 
 ## New-system construction
 
-Status at 22 September 2026.
+Status at 23 September 2026.
 
 The active new-system work follows the adjusted construction plan (INC-01 through INC-15),
 not the historical 25-card roadmap below. The latter is preserved as provenance, not inherited
@@ -12,7 +12,9 @@ synthetic scopes. T05 was accepted within its bounded synthetic scope under ADR-
 on 2026-09-21 and merged through [PR #36](https://github.com/Farobertogu/ledgerdesk/pull/36);
 its final-head and actual-main verification are complete. The subsequent bounded evidence
 update was merged through [PR #37](https://github.com/Farobertogu/ledgerdesk/pull/37).
-T06 has not started.
+The bounded synthetic T06 scope was accepted on 2026-09-23 after independent review.
+Its [delivery and finite coverage](docs/INC-03-T06.md) retain the explicit limitations;
+hosted publication on `card/INC-03-whole-journey` remains pending.
 The [system overview](docs/SYSTEM_OVERVIEW.md) explains this boundary and the
 [documentation index](docs/README.md) separates current guides from dated evidence.
 LR-AC21 remains partial and R24 is an observed temporal failure; no real-data or production
@@ -38,7 +40,7 @@ below are retained provenance, not the new-system build order.
 
 | Card | Increment | Closing evidence |
 |---|---|---|
-| INC-03 | Material intake: I03-T01 through I03-T05 accepted experimentally; I03-T06 not started | Foundation, reception, bounded extraction, exact preparation and the integrated workspace retain their separate finite acceptance. T05 is merged in PR #36; the subsequent PR #37 improves bounded evidence export only. The [workspace delivery](docs/INC-03-T05.md) and T05 Done row distinguish acceptance from integration. R24 remains adverse. No real-data or production activation. |
+| INC-03 | Material intake: I03-T01 through I03-T06 accepted experimentally; hosted T06 publication pending | T06 accepted on 2026-09-23 after independent review. The [delivery](docs/INC-03-T06.md), 36-row map and exact handoff preserve measured scope and retained evidence. Final-head CI, protected merge and actual-main CI are still required for publication. R24, same-original fragment lineage and selector-specific expiry retain their declared limits. No real data, production or automatic INC-04. |
 
 Active access follow-up: [tracked browser failures and closure criteria](docs/INC-02-T03.md#tracked-browser-follow-up).
 

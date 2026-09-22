@@ -8,10 +8,25 @@ import {qualifyExtractionGuard} from '../../../ci/intake_extraction_guard_checks
 import os from 'node:os';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
+import {spawnSync} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
 import {createWorkspaceCheckpoint, validateCheckpoint,preparationTestNames} from './diagnostic_checkpoint.mjs';
 import {preparationParticipants} from '../../../ci/intake/workspace_participants.mjs';
 import {projectWorkspaceDiagnostic, readWorkspaceDiagnostic, projectPreparationWaits} from '../../../ci/intake/workspace_diagnostic.mjs';
 import {exportExtractionEvidence, extractionPublicSummary} from '../../../ci/intake_extraction_artifacts.mjs';
+
+test('whole-journey selector rejects combinations outside the mounted preparation profile before runtime', () => {
+  const root = fileURLToPath(new URL('../../../', import.meta.url));
+  for (const args of [[], ['--group', 'units'], ['--group', 'extraction', '--extraction-cases', 'preparation', '--preparation-cases', 'ui-protection']]) {
+    const result = spawnSync(process.execPath, ['--experimental-strip-types', 'ci/intake_t02_check.mjs', ...args, '--whole-journey'],
+      {cwd: root, encoding: 'utf8', timeout: 10000, windowsHide: true, maxBuffer: 65536});
+    assert.equal(result.error, undefined);
+    assert.equal(result.status, 1);
+    assert.equal(result.signal, null);
+    assert.match(result.stderr, /Error: WHOLE_JOURNEY_SCOPE/);
+    assert.equal(result.stdout, '');
+  }
+});
 
 test('both workspace jobs and every finite command are mandatory alongside retained producers',async()=>{
   const workflow=parseWorkflow(await fs.readFile(new URL('../../../.github/workflows/ci.yml',import.meta.url),'utf8'));

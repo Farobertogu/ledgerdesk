@@ -12,6 +12,7 @@ export async function journeyEnvironment({
   facultiesTransform = (f) => f,
   omitDeclaration = false,
   installBootstrap = true,
+  installMaterial = true,
 } = {}) {
   const env = await runtimeEnvironment();
   try {
@@ -88,7 +89,7 @@ export async function journeyEnvironment({
         'INSERT INTO material_trial.surface VALUES($1,$2,$3,$4,true,true,true,1)',
         [surface, permission, 'inc02-material', 'synthetic-reading-trial'],
       );
-    await env.admin.query(
+    if (installMaterial) await env.admin.query(
       `INSERT INTO material_trial.material VALUES('inc02-synthetic','inc02-material','"content"','"v1"',$1,'en',$2,$3,$4)`,
       [
         JSON.stringify(original),

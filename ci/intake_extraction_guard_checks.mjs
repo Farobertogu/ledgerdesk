@@ -13,6 +13,7 @@ export const extractionGuards=Object.freeze({
     {group:'semantics',name:'omit-condition-store',tests:['SEM semantic.txt']},
     {group:'semantics',name:'omit-limitation-store',tests:['SEM unsupported-part.xlsx']},
     {group:'semantics',name:'omit-incident-query',tests:['SEM unsupported-part.xlsx']},
+    {group:'mixed',name:'unknown-inventory-complete',tests:['MIX01 actual persistence']},
   ],
   formats:[
     {group:'format-negatives',name:'xlsx-recalculate-store',tests:['FN cache-discrepant.xlsx']},
@@ -22,7 +23,8 @@ export const extractionGuards=Object.freeze({
 });
 export function qualifyExtractionGuard(control,m,s,logs){
   assert.equal(m.completed,false);assert.equal(m.failure?.message,'T02_RUNTIME_FAILED');
-  assert.equal(s.files.filter(r=>r.fault===control.name).length,1);
+  assert.equal(s.files.filter(r=>r.fault===control.name).length,control.sourceCount??1);
+  if(control.sources)assert.deepEqual(s.files.filter(r=>r.fault===control.name).map(r=>r.path).sort(),[...control.sources].sort());
   assert.ok(m.resources.length>0&&m.resources.every(r=>r.removed===true));
   assert.ok(logs.includes('INTAKE_T02_RUNTIME_CLEANED')&&logs.includes('ACCESS_PG_CLEANED'));
   assert.match(logs,/^# cancelled 0$/m);
@@ -32,13 +34,16 @@ export function qualifyExtractionGuard(control,m,s,logs){
     // timeout, parent failure or a different case with the same exit status.
     const blocks=logs.split(/(?=^\s*(?:not )?ok \d+ - )/m);
     assert.ok(blocks.some(b=>b.split('\n')[0].includes('not ok ')&&b.split('\n')[0].includes(name)&&
-      b.includes("code: 'ERR_ASSERTION'")),control.name+': '+name);
+      b.includes("code: 'ERR_ASSERTION'")&&(!control.assertion||control.assertion.every(fragment=>b.includes(fragment)))),control.name+': '+name);
   }
   return true;
 }
 if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url)){
-  const args=process.argv.slice(2);assert.equal(args.length,2);assert.equal(args[0],'--suite');
-  const cases=extractionGuards[args[1]];assert.ok(cases,'Explicit finite guard suite required');
+  const args=process.argv.slice(2);assert.ok(args.length===2||args.length===4);assert.equal(args[0],'--suite');
+  let cases=extractionGuards[args[1]];assert.ok(cases,'Explicit finite guard suite required');
+  if(args.length===4){assert.equal(args[2],'--faults');const names=args[3].split(',');
+    assert.ok(names.length&&new Set(names).size===names.length&&names.every(n=>cases.some(c=>c.name===n)),'Known unique faults in the selected suite required');
+    cases=cases.filter(c=>names.includes(c.name));}
   const output=path.join(root,'test-results/intake-extraction/guard-controls',args[1]+'-'+new Date().toISOString().replace(/[:.]/g,'-')+'-'+randomUUID());
   await fs.mkdir(output,{recursive:true});await fs.copyFile(fileURLToPath(import.meta.url),path.join(output,'guard_checks.mjs'),fs.constants.COPYFILE_EXCL);
   const plan=[],baselines=new Set();

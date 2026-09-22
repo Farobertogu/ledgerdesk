@@ -1,0 +1,5055 @@
+{
+  "profile": "intake-t06-evidence/1",
+  "base": "bbedc4a8ccc7c4a8b10af9d39dcb42bc32b6ca9d",
+  "branch": "card/INC-03-whole-journey",
+  "status": "Implementation evidence; independent review and publication pending",
+  "generatedAt": "2026-09-22T13:50:12.379Z",
+  "runs": [
+    {
+      "runId": "intake-t02-2026-09-22T12-38-19-389Z-a72a823e",
+      "family": "intake-t02",
+      "group": "runtime",
+      "selections": [],
+      "completed": true,
+      "failureName": null,
+      "manifestSha256": "5c81e0cb688870aae3cbfb689263924c3272b3cdbdede6cb9205720d1dbc2c48",
+      "sourceManifestSha256": "4b1b0c3bf8ca420c23c0f030e2f35e9fef68374f9ad969a4acfe0b67ef82c2f7",
+      "node": "v22.16.0",
+      "recordedCommandMilliseconds": 80694,
+      "runtime": [
+        {
+          "file": "082-command.json",
+          "code": 0,
+          "reason": null,
+          "milliseconds": 23934,
+          "counts": {
+            "tests": 32,
+            "pass": 32,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "duration_ms": 23377.120802
+          }
+        }
+      ],
+      "resources": {
+        "recorded": 12,
+        "removed": 12
+      },
+      "buildIds": [],
+      "images": []
+    },
+    {
+      "runId": "intake-t02-2026-09-22T12-39-29-099Z-4c4c6408",
+      "family": "intake-t02",
+      "group": "runtime",
+      "selections": [],
+      "completed": false,
+      "failureName": "Error",
+      "manifestSha256": "9438914a31fbc0c0f9c729deafc07a10816bd49fcd7f14eaf40474014b66cab8",
+      "sourceManifestSha256": "105aaf0981bbaaa364cf37c1d54f954340382b55cc3cabc3c192a7fc91917f59",
+      "node": "v22.16.0",
+      "recordedCommandMilliseconds": 59766,
+      "runtime": [
+        {
+          "file": "084-command.json",
+          "code": 1,
+          "reason": null,
+          "milliseconds": 26064,
+          "counts": {
+            "tests": 32,
+            "pass": 30,
+            "fail": 2,
+            "cancelled": 0,
+            "skipped": 0,
+            "duration_ms": 25651.635672
+          }
+        }
+      ],
+      "resources": {
+        "recorded": 12,
+        "removed": 12
+      },
+      "buildIds": [],
+      "images": []
+    },
+    {
+      "runId": "intake-t02-2026-09-22T12-40-15-808Z-027b7ec2",
+      "family": "intake-t02",
+      "group": "runtime",
+      "selections": [],
+      "completed": false,
+      "failureName": "Error",
+      "manifestSha256": "2d9b83ebdc56f53b8128badefbfe412afa263c95149500f7b8b18a2b20ff27c7",
+      "sourceManifestSha256": "617882d92443f0382263ba7e94bf0124e8713f95a6d0af4b0a332ffcea468ad8",
+      "node": "v22.16.0",
+      "recordedCommandMilliseconds": 60423,
+      "runtime": [
+        {
+          "file": "084-command.json",
+          "code": 1,
+          "reason": null,
+          "milliseconds": 25680,
+          "counts": {
+            "tests": 32,
+            "pass": 30,
+            "fail": 2,
+            "cancelled": 0,
+            "skipped": 0,
+            "duration_ms": 25256.870117
+          }
+        }
+      ],
+      "resources": {
+        "recorded": 12,
+        "removed": 12
+      },
+      "buildIds": [],
+      "images": []
+    },
+    {
+      "runId": "intake-t02-2026-09-22T12-41-03-625Z-14c0ec84",
+      "family": "intake-t02",
+      "group": "runtime",
+      "selections": [],
+      "completed": false,
+      "failureName": "Error",
+      "manifestSha256": "13651459b826e9bb6a46bc8e169dcb3b4142988d3befc4eab7e29995626d542b",
+      "sourceManifestSha256": "f2ce0f6bdcdcdb773fa04828b3893c26f551d146ef56a5199536bb9a085afce4",
+      "node": "v22.16.0",
+      "recordedCommandMilliseconds": 59422,
+      "runtime": [
+        {
+          "file": "083-command.json",
+          "code": 1,
+          "reason": null,
+          "milliseconds": 24840,
+          "counts": {
+            "tests": 32,
+            "pass": 30,
+            "fail": 2,
+            "cancelled": 0,
+            "skipped": 0,
+            "duration_ms": 24449.503712
+          }
+        }
+      ],
+      "resources": {
+        "recorded": 12,
+        "removed": 12
+      },
+      "buildIds": [],
+      "images": []
+    },
+    {
+      "runId": "intake-t02-2026-09-22T12-41-50-870Z-36895d12",
+      "family": "intake-t02",
+      "group": "runtime",
+      "selections": [],
+      "completed": false,
+      "failureName": "Error",
+      "manifestSha256": "bbee25406fa8d11facad1463ea98c8865d9aec15814715cdce24bc2e8486ea07",
+      "sourceManifestSha256": "c47690c5375564f4d2dd4b7b112ebb77eb0769da2e9d5fd5c5d3a42b40b73576",
+      "node": "v22.16.0",
+      "recordedCommandMilliseconds": 47529,
+      "runtime": [
+        {
+          "file": "062-command.json",
+          "code": 1,
+          "reason": null,
+          "milliseconds": 17874,
+          "counts": {
+            "tests": 32,
+            "pass": 20,
+            "fail": 12,
+            "cancelled": 0,
+            "skipped": 0,
+            "duration_ms": 17447.834285
+          }
+        }
+      ],
+      "resources": {
+        "recorded": 12,
+        "removed": 12
+      },
+      "buildIds": [],
+      "images": []
+    },
+    {
+      "runId": "intake-t02-2026-09-22T12-44-02-067Z-a17d8923",
+      "family": "intake-t02",
+      "group": "runtime",
+      "selections": [],
+      "completed": true,
+      "failureName": null,
+      "manifestSha256": "9fe8f189fa1cfb3e5ab99d850c2a45a277ca0b0c67d38bc286fd989db1d88480",
+      "sourceManifestSha256": "e3bc171998474e484d885bc8ff8a154c500a6791cf8b358b4159b2d1a37b9cfb",
+      "node": "v22.16.0",
+      "recordedCommandMilliseconds": 67599,
+      "runtime": [
+        {
+          "file": "090-command.json",
+          "code": 0,
+          "reason": null,
+          "milliseconds": 30659,
+          "counts": {
+            "tests": 32,
+            "pass": 32,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "duration_ms": 30224.374077
+          }
+        }
+      ],
+      "resources": {
+        "recorded": 12,
+        "removed": 12
+      },
+      "buildIds": [],
+      "images": []
+    },
+    {
+      "runId": "intake-t02-2026-09-22T12-44-55-499Z-a7ddf158",
+      "family": "intake-t02",
+      "group": "runtime",
+      "selections": [],
+      "completed": false,
+      "failureName": "Error",
+      "manifestSha256": "6175a8b422bc7466edbe84b9412b8faa9836f7f4e853c2d3329e618ad63a7e1d",
+      "sourceManifestSha256": "5e1c99abecd9760edd99aaa81ee21703a22f3ef5dd0ced752540bea006ad7c41",
+      "node": "v22.16.0",
+      "recordedCommandMilliseconds": 45686,
+      "runtime": [
+        {
+          "file": "061-command.json",
+          "code": 1,
+          "reason": null,
+          "milliseconds": 17146,
+          "counts": {
+            "tests": 32,
+            "pass": 24,
+            "fail": 8,
+            "cancelled": 0,
+            "skipped": 0,
+            "duration_ms": 16762.841352
+          }
+        }
+      ],
+      "resources": {
+        "recorded": 12,
+        "removed": 12
+      },
+      "buildIds": [],
+      "images": []
+    },
+    {
+      "runId": "intake-t02-2026-09-22T12-45-34-031Z-3795efe8",
+      "family": "intake-t02",
+      "group": "runtime",
+      "selections": [],
+      "completed": false,
+      "failureName": "Error",
+      "manifestSha256": "c8d3e435afee0b839adc692052f1f801385b0de776569c71076a86a6680beffa",
+      "sourceManifestSha256": "44e50b534519ab6a865b7f8bc84d6c8cded27a5ae25edf5ceead2f26a5b7cd89",
+      "node": "v22.16.0",
+      "recordedCommandMilliseconds": 56879,
+      "runtime": [
+        {
+          "file": "082-command.json",
+          "code": 1,
+          "reason": null,
+          "milliseconds": 24395,
+          "counts": {
+            "tests": 32,
+            "pass": 30,
+            "fail": 2,
+            "cancelled": 0,
+            "skipped": 0,
+            "duration_ms": 24033.875388
+          }
+        }
+      ],
+      "resources": {
+        "recorded": 12,
+        "removed": 12
+      },
+      "buildIds": [],
+      "images": []
+    },
+    {
+      "runId": "intake-t02-2026-09-22T12-46-18-331Z-842a2524",
+      "family": "intake-t02",
+      "group": "delivery-order",
+      "selections": [],
+      "completed": true,
+      "failureName": null,
+      "manifestSha256": "e53f2f00e450816421c90b19a2076ee1d6f928b931b56352b905e9a1fb38511a",
+      "sourceManifestSha256": "ea12f4c5f634d7e7fb0f57c3add75c5cae800d389e1a92f0d7bcdcd3cbebbfd8",
+      "node": "v22.16.0",
+      "recordedCommandMilliseconds": 72313,
+      "runtime": [
+        {
+          "file": "105-command.json",
+          "code": 0,
+          "reason": null,
+          "milliseconds": 32991,
+          "counts": {
+            "tests": 18,
+            "pass": 18,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "duration_ms": 32431.545799
+          }
+        }
+      ],
+      "resources": {
+        "recorded": 12,
+        "removed": 12
+      },
+      "buildIds": [],
+      "images": []
+    },
+    {
+      "runId": "intake-t02-2026-09-22T12-47-13-545Z-aa7bb07b",
+      "family": "intake-t02",
+      "group": "delivery-order",
+      "selections": [],
+      "completed": false,
+      "failureName": "Error",
+      "manifestSha256": "3b30caf847bb8c81fecc5922632214312e4344e7f7c0b330dd174e2af7c7ffb3",
+      "sourceManifestSha256": "6c93eab93c35ad0f4ac6014010b89f86d391895d056739c8db9c64efee1c1096",
+      "node": "v22.16.0",
+      "recordedCommandMilliseconds": 87627,
+      "runtime": [
+        {
+          "file": "120-command.json",
+          "code": 1,
+          "reason": null,
+          "milliseconds": 43588,
+          "counts": {
+            "tests": 18,
+            "pass": 12,
+            "fail": 6,
+            "cancelled": 0,
+            "skipped": 0,
+            "duration_ms": 43148.55409
+          }
+        }
+      ],
+      "resources": {
+        "recorded": 12,
+        "removed": 12
+      },
+      "buildIds": [],
+      "images": []
+    },
+    {
+      "runId": "intake-t02-2026-09-22T12-48-50-136Z-b18d6114",
+      "family": "intake-t02",
+      "group": "boundaries",
+      "selections": [],
+      "completed": true,
+      "failureName": null,
+      "manifestSha256": "c76046a290f02f637c7e3efd7c0d4c92744444a0ddef1171bea6ee0023f5d567",
+      "sourceManifestSha256": "515bcbc4c3e76156b9c2a03671099936cc6a59638b74c460dfb56f6d2238c23f",
+      "node": "v22.16.0",
+      "recordedCommandMilliseconds": 36271,
+      "runtime": [
+        {
+          "file": "042-command.json",
+          "code": 0,
+          "reason": null,
+          "milliseconds": 11806,
+          "counts": {
+            "tests": 15,
+            "pass": 15,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "duration_ms": 11420.064656
+          }
+        }
+      ],
+      "resources": {
+        "recorded": 12,
+        "removed": 12
+      },
+      "buildIds": [],
+      "images": []
+    },
+    {
+      "runId": "intake-t02-2026-09-22T12-49-22-872Z-54401f26",
+      "family": "intake-t02",
+      "group": "boundaries",
+      "selections": [],
+      "completed": false,
+      "failureName": "Error",
+      "manifestSha256": "1a57543e45bbfa03061500f05c6e63f6ca6379f83e50e90d1f02d5fad108e7a3",
+      "sourceManifestSha256": "196541d3cdad48547c0a502f00a161303b365be196dcd8bf2432d9bfc8b667c5",
+      "node": "v22.16.0",
+      "recordedCommandMilliseconds": 38417,
+      "runtime": [
+        {
+          "file": "043-command.json",
+          "code": 1,
+          "reason": null,
+          "milliseconds": 12687,
+          "counts": {
+            "tests": 15,
+            "pass": 13,
+            "fail": 2,
+            "cancelled": 0,
+            "skipped": 0,
+            "duration_ms": 12271.662219
+          }
+        }
+      ],
+      "resources": {
+        "recorded": 12,
+        "removed": 12
+      },
+      "buildIds": [],
+      "images": []
+    },
+    {
+      "runId": "intake-t02-2026-09-22T12-57-55-534Z-307a362a",
+      "family": "intake-t02",
+      "group": "runtime",
+      "selections": [],
+      "completed": false,
+      "failureName": "Error",
+      "manifestSha256": "9037888127455d818835b69b4920c614cc0900a98b4e1d247e6c8722042f14d4",
+      "sourceManifestSha256": "70506a1970e7d93a7c7ef5eaa48b141e3e619cb6a79c645f7f28369fd7c88104",
+      "node": "v22.16.0",
+      "recordedCommandMilliseconds": 55035,
+      "runtime": [
+        {
+          "file": "081-command.json",
+          "code": 1,
+          "reason": null,
+          "milliseconds": 23312,
+          "counts": {
+            "tests": 32,
+            "pass": 30,
+            "fail": 2,
+            "cancelled": 0,
+            "skipped": 0,
+            "duration_ms": 22900.873166
+          }
+        }
+      ],
+      "resources": {
+        "recorded": 12,
+        "removed": 12
+      },
+      "buildIds": [],
+      "images": []
+    },
+    {
+      "runId": "intake-t02-2026-09-22T12-59-28-414Z-c98c4677",
+      "family": "intake-t02",
+      "group": "runtime",
+      "selections": [],
+      "completed": true,
+      "failureName": null,
+      "manifestSha256": "d233673388e9dc22058f5f03c7c38bc970eeb0df643d4c72fa1866215e780dd2",
+      "sourceManifestSha256": "7f835eee8bb227ffd19ecbded24bfeaec05ceedbdec842d4c858ca31931b4d7b",
+      "node": "v22.16.0",
+      "recordedCommandMilliseconds": 55748,
+      "runtime": [
+        {
+          "file": "082-command.json",
+          "code": 0,
+          "reason": null,
+          "milliseconds": 24029,
+          "counts": {
+            "tests": 32,
+            "pass": 32,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "duration_ms": 23676.230667
+          }
+        }
+      ],
+      "resources": {
+        "recorded": 12,
+        "removed": 12
+      },
+      "buildIds": [],
+      "images": []
+    },
+    {
+      "runId": "intake-t02-2026-09-22T13-00-12-129Z-cd52348c",
+      "family": "intake-t02",
+      "group": "runtime",
+      "selections": [],
+      "completed": false,
+      "failureName": "Error",
+      "manifestSha256": "dd115adac97cf36151508c98195ec5c76b3d448e22dac486c8391a91c1ebed0d",
+      "sourceManifestSha256": "ad46126cad1e8d119342a815fd9e98338426bed33e6fd65b4b08d0abdd78cd56",
+      "node": "v22.16.0",
+      "recordedCommandMilliseconds": 51452,
+      "runtime": [
+        {
+          "file": "064-command.json",
+          "code": 1,
+          "reason": null,
+          "milliseconds": 19895,
+          "counts": {
+            "tests": 32,
+            "pass": 26,
+            "fail": 6,
+            "cancelled": 0,
+            "skipped": 0,
+            "duration_ms": 19354.320039
+          }
+        }
+      ],
+      "resources": {
+        "recorded": 12,
+        "removed": 12
+      },
+      "buildIds": [],
+      "images": []
+    },
+    {
+      "runId": "intake-extraction-2026-09-22T08-58-20-859Z-804fd472",
+      "family": "intake-extraction",
+      "group": "extraction",
+      "selections": [
+        "LEDGERDESK_PREPARATION_CASES=ui-preparation",
+        "LEDGERDESK_INTAKE_WHOLE_JOURNEY=1",
+        "LEDGERDESK_EXTRACTION_CASES=preparation"
+      ],
+      "completed": false,
+      "failureName": "Error",
+      "manifestSha256": "9382df614b6b75c46c8583adc61dbb8fd5862a5862763763c446747d991b065a",
+      "sourceManifestSha256": "3758973b53572e5182db2f49b3f4e93538cb58995db618b82950672168cf1fdd",
+      "node": "v22.16.0",
+      "recordedCommandMilliseconds": 81131,
+      "runtime": [
+        {
+          "file": "064-command.json",
+          "code": 1,
+          "reason": null,
+          "milliseconds": 8372,
+          "counts": {
+            "tests": 3,
+            "pass": 1,
+            "fail": 2,
+            "cancelled": 0,
+            "skipped": 0,
+            "duration_ms": 7870.94365
+          }
+        }
+      ],
+      "resources": {
+        "recorded": 23,
+        "removed": 23
+      },
+      "buildIds": [],
+      "images": []
+    },
+    {
+      "runId": "intake-extraction-2026-09-22T09-00-45-160Z-71a11928",
+      "family": "intake-extraction",
+      "group": "extraction",
+      "selections": [
+        "LEDGERDESK_PREPARATION_CASES=ui-preparation",
+        "LEDGERDESK_INTAKE_WHOLE_JOURNEY=1",
+        "LEDGERDESK_EXTRACTION_CASES=preparation"
+      ],
+      "completed": true,
+      "failureName": null,
+      "manifestSha256": "fa796f75060f2a939f3b49b4d0cc60c409b369ab6585fce9902b76da81dd4b39",
+      "sourceManifestSha256": "b869308cad62f93b2f3cb8f511013ab2e1951b1b92f84583639c5476f9d6c96f",
+      "node": "v22.16.0",
+      "recordedCommandMilliseconds": 86479,
+      "runtime": [
+        {
+          "file": "094-command.json",
+          "code": 0,
+          "reason": null,
+          "milliseconds": 21286,
+          "counts": {
+            "tests": 7,
+            "pass": 7,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "duration_ms": 20833.660546
+          }
+        }
+      ],
+      "resources": {
+        "recorded": 23,
+        "removed": 23
+      },
+      "buildIds": [
+        "gcPf7hBWP_EUTSHqNtUMP"
+      ],
+      "images": []
+    },
+    {
+      "runId": "intake-extraction-2026-09-22T12-49-57-652Z-2b552b3e",
+      "family": "intake-extraction",
+      "group": "extraction",
+      "selections": [
+        "LEDGERDESK_EXTRACTION_CASES=mixed"
+      ],
+      "completed": true,
+      "failureName": null,
+      "manifestSha256": "2f371dd8c98af9d5dfcaf5be15d5ce8f98cc25fc08f7919bc77c359917653720",
+      "sourceManifestSha256": "a9accf85542132d996319d396a258fbf584dc154fa2da59b8f66f2554baf37c2",
+      "node": "v22.16.0",
+      "recordedCommandMilliseconds": 58243,
+      "runtime": [
+        {
+          "file": "077-command.json",
+          "code": 0,
+          "reason": null,
+          "milliseconds": 13796,
+          "counts": {
+            "tests": 3,
+            "pass": 3,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "duration_ms": 13380.385242
+          }
+        }
+      ],
+      "resources": {
+        "recorded": 22,
+        "removed": 22
+      },
+      "buildIds": [],
+      "images": []
+    },
+    {
+      "runId": "intake-extraction-2026-09-22T12-50-47-750Z-85c3c223",
+      "family": "intake-extraction",
+      "group": "extraction",
+      "selections": [
+        "LEDGERDESK_EXTRACTION_CASES=mixed"
+      ],
+      "completed": false,
+      "failureName": "Error",
+      "manifestSha256": "dccf2aa6e9a6c17fed366422f6111d387c763929c084d438c750614349a42b88",
+      "sourceManifestSha256": "8170551eb3b2f57751a71c18ea5cbb7150c3d72b61628c4a0d18a797538a4c45",
+      "node": "v22.16.0",
+      "recordedCommandMilliseconds": 54834,
+      "runtime": [
+        {
+          "file": "075-command.json",
+          "code": 1,
+          "reason": null,
+          "milliseconds": 12615,
+          "counts": {
+            "tests": 3,
+            "pass": 1,
+            "fail": 2,
+            "cancelled": 0,
+            "skipped": 0,
+            "duration_ms": 12265.062143
+          }
+        }
+      ],
+      "resources": {
+        "recorded": 22,
+        "removed": 22
+      },
+      "buildIds": [],
+      "images": []
+    },
+    {
+      "runId": "intake-extraction-2026-09-22T12-51-34-980Z-2a8008da",
+      "family": "intake-extraction",
+      "group": "extraction",
+      "selections": [
+        "LEDGERDESK_EXTRACTION_CASES=format-negatives"
+      ],
+      "completed": true,
+      "failureName": null,
+      "manifestSha256": "3f4f050fead534216ccfe0aee51f6b250e571a769e7fabd3e548ce272a052dae",
+      "sourceManifestSha256": "5ecfd4ae20d8479f94d785271ed2143696df50231d0def76f94d0701404ceaf8",
+      "node": "v22.16.0",
+      "recordedCommandMilliseconds": 172629,
+      "runtime": [
+        {
+          "file": "263-command.json",
+          "code": 0,
+          "reason": null,
+          "milliseconds": 80610,
+          "counts": {
+            "tests": 14,
+            "pass": 14,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "duration_ms": 80226.389801
+          }
+        }
+      ],
+      "resources": {
+        "recorded": 22,
+        "removed": 22
+      },
+      "buildIds": [],
+      "images": []
+    },
+    {
+      "runId": "intake-extraction-2026-09-22T12-53-27-616Z-52f55d0c",
+      "family": "intake-extraction",
+      "group": "extraction",
+      "selections": [
+        "LEDGERDESK_EXTRACTION_CASES=format-negatives"
+      ],
+      "completed": false,
+      "failureName": "Error",
+      "manifestSha256": "0d56e9eaadc965f0fd460470396813031a64eb992f5ae25c2352a2fcc1ef7161",
+      "sourceManifestSha256": "d295c3574e9a96d5bc826bebc2853ad33c24f2c762e6f39358efcca1062d9e49",
+      "node": "v22.16.0",
+      "recordedCommandMilliseconds": 176752,
+      "runtime": [
+        {
+          "file": "261-command.json",
+          "code": 1,
+          "reason": null,
+          "milliseconds": 79395,
+          "counts": {
+            "tests": 14,
+            "pass": 12,
+            "fail": 2,
+            "cancelled": 0,
+            "skipped": 0,
+            "duration_ms": 78987.232838
+          }
+        }
+      ],
+      "resources": {
+        "recorded": 22,
+        "removed": 22
+      },
+      "buildIds": [],
+      "images": []
+    },
+    {
+      "runId": "intake-extraction-2026-09-22T13-02-01-663Z-458c2d73",
+      "family": "intake-extraction",
+      "group": "extraction",
+      "selections": [
+        "LEDGERDESK_PREPARATION_CASES=identity",
+        "LEDGERDESK_EXTRACTION_CASES=preparation"
+      ],
+      "completed": true,
+      "failureName": null,
+      "manifestSha256": "551698b6a1d7ab9b12aa25986f9055e5d6088a14a0fac67c929cfccc4988a0a1",
+      "sourceManifestSha256": "aae2a4939c57fcc368df46b496266092215061608389a4c2d2abcef9c6701396",
+      "node": "v22.16.0",
+      "recordedCommandMilliseconds": 79448,
+      "runtime": [
+        {
+          "file": "115-command.json",
+          "code": 0,
+          "reason": null,
+          "milliseconds": 27131,
+          "counts": {
+            "tests": 13,
+            "pass": 13,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "duration_ms": 26729.637122
+          }
+        }
+      ],
+      "resources": {
+        "recorded": 23,
+        "removed": 23
+      },
+      "buildIds": [],
+      "images": []
+    },
+    {
+      "runId": "intake-extraction-2026-09-22T13-03-03-406Z-c9136aeb",
+      "family": "intake-extraction",
+      "group": "extraction",
+      "selections": [],
+      "completed": false,
+      "failureName": "Error",
+      "manifestSha256": "88bb0e2776c438b97f6fa48a4eaede9dc68736c22b7e57a9cf296d8d129b0558",
+      "sourceManifestSha256": "97faa080b3029e69804e5755d920a50500bb9ecab6741cab7af61b0fdab7d2ef",
+      "node": "v22.16.0",
+      "recordedCommandMilliseconds": 17803,
+      "runtime": [],
+      "resources": {
+        "recorded": 9,
+        "removed": 9
+      },
+      "buildIds": [],
+      "images": []
+    },
+    {
+      "runId": "intake-extraction-2026-09-22T13-05-31-233Z-0bf3d51e",
+      "family": "intake-extraction",
+      "group": "extraction",
+      "selections": [
+        "LEDGERDESK_PREPARATION_CASES=identity",
+        "LEDGERDESK_EXTRACTION_CASES=preparation"
+      ],
+      "completed": true,
+      "failureName": null,
+      "manifestSha256": "13d8ccf19b45a4b0e068f517de9494450d89a1792a825bbe27d0001b66773d67",
+      "sourceManifestSha256": "607ca5e859841777aa93d14d8b1355b8bf2bca8072180c4ece2096d171b5e9cb",
+      "node": "v22.16.0",
+      "recordedCommandMilliseconds": 80104,
+      "runtime": [
+        {
+          "file": "119-command.json",
+          "code": 0,
+          "reason": null,
+          "milliseconds": 28592,
+          "counts": {
+            "tests": 13,
+            "pass": 13,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "duration_ms": 28220.995544
+          }
+        }
+      ],
+      "resources": {
+        "recorded": 23,
+        "removed": 23
+      },
+      "buildIds": [],
+      "images": []
+    },
+    {
+      "runId": "intake-extraction-2026-09-22T13-06-33-226Z-fc608614",
+      "family": "intake-extraction",
+      "group": "extraction",
+      "selections": [
+        "LEDGERDESK_PREPARATION_CASES=identity",
+        "LEDGERDESK_EXTRACTION_CASES=preparation"
+      ],
+      "completed": false,
+      "failureName": "Error",
+      "manifestSha256": "dd9e5e9f84357ff76dbbfaf4b8726e6ba122f5ee90f31a3e02a9d4c79e72d076",
+      "sourceManifestSha256": "00d6c4e001949c0784b194d42076818127041bef461801d5157b8400ed9a0d63",
+      "node": "v22.16.0",
+      "recordedCommandMilliseconds": 86141,
+      "runtime": [
+        {
+          "file": "121-command.json",
+          "code": 1,
+          "reason": null,
+          "milliseconds": 29750,
+          "counts": {
+            "tests": 13,
+            "pass": 11,
+            "fail": 2,
+            "cancelled": 0,
+            "skipped": 0,
+            "duration_ms": 29349.582796
+          }
+        }
+      ],
+      "resources": {
+        "recorded": 23,
+        "removed": 23
+      },
+      "buildIds": [],
+      "images": []
+    },
+    {
+      "runId": "intake-extraction-2026-09-22T13-08-51-828Z-80cccce9",
+      "family": "intake-extraction",
+      "group": "extraction",
+      "selections": [
+        "LEDGERDESK_PREPARATION_CASES=identity",
+        "LEDGERDESK_EXTRACTION_CASES=preparation"
+      ],
+      "completed": true,
+      "failureName": null,
+      "manifestSha256": "24f778b589a3e55957e2439f7c32a5dd04da033f544d7954dede6876324b0095",
+      "sourceManifestSha256": "2320f64677ef645caec4dffd977471b445e5a1daab5c143c400ed3b11c51f0ef",
+      "node": "v22.16.0",
+      "recordedCommandMilliseconds": 76997,
+      "runtime": [
+        {
+          "file": "113-command.json",
+          "code": 0,
+          "reason": null,
+          "milliseconds": 26001,
+          "counts": {
+            "tests": 13,
+            "pass": 13,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "duration_ms": 25673.116458
+          }
+        }
+      ],
+      "resources": {
+        "recorded": 23,
+        "removed": 23
+      },
+      "buildIds": [],
+      "images": []
+    },
+    {
+      "runId": "intake-extraction-2026-09-22T13-09-51-188Z-79a88b3d",
+      "family": "intake-extraction",
+      "group": "extraction",
+      "selections": [
+        "LEDGERDESK_PREPARATION_CASES=identity",
+        "LEDGERDESK_EXTRACTION_CASES=preparation"
+      ],
+      "completed": false,
+      "failureName": "Error",
+      "manifestSha256": "29e3923298902d8d946626343a9f6c7810f2189e4e8595ad657399907efc949e",
+      "sourceManifestSha256": "481fc4ad39cba5eaafa81abc349a944df290a3e63f84a3de5643cbee4b9a6f0f",
+      "node": "v22.16.0",
+      "recordedCommandMilliseconds": 78860,
+      "runtime": [
+        {
+          "file": "115-command.json",
+          "code": 1,
+          "reason": null,
+          "milliseconds": 26810,
+          "counts": {
+            "tests": 13,
+            "pass": 11,
+            "fail": 2,
+            "cancelled": 0,
+            "skipped": 0,
+            "duration_ms": 26466.440195
+          }
+        }
+      ],
+      "resources": {
+        "recorded": 23,
+        "removed": 23
+      },
+      "buildIds": [],
+      "images": []
+    },
+    {
+      "runId": "intake-extraction-2026-09-22T13-10-52-248Z-bb209552",
+      "family": "intake-extraction",
+      "group": "extraction",
+      "selections": [
+        "LEDGERDESK_PREPARATION_CASES=disclosure",
+        "LEDGERDESK_EXTRACTION_CASES=preparation"
+      ],
+      "completed": true,
+      "failureName": null,
+      "manifestSha256": "516a7961c7f1aa4d2d6596a910b98922d062e89e29a36df7a5435390e992f346",
+      "sourceManifestSha256": "5d1d475d985ce37881e1ed31f1cba948ed5fc8897d996e7ce1b209a29feaeee9",
+      "node": "v22.16.0",
+      "recordedCommandMilliseconds": 107880,
+      "runtime": [
+        {
+          "file": "155-command.json",
+          "code": 0,
+          "reason": null,
+          "milliseconds": 44965,
+          "counts": {
+            "tests": 12,
+            "pass": 12,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "duration_ms": 44518.841848
+          }
+        }
+      ],
+      "resources": {
+        "recorded": 23,
+        "removed": 23
+      },
+      "buildIds": [],
+      "images": []
+    },
+    {
+      "runId": "intake-extraction-2026-09-22T13-12-11-217Z-81de6e76",
+      "family": "intake-extraction",
+      "group": "extraction",
+      "selections": [
+        "LEDGERDESK_PREPARATION_CASES=disclosure",
+        "LEDGERDESK_EXTRACTION_CASES=preparation"
+      ],
+      "completed": false,
+      "failureName": "Error",
+      "manifestSha256": "84ca11932bb25d6fad7373c516c50189fbf84d521a8d03ee45acd8987ec4da48",
+      "sourceManifestSha256": "ba44eda695eef7e23c2159d6bd842d6ef223c85b87e38e7d94f5262fcc29aae9",
+      "node": "v22.16.0",
+      "recordedCommandMilliseconds": 90072,
+      "runtime": [
+        {
+          "file": "131-command.json",
+          "code": 1,
+          "reason": null,
+          "milliseconds": 31837,
+          "counts": {
+            "tests": 12,
+            "pass": 9,
+            "fail": 3,
+            "cancelled": 0,
+            "skipped": 0,
+            "duration_ms": 31467.994142
+          }
+        }
+      ],
+      "resources": {
+        "recorded": 23,
+        "removed": 23
+      },
+      "buildIds": [],
+      "images": []
+    },
+    {
+      "runId": "intake-extraction-2026-09-22T13-13-19-828Z-fec95530",
+      "family": "intake-extraction",
+      "group": "extraction",
+      "selections": [
+        "LEDGERDESK_PREPARATION_CASES=ui-preparation",
+        "LEDGERDESK_INTAKE_WHOLE_JOURNEY=1",
+        "LEDGERDESK_EXTRACTION_CASES=preparation"
+      ],
+      "completed": true,
+      "failureName": null,
+      "manifestSha256": "b43cc734b17bc82bb631d2ba30603beaa454f6b70e170a311daee20a9e042e85",
+      "sourceManifestSha256": "b66dd530a71656ee67b44764d5df88ddd71ebf41903c3ece9a6145d992ba5d3d",
+      "node": "v22.16.0",
+      "recordedCommandMilliseconds": 79693,
+      "runtime": [
+        {
+          "file": "086-command.json",
+          "code": 0,
+          "reason": null,
+          "milliseconds": 16968,
+          "counts": {
+            "tests": 7,
+            "pass": 7,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "duration_ms": 16570.185125
+          }
+        }
+      ],
+      "resources": {
+        "recorded": 23,
+        "removed": 23
+      },
+      "buildIds": [
+        "c67184OKQxcATGfjxzMEP"
+      ],
+      "images": []
+    },
+    {
+      "runId": "intake-extraction-2026-09-22T13-14-29-671Z-8e3a6e4f",
+      "family": "intake-extraction",
+      "group": "extraction",
+      "selections": [
+        "LEDGERDESK_PREPARATION_CASES=ui-preparation",
+        "LEDGERDESK_INTAKE_WHOLE_JOURNEY=1",
+        "LEDGERDESK_EXTRACTION_CASES=preparation"
+      ],
+      "completed": false,
+      "failureName": "Error",
+      "manifestSha256": "d9161d78adb006e15c64fc2f80842d7fbaabdbd5d5335445f83f78c9c28059fe",
+      "sourceManifestSha256": "268944b4b27d34415bdcc90f6e4d1690909c3d1789199a435fcefc6358d0116d",
+      "node": "v22.16.0",
+      "recordedCommandMilliseconds": 74942,
+      "runtime": [
+        {
+          "file": "086-command.json",
+          "code": 1,
+          "reason": null,
+          "milliseconds": 16943,
+          "counts": {
+            "tests": 6,
+            "pass": 4,
+            "fail": 2,
+            "cancelled": 0,
+            "skipped": 0,
+            "duration_ms": 16559.019545
+          }
+        }
+      ],
+      "resources": {
+        "recorded": 23,
+        "removed": 23
+      },
+      "buildIds": [],
+      "images": []
+    },
+    {
+      "runId": "intake-extraction-2026-09-22T13-20-12-182Z-3535b974",
+      "family": "intake-extraction",
+      "group": "extraction",
+      "selections": [
+        "LEDGERDESK_PREPARATION_CASES=ui-adoption-reception",
+        "LEDGERDESK_EXTRACTION_CASES=preparation"
+      ],
+      "completed": true,
+      "failureName": null,
+      "manifestSha256": "d0c9f2bea970461e12836a3a1a755bb88bf8d1604e7fce43a1d288b79d2bc85e",
+      "sourceManifestSha256": "504e417a00b55aa380ff16b195b7631633b8a1394325374b7afcf9bd070c5709",
+      "node": "v22.16.0",
+      "recordedCommandMilliseconds": 58216,
+      "runtime": [
+        {
+          "file": "084-command.json",
+          "code": 0,
+          "reason": null,
+          "milliseconds": 15804,
+          "counts": {
+            "tests": 4,
+            "pass": 4,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "duration_ms": 15421.39089
+          }
+        }
+      ],
+      "resources": {
+        "recorded": 23,
+        "removed": 23
+      },
+      "buildIds": [],
+      "images": []
+    },
+    {
+      "runId": "intake-extraction-2026-09-22T13-21-01-078Z-11792283",
+      "family": "intake-extraction",
+      "group": "extraction",
+      "selections": [
+        "LEDGERDESK_PREPARATION_CASES=ui-adoption-reception",
+        "LEDGERDESK_EXTRACTION_CASES=preparation"
+      ],
+      "completed": false,
+      "failureName": "Error",
+      "manifestSha256": "be7df2b798389291d73221171cda69735a6800dc1e8b6c1448d704bbf6be0f11",
+      "sourceManifestSha256": "a8cb78a4c6ce52ad7c1bdf372f5e620ddc6912ecdcaeb87801a84c78f92788de",
+      "node": "v22.16.0",
+      "recordedCommandMilliseconds": 84854,
+      "runtime": [
+        {
+          "file": "094-command.json",
+          "code": 1,
+          "reason": null,
+          "milliseconds": 21543,
+          "counts": {
+            "tests": 4,
+            "pass": 2,
+            "fail": 2,
+            "cancelled": 0,
+            "skipped": 0,
+            "duration_ms": 21103.954153
+          }
+        }
+      ],
+      "resources": {
+        "recorded": 23,
+        "removed": 23
+      },
+      "buildIds": [],
+      "images": []
+    },
+    {
+      "runId": "intake-extraction-2026-09-22T13-22-35-821Z-27192458",
+      "family": "intake-extraction",
+      "group": "extraction",
+      "selections": [
+        "LEDGERDESK_PREPARATION_CASES=ui-preparation",
+        "LEDGERDESK_EXTRACTION_CASES=preparation"
+      ],
+      "completed": false,
+      "failureName": "Error",
+      "manifestSha256": "6170edbd8e899ea8a8bdb22f2b1fbe4f1ff0c70cadc60d1981f4a9212780d749",
+      "sourceManifestSha256": "d7a222a283920d74c8481d847dd59bf87f830344c15357f28bfc8723a7983a90",
+      "node": "v22.16.0",
+      "recordedCommandMilliseconds": 62881,
+      "runtime": [
+        {
+          "file": "066-command.json",
+          "code": 1,
+          "reason": null,
+          "milliseconds": 9253,
+          "counts": {
+            "tests": 3,
+            "pass": 2,
+            "fail": 1,
+            "cancelled": 0,
+            "skipped": 0,
+            "duration_ms": 8834.620274
+          }
+        }
+      ],
+      "resources": {
+        "recorded": 23,
+        "removed": 23
+      },
+      "buildIds": [],
+      "images": []
+    },
+    {
+      "runId": "intake-extraction-2026-09-22T13-25-40-551Z-0f585daf",
+      "family": "intake-extraction",
+      "group": "extraction",
+      "selections": [
+        "LEDGERDESK_PREPARATION_CASES=ui-preparation",
+        "LEDGERDESK_EXTRACTION_CASES=preparation"
+      ],
+      "completed": true,
+      "failureName": null,
+      "manifestSha256": "d0072c6f056fbac036bf098b144c1be23c33f0116017e748cb44fb7e5d08811d",
+      "sourceManifestSha256": "925c9f30d1017782837ac772245e958418873d9c00c1ca7ba94b656b2d650dd3",
+      "node": "v22.16.0",
+      "recordedCommandMilliseconds": 189515,
+      "runtime": [
+        {
+          "file": "249-command.json",
+          "code": 0,
+          "reason": null,
+          "milliseconds": 83612,
+          "counts": {
+            "tests": 9,
+            "pass": 9,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "duration_ms": 83210.666222
+          }
+        }
+      ],
+      "resources": {
+        "recorded": 23,
+        "removed": 23
+      },
+      "buildIds": [],
+      "images": []
+    },
+    {
+      "runId": "intake-extraction-2026-09-22T13-28-46-630Z-23f68d42",
+      "family": "intake-extraction",
+      "group": "extraction",
+      "selections": [
+        "LEDGERDESK_PREPARATION_CASES=ui-protection",
+        "LEDGERDESK_EXTRACTION_CASES=preparation"
+      ],
+      "completed": true,
+      "failureName": null,
+      "manifestSha256": "d27c633745e9a0235c1274ede75e1328dd143092a6fbc14aea4d309c5f8027e8",
+      "sourceManifestSha256": "63ee4fa88af8f20276dfcc233222beedf1d5b24b74124790762b8a54e4123a0c",
+      "node": "v22.16.0",
+      "recordedCommandMilliseconds": 95075,
+      "runtime": [
+        {
+          "file": "118-command.json",
+          "code": 0,
+          "reason": null,
+          "milliseconds": 31260,
+          "counts": {
+            "tests": 13,
+            "pass": 13,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "duration_ms": 30878.88955
+          }
+        }
+      ],
+      "resources": {
+        "recorded": 23,
+        "removed": 23
+      },
+      "buildIds": [],
+      "images": []
+    },
+    {
+      "runId": "intake-extraction-2026-09-22T13-30-02-910Z-31117a8e",
+      "family": "intake-extraction",
+      "group": "extraction",
+      "selections": [
+        "LEDGERDESK_PREPARATION_CASES=ui-adoption-preparation",
+        "LEDGERDESK_EXTRACTION_CASES=preparation"
+      ],
+      "completed": true,
+      "failureName": null,
+      "manifestSha256": "63bfbaa9bbf349f4fca07bc1343a09a1d52aff57092b9bf56b9c75b5404e9dfa",
+      "sourceManifestSha256": "5b633a75b61c1dbfd320a12a51a0dc29c98c37231596f5497664c8c6bc1002fa",
+      "node": "v22.16.0",
+      "recordedCommandMilliseconds": 114882,
+      "runtime": [
+        {
+          "file": "148-command.json",
+          "code": 0,
+          "reason": null,
+          "milliseconds": 51349,
+          "counts": {
+            "tests": 18,
+            "pass": 18,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "duration_ms": 51008.864727
+          }
+        }
+      ],
+      "resources": {
+        "recorded": 23,
+        "removed": 23
+      },
+      "buildIds": [],
+      "images": []
+    },
+    {
+      "runId": "intake-extraction-2026-09-22T13-31-29-111Z-86e61db6",
+      "family": "intake-extraction",
+      "group": "extraction",
+      "selections": [
+        "LEDGERDESK_PREPARATION_CASES=ui-disclosure-navigation",
+        "LEDGERDESK_EXTRACTION_CASES=preparation"
+      ],
+      "completed": true,
+      "failureName": null,
+      "manifestSha256": "a96b58ab5a08ecf8272e47749eabfe6dd3fa59cb43c817542fa6cf1a57653962",
+      "sourceManifestSha256": "eea8c97f6e1965502b941bc96855d22f62a4af6d2a61c8a76023269893439d81",
+      "node": "v22.16.0",
+      "recordedCommandMilliseconds": 68908,
+      "runtime": [
+        {
+          "file": "096-command.json",
+          "code": 0,
+          "reason": null,
+          "milliseconds": 22743,
+          "counts": {
+            "tests": 6,
+            "pass": 6,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "duration_ms": 22387.559245
+          }
+        }
+      ],
+      "resources": {
+        "recorded": 23,
+        "removed": 23
+      },
+      "buildIds": [],
+      "images": []
+    },
+    {
+      "runId": "intake-extraction-2026-09-22T13-34-21-151Z-02fcc7cc",
+      "family": "intake-extraction",
+      "group": "extraction",
+      "selections": [
+        "LEDGERDESK_PREPARATION_CASES=ui-preparation",
+        "LEDGERDESK_INTAKE_WHOLE_JOURNEY=1",
+        "LEDGERDESK_EXTRACTION_CASES=preparation"
+      ],
+      "completed": true,
+      "failureName": null,
+      "manifestSha256": "a91bb89dd631200e3b40ed8a33c74c2b79e0a412a2d037be142f0ed1b16f0a24",
+      "sourceManifestSha256": "b1d35ab3a73f1ddf248b022e5a00ede275a8d88a09be50dc8c5c7ca157d66b41",
+      "node": "v22.16.0",
+      "recordedCommandMilliseconds": 56799,
+      "runtime": [
+        {
+          "file": "086-command.json",
+          "code": 0,
+          "reason": null,
+          "milliseconds": 17169,
+          "counts": {
+            "tests": 7,
+            "pass": 7,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "duration_ms": 16821.533695
+          }
+        }
+      ],
+      "resources": {
+        "recorded": 23,
+        "removed": 23
+      },
+      "buildIds": [
+        "79xqwx44H9jVmancKUo8V"
+      ],
+      "images": []
+    },
+    {
+      "runId": "intake-extraction-2026-09-22t13-33-34-874z-023b4028",
+      "family": "intake-extraction",
+      "group": "worker",
+      "selections": [],
+      "completed": true,
+      "failureName": null,
+      "manifestSha256": "073019fcfe2a036fdbe3c3f5ff2384ff17931591d77b679ad7607981a8fe333b",
+      "sourceManifestSha256": null,
+      "node": "v22.16.0",
+      "recordedCommandMilliseconds": 39280,
+      "runtime": [],
+      "resources": {
+        "recorded": 28,
+        "removed": 28
+      },
+      "buildIds": [],
+      "fixedEntry": [
+        {
+          "name": "short.txt",
+          "kind": "produced",
+          "observationBytes": 667,
+          "envelopeBytes": 2277
+        },
+        {
+          "name": "text.txt",
+          "kind": "produced",
+          "observationBytes": 1972,
+          "envelopeBytes": 3584
+        },
+        {
+          "name": "inert.md",
+          "kind": "produced",
+          "observationBytes": 1430,
+          "envelopeBytes": 3047
+        },
+        {
+          "name": "table.csv",
+          "kind": "produced",
+          "observationBytes": 2435,
+          "envelopeBytes": 4046
+        },
+        {
+          "name": "unicode-records.csv",
+          "kind": "produced",
+          "observationBytes": 1858,
+          "envelopeBytes": 3468
+        },
+        {
+          "name": "baseline.xlsx",
+          "kind": "produced",
+          "observationBytes": 28382,
+          "envelopeBytes": 29996
+        },
+        {
+          "name": "repacked.xlsx",
+          "kind": "produced",
+          "observationBytes": 28359,
+          "envelopeBytes": 29974
+        },
+        {
+          "name": "cache-discrepant.xlsx",
+          "kind": "produced",
+          "observationBytes": 28382,
+          "envelopeBytes": 29996
+        },
+        {
+          "name": "cache-missing.xlsx",
+          "kind": "produced",
+          "observationBytes": 28318,
+          "envelopeBytes": 29932
+        },
+        {
+          "name": "cache-zero.xlsx",
+          "kind": "produced",
+          "observationBytes": 28372,
+          "envelopeBytes": 29986
+        },
+        {
+          "name": "sheets-at.xlsx",
+          "kind": "produced",
+          "observationBytes": 18636,
+          "envelopeBytes": 20250
+        },
+        {
+          "name": "cells-at.xlsx",
+          "kind": "produced",
+          "observationBytes": 3703359,
+          "envelopeBytes": 3704974
+        },
+        {
+          "name": "cells-distributed-at.xlsx",
+          "kind": "produced",
+          "observationBytes": 3730856,
+          "envelopeBytes": 3732471
+        },
+        {
+          "name": "invalid-utf8.txt",
+          "kind": "failed",
+          "code": "invalid_utf8"
+        },
+        {
+          "name": "invalid-utf8.csv",
+          "kind": "failed",
+          "code": "invalid_utf8"
+        },
+        {
+          "name": "utf16.csv",
+          "kind": "failed",
+          "code": "unsupported_encoding"
+        },
+        {
+          "name": "macro-declared.xlsx",
+          "kind": "failed",
+          "code": "unsupported_workbook_type"
+        },
+        {
+          "name": "entity-declared.xlsx",
+          "kind": "failed",
+          "code": "xml_declaration_forbidden"
+        },
+        {
+          "name": "sheets-over.xlsx",
+          "kind": "failed",
+          "code": "sheet_limit"
+        },
+        {
+          "name": "cells-over.xlsx",
+          "kind": "failed",
+          "code": "cell_limit"
+        },
+        {
+          "name": "cells-distributed-over.xlsx",
+          "kind": "failed",
+          "code": "cell_limit"
+        },
+        {
+          "name": "wrong-bytes",
+          "kind": "failed",
+          "code": "input_identity_mismatch"
+        },
+        {
+          "name": "wrong-sha256",
+          "kind": "failed",
+          "code": "input_identity_mismatch"
+        },
+        {
+          "name": "extra-field",
+          "kind": "rejected"
+        },
+        {
+          "name": "path-override",
+          "kind": "rejected"
+        },
+        {
+          "name": "foreign-format",
+          "kind": "rejected"
+        },
+        {
+          "name": "positional-argument",
+          "kind": "rejected"
+        }
+      ],
+      "memory": {
+        "required": false,
+        "qualified": false
+      },
+      "images": [
+        {
+          "id": "sha256:c8c9760c1a64461eb6c423afbcfc73232e72bbd140f546bbcac57ec2ba7364a6",
+          "removed": true
+        }
+      ]
+    }
+  ],
+  "aggregates": [
+    {
+      "id": "guards-2026-09-22T12-48-50-087Z-d13316e4-2a7c-4a31-9194-e79b94d610ee",
+      "family": "intake-t02",
+      "kind": "guard-controls",
+      "sha256": "779a490cb07cac0934b675568a649b109e707187ff010d67a8a9f44b8683aea6",
+      "completed": true,
+      "rows": [
+        {
+          "name": "pre-capture",
+          "mutation": false,
+          "args": [
+            "ci/intake_t02_check.mjs",
+            "--group",
+            "boundaries"
+          ],
+          "code": 0,
+          "signal": null,
+          "milliseconds": 32736,
+          "manifestSha256": "c76046a290f02f637c7e3efd7c0d4c92744444a0ddef1171bea6ee0023f5d567",
+          "sourceManifestSha256": "515bcbc4c3e76156b9c2a03671099936cc6a59638b74c460dfb56f6d2238c23f",
+          "runId": "intake-t02-2026-09-22T12-48-50-136Z-b18d6114"
+        },
+        {
+          "name": "pre-capture",
+          "mutation": true,
+          "args": [
+            "ci/intake_t02_check.mjs",
+            "--group",
+            "boundaries",
+            "--boundary-mutation",
+            "early-read"
+          ],
+          "code": 1,
+          "signal": null,
+          "milliseconds": 34722,
+          "manifestSha256": "1a57543e45bbfa03061500f05c6e63f6ca6379f83e50e90d1f02d5fad108e7a3",
+          "sourceManifestSha256": "196541d3cdad48547c0a502f00a161303b365be196dcd8bf2432d9bfc8b667c5",
+          "runId": "intake-t02-2026-09-22T12-49-22-872Z-54401f26"
+        }
+      ],
+      "failureName": null
+    },
+    {
+      "id": "producer-2026-09-22T12-38-19-331Z-5ddbb2d4-fb3d-4042-ba85-fd31b80e6b59",
+      "family": "intake-t02",
+      "kind": "producer-controls",
+      "sha256": "65482c2cdecd68a8102170d75afd35a7982daa104ce275bef1346e53a507c118",
+      "completed": false,
+      "rows": [
+        {
+          "group": "runtime",
+          "fault": null,
+          "args": [
+            "ci/intake_t02_check.mjs",
+            "--group",
+            "runtime"
+          ],
+          "code": 0,
+          "signal": null,
+          "milliseconds": 69713,
+          "manifestSha256": "5c81e0cb688870aae3cbfb689263924c3272b3cdbdede6cb9205720d1dbc2c48",
+          "sourceManifestSha256": "4b1b0c3bf8ca420c23c0f030e2f35e9fef68374f9ad969a4acfe0b67ef82c2f7",
+          "completed": true,
+          "failure": null,
+          "changed": [],
+          "failedNames": [],
+          "allResourcesRemoved": true,
+          "runId": "intake-t02-2026-09-22T12-38-19-389Z-a72a823e"
+        },
+        {
+          "group": "runtime",
+          "fault": "incomplete-activation",
+          "args": [
+            "ci/intake_t02_check.mjs",
+            "--group",
+            "runtime",
+            "--producer-mutation",
+            "incomplete-activation"
+          ],
+          "code": 1,
+          "signal": null,
+          "milliseconds": 46711,
+          "manifestSha256": "9438914a31fbc0c0f9c729deafc07a10816bd49fcd7f14eaf40474014b66cab8",
+          "sourceManifestSha256": "105aaf0981bbaaa364cf37c1d54f954340382b55cc3cabc3c192a7fc91917f59",
+          "completed": false,
+          "failure": {
+            "name": "Error",
+            "message": "T02_RUNTIME_FAILED"
+          },
+          "changed": [
+            {
+              "path": "src/server/intake/service.ts",
+              "bytes": 29085,
+              "sha256": "f9d5def5ed6cb31692740b853b198bb257409d283e0bd17ea2bcdf21d4d9744a",
+              "originalSha256": "8fe30766872351934ba777031b6df1bcac526a4a52d1e3b1561b13e3e7299d48",
+              "fault": "producer-incomplete-activation"
+            }
+          ],
+          "failedNames": [
+            "    not ok 4 - incomplete original cannot be reported as received or acquire receipt and work",
+            "not ok 1 - T02 real identity, grant, durable reception and protected original"
+          ],
+          "allResourcesRemoved": true,
+          "runId": "intake-t02-2026-09-22T12-39-29-099Z-4c4c6408"
+        },
+        {
+          "group": "runtime",
+          "fault": "compatible-payload",
+          "args": [
+            "ci/intake_t02_check.mjs",
+            "--group",
+            "runtime",
+            "--producer-mutation",
+            "compatible-payload"
+          ],
+          "code": 1,
+          "signal": null,
+          "milliseconds": 47813,
+          "manifestSha256": "2d9b83ebdc56f53b8128badefbfe412afa263c95149500f7b8b18a2b20ff27c7",
+          "sourceManifestSha256": "617882d92443f0382263ba7e94bf0124e8713f95a6d0af4b0a332ffcea468ad8",
+          "completed": false,
+          "failure": {
+            "name": "Error",
+            "message": "T02_RUNTIME_FAILED"
+          },
+          "changed": [
+            {
+              "path": "src/server/intake/service.ts",
+              "bytes": 28728,
+              "sha256": "6a640efa007f1f2eceede7060cd50dfccec143c226b4e8ba25c7b7f4d9f9c28e",
+              "originalSha256": "8fe30766872351934ba777031b6df1bcac526a4a52d1e3b1561b13e3e7299d48",
+              "fault": "producer-compatible-payload"
+            }
+          ],
+          "failedNames": [
+            "    not ok 10 - concurrent compatible intentions share the principal across two sessions",
+            "not ok 1 - T02 real identity, grant, durable reception and protected original"
+          ],
+          "allResourcesRemoved": true,
+          "runId": "intake-t02-2026-09-22T12-40-15-808Z-027b7ec2"
+        },
+        {
+          "group": "runtime",
+          "fault": "old-generation",
+          "args": [
+            "ci/intake_t02_check.mjs",
+            "--group",
+            "runtime",
+            "--producer-mutation",
+            "old-generation"
+          ],
+          "code": 1,
+          "signal": null,
+          "milliseconds": 47243,
+          "manifestSha256": "13651459b826e9bb6a46bc8e169dcb3b4142988d3befc4eab7e29995626d542b",
+          "sourceManifestSha256": "f2ce0f6bdcdcdb773fa04828b3893c26f551d146ef56a5199536bb9a085afce4",
+          "completed": false,
+          "failure": {
+            "name": "Error",
+            "message": "T02_RUNTIME_FAILED"
+          },
+          "changed": [
+            {
+              "path": "src/server/intake/stream.ts",
+              "bytes": 12714,
+              "sha256": "7d3b39d6e987d481a5f239e0ae9a36044889333f86450c04dd53af653d4f5911",
+              "originalSha256": "a432fcef3cb723404f6a8c217d2abe8630a36e7a6d560fe576bdece0110110f0",
+              "fault": "producer-old-generation"
+            }
+          ],
+          "failedNames": [
+            "    not ok 14 - resume fences an unused generation and preserves one logical reception",
+            "not ok 1 - T02 real identity, grant, durable reception and protected original"
+          ],
+          "allResourcesRemoved": true,
+          "runId": "intake-t02-2026-09-22T12-41-03-625Z-14c0ec84"
+        },
+        {
+          "group": "runtime",
+          "fault": "overwrite-original",
+          "args": [
+            "ci/intake_t02_check.mjs",
+            "--group",
+            "runtime",
+            "--producer-mutation",
+            "overwrite-original"
+          ],
+          "code": 1,
+          "signal": null,
+          "milliseconds": 40355,
+          "manifestSha256": "bbee25406fa8d11facad1463ea98c8865d9aec15814715cdce24bc2e8486ea07",
+          "sourceManifestSha256": "c47690c5375564f4d2dd4b7b112ebb77eb0769da2e9d5fd5c5d3a42b40b73576",
+          "completed": false,
+          "failure": {
+            "name": "Error",
+            "message": "T02_RUNTIME_FAILED"
+          },
+          "changed": [
+            {
+              "path": "ci/intake/reception/object_store.mjs",
+              "bytes": 5891,
+              "sha256": "d4e63debcc879fedc09d1fd90ce1a08d64fc16ee9f1873af1ad4e1f93d73ba1b",
+              "originalSha256": "b0aa8eb1fc0f4b0caa50dab5fffb9870648ada571b8721e379f3b5bd8c5418ea",
+              "fault": "producer-overwrite-original"
+            }
+          ],
+          "failedNames": [
+            "    not ok 7 - original travels as exact protected bytes, not a public URL",
+            "    not ok 16 - governed JSON and original share durable evidence and idle SQL before handoff",
+            "    not ok 17 - interrupted real transfer resumes as a new fenced physical generation",
+            "    not ok 20 - real minimum verification preserves the exact markdown-inert/1 original",
+            "    not ok 21 - real minimum verification preserves the exact csv-utf8/1 original",
+            "    not ok 22 - real minimum verification preserves the exact xlsx-cells/1 original",
+            "    not ok 25 - backup freezes exact data and objects while current authority stays outside its set",
+            "    not ok 27 - forged content and recalculated arriving hashes do not replace the retained anchor",
+            "    not ok 28 - a missing archive member leaves the fresh target unadmitted",
+            "    not ok 30 - fresh authority is produced through another invitation, not restored or seeded",
+            "    not ok 31 - legitimate restore preserves prior receipt identities and serves the actual restored bytes",
+            "not ok 1 - T02 real identity, grant, durable reception and protected original"
+          ],
+          "allResourcesRemoved": true,
+          "runId": "intake-t02-2026-09-22T12-41-50-870Z-36895d12"
+        }
+      ],
+      "failureName": "AssertionError"
+    },
+    {
+      "id": "producer-2026-09-22T12-44-02-020Z-82298fdf-e88c-499e-999a-cc630b705fff",
+      "family": "intake-t02",
+      "kind": "producer-controls",
+      "sha256": "5ced93f0d26a0e822762528e8be3534bf99aaabbdae1e69e2adfc85478aeeee7",
+      "completed": true,
+      "rows": [
+        {
+          "group": "runtime",
+          "fault": null,
+          "args": [
+            "ci/intake_t02_check.mjs",
+            "--group",
+            "runtime"
+          ],
+          "code": 0,
+          "signal": null,
+          "milliseconds": 53426,
+          "manifestSha256": "9fe8f189fa1cfb3e5ab99d850c2a45a277ca0b0c67d38bc286fd989db1d88480",
+          "sourceManifestSha256": "e3bc171998474e484d885bc8ff8a154c500a6791cf8b358b4159b2d1a37b9cfb",
+          "completed": true,
+          "failure": null,
+          "changed": [],
+          "failedNames": [],
+          "allResourcesRemoved": true,
+          "runId": "intake-t02-2026-09-22T12-44-02-067Z-a17d8923"
+        },
+        {
+          "group": "runtime",
+          "fault": "overwrite-original",
+          "args": [
+            "ci/intake_t02_check.mjs",
+            "--group",
+            "runtime",
+            "--producer-mutation",
+            "overwrite-original"
+          ],
+          "code": 1,
+          "signal": null,
+          "milliseconds": 38526,
+          "manifestSha256": "6175a8b422bc7466edbe84b9412b8faa9836f7f4e853c2d3329e618ad63a7e1d",
+          "sourceManifestSha256": "5e1c99abecd9760edd99aaa81ee21703a22f3ef5dd0ced752540bea006ad7c41",
+          "completed": false,
+          "failure": {
+            "name": "Error",
+            "message": "T02_RUNTIME_FAILED"
+          },
+          "changed": [
+            {
+              "path": "ci/intake/reception/object_store.mjs",
+              "bytes": 6007,
+              "sha256": "9d7725b9e689ad07a6d2d067f07ada1015d0561d66d42998018eb696d65a527a",
+              "originalSha256": "b0aa8eb1fc0f4b0caa50dab5fffb9870648ada571b8721e379f3b5bd8c5418ea",
+              "fault": "producer-overwrite-original"
+            }
+          ],
+          "failedNames": [
+            "    not ok 7 - original travels as exact protected bytes, not a public URL",
+            "    not ok 16 - governed JSON and original share durable evidence and idle SQL before handoff",
+            "    not ok 25 - backup freezes exact data and objects while current authority stays outside its set",
+            "    not ok 27 - forged content and recalculated arriving hashes do not replace the retained anchor",
+            "    not ok 28 - a missing archive member leaves the fresh target unadmitted",
+            "    not ok 30 - fresh authority is produced through another invitation, not restored or seeded",
+            "    not ok 31 - legitimate restore preserves prior receipt identities and serves the actual restored bytes",
+            "not ok 1 - T02 real identity, grant, durable reception and protected original"
+          ],
+          "allResourcesRemoved": true,
+          "runId": "intake-t02-2026-09-22T12-44-55-499Z-a7ddf158"
+        },
+        {
+          "group": "runtime",
+          "fault": "delivery-evidence",
+          "args": [
+            "ci/intake_t02_check.mjs",
+            "--group",
+            "runtime",
+            "--producer-mutation",
+            "delivery-evidence"
+          ],
+          "code": 1,
+          "signal": null,
+          "milliseconds": 44298,
+          "manifestSha256": "c8d3e435afee0b839adc692052f1f801385b0de776569c71076a86a6680beffa",
+          "sourceManifestSha256": "44e50b534519ab6a865b7f8bc84d6c8cded27a5ae25edf5ceead2f26a5b7cd89",
+          "completed": false,
+          "failure": {
+            "name": "Error",
+            "message": "T02_RUNTIME_FAILED"
+          },
+          "changed": [
+            {
+              "path": "src/server/intake/service.ts",
+              "bytes": 28817,
+              "sha256": "bccbfd91cb2ee7c3acb3b05d7ac27caaa0edf5d4c31608bd6ae449fe47b15c12",
+              "originalSha256": "8fe30766872351934ba777031b6df1bcac526a4a52d1e3b1561b13e3e7299d48",
+              "fault": "producer-delivery-evidence"
+            }
+          ],
+          "failedNames": [
+            "    not ok 16 - governed JSON and original share durable evidence and idle SQL before handoff",
+            "not ok 1 - T02 real identity, grant, durable reception and protected original"
+          ],
+          "allResourcesRemoved": true,
+          "runId": "intake-t02-2026-09-22T12-45-34-031Z-3795efe8"
+        },
+        {
+          "group": "delivery-order",
+          "fault": null,
+          "args": [
+            "ci/intake_t02_check.mjs",
+            "--group",
+            "delivery-order"
+          ],
+          "code": 0,
+          "signal": null,
+          "milliseconds": 55157,
+          "manifestSha256": "e53f2f00e450816421c90b19a2076ee1d6f928b931b56352b905e9a1fb38511a",
+          "sourceManifestSha256": "ea12f4c5f634d7e7fb0f57c3add75c5cae800d389e1a92f0d7bcdcd3cbebbfd8",
+          "completed": true,
+          "failure": null,
+          "changed": [],
+          "failedNames": [],
+          "allResourcesRemoved": true,
+          "runId": "intake-t02-2026-09-22T12-46-18-331Z-842a2524"
+        },
+        {
+          "group": "delivery-order",
+          "fault": "release-delivery-admission",
+          "args": [
+            "ci/intake_t02_check.mjs",
+            "--group",
+            "delivery-order",
+            "--producer-mutation",
+            "release-delivery-admission"
+          ],
+          "code": 1,
+          "signal": null,
+          "milliseconds": 66932,
+          "manifestSha256": "3b30caf847bb8c81fecc5922632214312e4344e7f7c0b330dd174e2af7c7ffb3",
+          "sourceManifestSha256": "6c93eab93c35ad0f4ac6014010b89f86d391895d056739c8db9c64efee1c1096",
+          "completed": false,
+          "failure": {
+            "name": "Error",
+            "message": "T02_RUNTIME_FAILED"
+          },
+          "changed": [
+            {
+              "path": "src/server/intake/service.ts",
+              "bytes": 28846,
+              "sha256": "a148631bec6cd620c19cbd530ff43995136e742ed3bba99cd5d6b48a93d81fa9",
+              "originalSha256": "8fe30766872351934ba777031b6df1bcac526a4a52d1e3b1561b13e3e7299d48",
+              "fault": "producer-release-delivery-admission"
+            }
+          ],
+          "failedNames": [
+            "    not ok 11 - original handoff is ordered before an overlapping real invalidator",
+            "    not ok 14 - post-handoff transport observation positive persists before release",
+            "    not ok 15 - post-handoff transport observation failure reports and releases without a new effect, receiver configured",
+            "    not ok 16 - post-handoff transport observation failure reports and releases without a new effect, receiver absent",
+            "    not ok 17 - post-handoff transport observation failure reports and releases without a new effect, receiver throws",
+            "not ok 1 - T02 real identity, grant, durable reception and protected original"
+          ],
+          "allResourcesRemoved": true,
+          "runId": "intake-t02-2026-09-22T12-47-13-545Z-aa7bb07b"
+        }
+      ],
+      "failureName": null
+    },
+    {
+      "id": "producer-2026-09-22T12-57-55-486Z-3681ccea-581f-47b6-9ec2-8bc67bb34097",
+      "family": "intake-t02",
+      "kind": "producer-controls",
+      "sha256": "be0412bb55fed1e5043a3f18e7d9d19f098db42c03b1da55d21b28dd8e00c041",
+      "completed": false,
+      "rows": [
+        {
+          "group": "runtime",
+          "fault": null,
+          "args": [
+            "ci/intake_t02_check.mjs",
+            "--group",
+            "runtime"
+          ],
+          "code": 1,
+          "signal": null,
+          "milliseconds": 43356,
+          "manifestSha256": "9037888127455d818835b69b4920c614cc0900a98b4e1d247e6c8722042f14d4",
+          "sourceManifestSha256": "70506a1970e7d93a7c7ef5eaa48b141e3e619cb6a79c645f7f28369fd7c88104",
+          "completed": false,
+          "failure": {
+            "name": "Error",
+            "message": "T02_RUNTIME_FAILED"
+          },
+          "changed": [],
+          "failedNames": [
+            "    not ok 17 - interrupted real transfer resumes as a new fenced physical generation",
+            "not ok 1 - T02 real identity, grant, durable reception and protected original"
+          ],
+          "allResourcesRemoved": true,
+          "runId": "intake-t02-2026-09-22T12-57-55-534Z-307a362a"
+        }
+      ],
+      "failureName": "AssertionError"
+    },
+    {
+      "id": "producer-2026-09-22T12-59-28-367Z-b1b8fd34-f195-4aeb-8fd0-2cae8c56666e",
+      "family": "intake-t02",
+      "kind": "producer-controls",
+      "sha256": "8e5b5d5f8606a4d3ab00e64fc4fea5844348df2dcbc19d2810967feb9fc27f2f",
+      "completed": true,
+      "rows": [
+        {
+          "group": "runtime",
+          "fault": null,
+          "args": [
+            "ci/intake_t02_check.mjs",
+            "--group",
+            "runtime"
+          ],
+          "code": 0,
+          "signal": null,
+          "milliseconds": 43712,
+          "manifestSha256": "d233673388e9dc22058f5f03c7c38bc970eeb0df643d4c72fa1866215e780dd2",
+          "sourceManifestSha256": "7f835eee8bb227ffd19ecbded24bfeaec05ceedbdec842d4c858ca31931b4d7b",
+          "completed": true,
+          "failure": null,
+          "changed": [],
+          "failedNames": [],
+          "allResourcesRemoved": true,
+          "runId": "intake-t02-2026-09-22T12-59-28-414Z-c98c4677"
+        },
+        {
+          "group": "runtime",
+          "fault": "incomplete-activation",
+          "args": [
+            "ci/intake_t02_check.mjs",
+            "--group",
+            "runtime",
+            "--producer-mutation",
+            "incomplete-activation"
+          ],
+          "code": 1,
+          "signal": null,
+          "milliseconds": 43520,
+          "manifestSha256": "dd115adac97cf36151508c98195ec5c76b3d448e22dac486c8391a91c1ebed0d",
+          "sourceManifestSha256": "ad46126cad1e8d119342a815fd9e98338426bed33e6fd65b4b08d0abdd78cd56",
+          "completed": false,
+          "failure": {
+            "name": "Error",
+            "message": "T02_RUNTIME_FAILED"
+          },
+          "changed": [
+            {
+              "path": "src/server/intake/postgres/002_data.sql",
+              "bytes": 15064,
+              "sha256": "2491c97a65e24b2b02f4b60948175b6ee73953c0310ee19243639dba4fa32956",
+              "originalSha256": "e18bec88db37c8767aeec3b389e265731c8bbda460153c9a76f678d943a19165",
+              "fault": "producer-incomplete-activation"
+            },
+            {
+              "path": "src/server/intake/service.ts",
+              "bytes": 29455,
+              "sha256": "f7eb58b70482d8b1e116dfcb63a9ec12ea04a213722b6ff00319e231721c2318",
+              "originalSha256": "8fe30766872351934ba777031b6df1bcac526a4a52d1e3b1561b13e3e7299d48",
+              "fault": "producer-incomplete-activation"
+            }
+          ],
+          "failedNames": [
+            "    not ok 17 - interrupted real transfer resumes as a new fenced physical generation",
+            "    not ok 25 - backup freezes exact data and objects while current authority stays outside its set",
+            "    not ok 27 - forged content and recalculated arriving hashes do not replace the retained anchor",
+            "    not ok 28 - a missing archive member leaves the fresh target unadmitted",
+            "    not ok 31 - legitimate restore preserves prior receipt identities and serves the actual restored bytes",
+            "not ok 1 - T02 real identity, grant, durable reception and protected original"
+          ],
+          "allResourcesRemoved": true,
+          "classification": "compound fault: application trusts declaration; SQL permits interrupted predecessor; incomplete bytes acquire durable receipt and work",
+          "runId": "intake-t02-2026-09-22T13-00-12-129Z-cd52348c"
+        }
+      ],
+      "failureName": null
+    },
+    {
+      "id": "formats-2026-09-22T12-51-34-930Z-834d1f36-8706-4dc8-9479-e15b27eaf589",
+      "family": "intake-extraction",
+      "kind": "guard-controls",
+      "sha256": "1d8e08dccbae0432489d2af94028c15c49ac064cb3c46917ccad5b081e5b3621",
+      "completed": true,
+      "rows": [
+        {
+          "group": "format-negatives",
+          "mutation": null,
+          "args": [
+            "--experimental-strip-types",
+            "ci/intake_t02_check.mjs",
+            "--group",
+            "extraction",
+            "--extraction-cases",
+            "format-negatives"
+          ],
+          "code": 0,
+          "signal": null,
+          "milliseconds": 112632,
+          "manifestSha256": "3f4f050fead534216ccfe0aee51f6b250e571a769e7fabd3e548ce272a052dae",
+          "sourceManifestSha256": "5ecfd4ae20d8479f94d785271ed2143696df50231d0def76f94d0701404ceaf8",
+          "runId": "intake-extraction-2026-09-22T12-51-34-980Z-2a8008da"
+        },
+        {
+          "group": "format-negatives",
+          "mutation": "xlsx-context-store",
+          "args": [
+            "--experimental-strip-types",
+            "ci/intake_t02_check.mjs",
+            "--group",
+            "extraction",
+            "--extraction-cases",
+            "format-negatives",
+            "--extraction-mutation",
+            "xlsx-context-store"
+          ],
+          "code": 1,
+          "signal": null,
+          "milliseconds": 117523,
+          "manifestSha256": "0d56e9eaadc965f0fd460470396813031a64eb992f5ae25c2352a2fcc1ef7161",
+          "sourceManifestSha256": "d295c3574e9a96d5bc826bebc2853ad33c24f2c762e6f39358efcca1062d9e49",
+          "runId": "intake-extraction-2026-09-22T12-53-27-616Z-52f55d0c"
+        }
+      ],
+      "failureName": null
+    },
+    {
+      "id": "preparation-2026-09-22T13-02-01-612Z-2cdab57d-2f3d-49e4-aeed-b735ff745a33",
+      "family": "intake-extraction",
+      "kind": "guard-controls",
+      "sha256": "4778b2835f39ea13f3e949bf6d96e6a26286697ad9ea653834ad7b9e3cac85fe",
+      "completed": false,
+      "rows": [
+        {
+          "group": "identity",
+          "mutation": null,
+          "args": [
+            "--experimental-strip-types",
+            "ci/intake_t02_check.mjs",
+            "--group",
+            "extraction",
+            "--extraction-cases",
+            "preparation",
+            "--preparation-cases",
+            "identity"
+          ],
+          "code": 0,
+          "signal": null,
+          "milliseconds": 61741,
+          "manifestSha256": "551698b6a1d7ab9b12aa25986f9055e5d6088a14a0fac67c929cfccc4988a0a1",
+          "sourceManifestSha256": "aae2a4939c57fcc368df46b496266092215061608389a4c2d2abcef9c6701396",
+          "runId": "intake-extraction-2026-09-22T13-02-01-663Z-458c2d73"
+        }
+      ],
+      "failureName": "AssertionError"
+    },
+    {
+      "id": "preparation-2026-09-22T13-05-31-188Z-cda0e951-011a-429d-ab8e-3d96c83c3cb2",
+      "family": "intake-extraction",
+      "kind": "guard-controls",
+      "sha256": "88312cddfdeb15b142f0b08109f9bb12e918ce6c6f65164ea4d5a49ffaf9c95e",
+      "completed": false,
+      "rows": [
+        {
+          "group": "identity",
+          "mutation": null,
+          "args": [
+            "--experimental-strip-types",
+            "ci/intake_t02_check.mjs",
+            "--group",
+            "extraction",
+            "--extraction-cases",
+            "preparation",
+            "--preparation-cases",
+            "identity"
+          ],
+          "code": 0,
+          "signal": null,
+          "milliseconds": 61988,
+          "manifestSha256": "13d8ccf19b45a4b0e068f517de9494450d89a1792a825bbe27d0001b66773d67",
+          "sourceManifestSha256": "607ca5e859841777aa93d14d8b1355b8bf2bca8072180c4ece2096d171b5e9cb",
+          "runId": "intake-extraction-2026-09-22T13-05-31-233Z-0bf3d51e"
+        },
+        {
+          "group": "identity",
+          "mutation": "hash-identity",
+          "args": [
+            "--experimental-strip-types",
+            "ci/intake_t02_check.mjs",
+            "--group",
+            "extraction",
+            "--extraction-cases",
+            "preparation",
+            "--preparation-cases",
+            "identity",
+            "--preparation-mutation",
+            "hash-identity"
+          ],
+          "code": 1,
+          "signal": null,
+          "milliseconds": 67445,
+          "manifestSha256": "dd9e5e9f84357ff76dbbfaf4b8726e6ba122f5ee90f31a3e02a9d4c79e72d076",
+          "sourceManifestSha256": "00d6c4e001949c0784b194d42076818127041bef461801d5157b8400ed9a0d63",
+          "runId": "intake-extraction-2026-09-22T13-06-33-226Z-fc608614"
+        }
+      ],
+      "failureName": "AssertionError"
+    },
+    {
+      "id": "preparation-2026-09-22T13-08-51-781Z-cc102e6b-d929-43f4-9b13-8c1294106b68",
+      "family": "intake-extraction",
+      "kind": "guard-controls",
+      "sha256": "a8621da8638f3ab957372f96d30e4ba5f42e74c5d5599c385c460a9d168f7a60",
+      "completed": true,
+      "rows": [
+        {
+          "group": "identity",
+          "mutation": null,
+          "args": [
+            "--experimental-strip-types",
+            "ci/intake_t02_check.mjs",
+            "--group",
+            "extraction",
+            "--extraction-cases",
+            "preparation",
+            "--preparation-cases",
+            "identity"
+          ],
+          "code": 0,
+          "signal": null,
+          "milliseconds": 59357,
+          "manifestSha256": "24f778b589a3e55957e2439f7c32a5dd04da033f544d7954dede6876324b0095",
+          "sourceManifestSha256": "2320f64677ef645caec4dffd977471b445e5a1daab5c143c400ed3b11c51f0ef",
+          "runId": "intake-extraction-2026-09-22T13-08-51-828Z-80cccce9"
+        },
+        {
+          "group": "identity",
+          "mutation": "hash-identity",
+          "args": [
+            "--experimental-strip-types",
+            "ci/intake_t02_check.mjs",
+            "--group",
+            "extraction",
+            "--extraction-cases",
+            "preparation",
+            "--preparation-cases",
+            "identity",
+            "--preparation-mutation",
+            "hash-identity"
+          ],
+          "code": 1,
+          "signal": null,
+          "milliseconds": 61059,
+          "manifestSha256": "29e3923298902d8d946626343a9f6c7810f2189e4e8595ad657399907efc949e",
+          "sourceManifestSha256": "481fc4ad39cba5eaafa81abc349a944df290a3e63f84a3de5643cbee4b9a6f0f",
+          "runId": "intake-extraction-2026-09-22T13-09-51-188Z-79a88b3d"
+        },
+        {
+          "group": "disclosure",
+          "mutation": null,
+          "args": [
+            "--experimental-strip-types",
+            "ci/intake_t02_check.mjs",
+            "--group",
+            "extraction",
+            "--extraction-cases",
+            "preparation",
+            "--preparation-cases",
+            "disclosure"
+          ],
+          "code": 0,
+          "signal": null,
+          "milliseconds": 78968,
+          "manifestSha256": "516a7961c7f1aa4d2d6596a910b98922d062e89e29a36df7a5435390e992f346",
+          "sourceManifestSha256": "5d1d475d985ce37881e1ed31f1cba948ed5fc8897d996e7ce1b209a29feaeee9",
+          "runId": "intake-extraction-2026-09-22T13-10-52-248Z-bb209552"
+        },
+        {
+          "group": "disclosure",
+          "mutation": "hidden-duplicate-status",
+          "args": [
+            "--experimental-strip-types",
+            "ci/intake_t02_check.mjs",
+            "--group",
+            "extraction",
+            "--extraction-cases",
+            "preparation",
+            "--preparation-cases",
+            "disclosure",
+            "--preparation-mutation",
+            "hidden-duplicate-status"
+          ],
+          "code": 1,
+          "signal": null,
+          "milliseconds": 68613,
+          "manifestSha256": "84ca11932bb25d6fad7373c516c50189fbf84d521a8d03ee45acd8987ec4da48",
+          "sourceManifestSha256": "ba44eda695eef7e23c2159d6bd842d6ef223c85b87e38e7d94f5262fcc29aae9",
+          "runId": "intake-extraction-2026-09-22T13-12-11-217Z-81de6e76"
+        },
+        {
+          "group": "ui-preparation",
+          "mutation": null,
+          "args": [
+            "--experimental-strip-types",
+            "ci/intake_t02_check.mjs",
+            "--group",
+            "extraction",
+            "--extraction-cases",
+            "preparation",
+            "--preparation-cases",
+            "ui-preparation",
+            "--whole-journey"
+          ],
+          "code": 0,
+          "signal": null,
+          "milliseconds": 69842,
+          "manifestSha256": "b43cc734b17bc82bb631d2ba30603beaa454f6b70e170a311daee20a9e042e85",
+          "sourceManifestSha256": "b66dd530a71656ee67b44764d5df88ddd71ebf41903c3ece9a6145d992ba5d3d",
+          "runId": "intake-extraction-2026-09-22T13-13-19-828Z-fec95530"
+        },
+        {
+          "group": "ui-preparation",
+          "mutation": "auto-publish-candidate",
+          "args": [
+            "--experimental-strip-types",
+            "ci/intake_t02_check.mjs",
+            "--group",
+            "extraction",
+            "--extraction-cases",
+            "preparation",
+            "--preparation-cases",
+            "ui-preparation",
+            "--whole-journey",
+            "--preparation-mutation",
+            "auto-publish-candidate"
+          ],
+          "code": 1,
+          "signal": null,
+          "milliseconds": 65239,
+          "manifestSha256": "d9161d78adb006e15c64fc2f80842d7fbaabdbd5d5335445f83f78c9c28059fe",
+          "sourceManifestSha256": "268944b4b27d34415bdcc90f6e4d1690909c3d1789199a435fcefc6358d0116d",
+          "runId": "intake-extraction-2026-09-22T13-14-29-671Z-8e3a6e4f"
+        }
+      ],
+      "failureName": null
+    },
+    {
+      "id": "resources-2026-09-22T12-49-57-604Z-a6208e70-3f81-4659-b33e-fdd9e8474707",
+      "family": "intake-extraction",
+      "kind": "guard-controls",
+      "sha256": "dd62518851f47e2c2ccc3e783fa58cbec3e366fa1b789db0c100429cea141de1",
+      "completed": true,
+      "rows": [
+        {
+          "group": "mixed",
+          "mutation": null,
+          "args": [
+            "--experimental-strip-types",
+            "ci/intake_t02_check.mjs",
+            "--group",
+            "extraction",
+            "--extraction-cases",
+            "mixed"
+          ],
+          "code": 0,
+          "signal": null,
+          "milliseconds": 50096,
+          "manifestSha256": "2f371dd8c98af9d5dfcaf5be15d5ce8f98cc25fc08f7919bc77c359917653720",
+          "sourceManifestSha256": "a9accf85542132d996319d396a258fbf584dc154fa2da59b8f66f2554baf37c2",
+          "runId": "intake-extraction-2026-09-22T12-49-57-652Z-2b552b3e"
+        },
+        {
+          "group": "mixed",
+          "mutation": "unknown-inventory-complete",
+          "args": [
+            "--experimental-strip-types",
+            "ci/intake_t02_check.mjs",
+            "--group",
+            "extraction",
+            "--extraction-cases",
+            "mixed",
+            "--extraction-mutation",
+            "unknown-inventory-complete"
+          ],
+          "code": 1,
+          "signal": null,
+          "milliseconds": 47175,
+          "manifestSha256": "dccf2aa6e9a6c17fed366422f6111d387c763929c084d438c750614349a42b88",
+          "sourceManifestSha256": "8170551eb3b2f57751a71c18ea5cbb7150c3d72b61628c4a0d18a797538a4c45",
+          "runId": "intake-extraction-2026-09-22T12-50-47-750Z-85c3c223"
+        }
+      ],
+      "failureName": null
+    },
+    {
+      "id": "workspace-2026-09-22T13-20-12-135Z-329142ec-c618-4c09-ae52-02f3dec88caa",
+      "family": "intake-extraction",
+      "kind": "guard-controls",
+      "sha256": "34d3bacf757fffc33f60f64b814da3ed612f7f7875431dff64e55566619998b3",
+      "completed": true,
+      "rows": [
+        {
+          "mutation": null,
+          "args": [
+            "--experimental-strip-types",
+            "ci/intake_t02_check.mjs",
+            "--group",
+            "extraction",
+            "--extraction-cases",
+            "preparation",
+            "--preparation-cases",
+            "ui-adoption-reception",
+            "--adoption-site",
+            "original-inspection"
+          ],
+          "code": 0,
+          "signal": null,
+          "milliseconds": 48885,
+          "manifestSha256": "d0c9f2bea970461e12836a3a1a755bb88bf8d1604e7fce43a1d288b79d2bc85e",
+          "sourceManifestSha256": "504e417a00b55aa380ff16b195b7631633b8a1394325374b7afcf9bd070c5709",
+          "runId": "intake-extraction-2026-09-22T13-20-12-182Z-3535b974"
+        },
+        {
+          "mutation": "omit-post-response-session",
+          "args": [
+            "--experimental-strip-types",
+            "ci/intake_t02_check.mjs",
+            "--group",
+            "extraction",
+            "--extraction-cases",
+            "preparation",
+            "--preparation-cases",
+            "ui-adoption-reception",
+            "--adoption-site",
+            "original-inspection",
+            "--workspace-mutation",
+            "omit-post-response-session"
+          ],
+          "code": 1,
+          "signal": null,
+          "milliseconds": 72457,
+          "manifestSha256": "be7df2b798389291d73221171cda69735a6800dc1e8b6c1448d704bbf6be0f11",
+          "sourceManifestSha256": "a8cb78a4c6ce52ad7c1bdf372f5e620ddc6912ecdcaeb87801a84c78f92788de",
+          "runId": "intake-extraction-2026-09-22T13-21-01-078Z-11792283"
+        }
+      ],
+      "failureName": null
+    }
+  ],
+  "controlPairs": [
+    {
+      "id": "M01",
+      "positive": "intake-t02-2026-09-22T12-48-50-136Z-b18d6114",
+      "fault": "intake-t02-2026-09-22T12-49-22-872Z-54401f26",
+      "aggregate": "guards-2026-09-22T12-48-50-087Z-d13316e4-2a7c-4a31-9194-e79b94d610ee",
+      "aggregateCompleted": true,
+      "qualification": "Paired control completed",
+      "positiveCounts": {
+        "tests": 15,
+        "pass": 15,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "duration_ms": 11420.064656
+      },
+      "faultCounts": {
+        "tests": 15,
+        "pass": 13,
+        "fail": 2,
+        "cancelled": 0,
+        "skipped": 0,
+        "duration_ms": 12271.662219
+      }
+    },
+    {
+      "id": "M02",
+      "positive": "intake-t02-2026-09-22T12-59-28-414Z-c98c4677",
+      "fault": "intake-t02-2026-09-22T13-00-12-129Z-cd52348c",
+      "aggregate": "producer-2026-09-22T12-59-28-367Z-b1b8fd34-f195-4aeb-8fd0-2cae8c56666e",
+      "aggregateCompleted": true,
+      "qualification": "Paired control completed",
+      "positiveCounts": {
+        "tests": 32,
+        "pass": 32,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "duration_ms": 23676.230667
+      },
+      "faultCounts": {
+        "tests": 32,
+        "pass": 26,
+        "fail": 6,
+        "cancelled": 0,
+        "skipped": 0,
+        "duration_ms": 19354.320039
+      }
+    },
+    {
+      "id": "M03",
+      "positive": "intake-t02-2026-09-22T12-38-19-389Z-a72a823e",
+      "fault": "intake-t02-2026-09-22T12-40-15-808Z-027b7ec2",
+      "aggregate": "producer-2026-09-22T12-38-19-331Z-5ddbb2d4-fb3d-4042-ba85-fd31b80e6b59",
+      "aggregateCompleted": false,
+      "qualification": "This row qualified before the later M07 qualifier failed; the containing aggregate remains failed",
+      "positiveCounts": {
+        "tests": 32,
+        "pass": 32,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "duration_ms": 23377.120802
+      },
+      "faultCounts": {
+        "tests": 32,
+        "pass": 30,
+        "fail": 2,
+        "cancelled": 0,
+        "skipped": 0,
+        "duration_ms": 25256.870117
+      }
+    },
+    {
+      "id": "M04",
+      "positive": "intake-t02-2026-09-22T12-38-19-389Z-a72a823e",
+      "fault": "intake-t02-2026-09-22T12-41-03-625Z-14c0ec84",
+      "aggregate": "producer-2026-09-22T12-38-19-331Z-5ddbb2d4-fb3d-4042-ba85-fd31b80e6b59",
+      "aggregateCompleted": false,
+      "qualification": "This row qualified before the later M07 qualifier failed; the containing aggregate remains failed",
+      "positiveCounts": {
+        "tests": 32,
+        "pass": 32,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "duration_ms": 23377.120802
+      },
+      "faultCounts": {
+        "tests": 32,
+        "pass": 30,
+        "fail": 2,
+        "cancelled": 0,
+        "skipped": 0,
+        "duration_ms": 24449.503712
+      }
+    },
+    {
+      "id": "M05",
+      "positive": "intake-extraction-2026-09-22T12-49-57-652Z-2b552b3e",
+      "fault": "intake-extraction-2026-09-22T12-50-47-750Z-85c3c223",
+      "aggregate": "resources-2026-09-22T12-49-57-604Z-a6208e70-3f81-4659-b33e-fdd9e8474707",
+      "aggregateCompleted": true,
+      "qualification": "Paired control completed",
+      "positiveCounts": {
+        "tests": 3,
+        "pass": 3,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "duration_ms": 13380.385242
+      },
+      "faultCounts": {
+        "tests": 3,
+        "pass": 1,
+        "fail": 2,
+        "cancelled": 0,
+        "skipped": 0,
+        "duration_ms": 12265.062143
+      }
+    },
+    {
+      "id": "M06",
+      "positive": "intake-extraction-2026-09-22T12-51-34-980Z-2a8008da",
+      "fault": "intake-extraction-2026-09-22T12-53-27-616Z-52f55d0c",
+      "aggregate": "formats-2026-09-22T12-51-34-930Z-834d1f36-8706-4dc8-9479-e15b27eaf589",
+      "aggregateCompleted": true,
+      "qualification": "Paired control completed",
+      "positiveCounts": {
+        "tests": 14,
+        "pass": 14,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "duration_ms": 80226.389801
+      },
+      "faultCounts": {
+        "tests": 14,
+        "pass": 12,
+        "fail": 2,
+        "cancelled": 0,
+        "skipped": 0,
+        "duration_ms": 78987.232838
+      }
+    },
+    {
+      "id": "M07",
+      "positive": "intake-t02-2026-09-22T12-44-02-067Z-a17d8923",
+      "fault": "intake-t02-2026-09-22T12-44-55-499Z-a7ddf158",
+      "aggregate": "producer-2026-09-22T12-44-02-020Z-82298fdf-e88c-499e-999a-cc630b705fff",
+      "aggregateCompleted": true,
+      "qualification": "Paired control completed",
+      "positiveCounts": {
+        "tests": 32,
+        "pass": 32,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "duration_ms": 30224.374077
+      },
+      "faultCounts": {
+        "tests": 32,
+        "pass": 24,
+        "fail": 8,
+        "cancelled": 0,
+        "skipped": 0,
+        "duration_ms": 16762.841352
+      }
+    },
+    {
+      "id": "M08",
+      "positive": "intake-extraction-2026-09-22T13-08-51-828Z-80cccce9",
+      "fault": "intake-extraction-2026-09-22T13-09-51-188Z-79a88b3d",
+      "aggregate": "preparation-2026-09-22T13-08-51-781Z-cc102e6b-d929-43f4-9b13-8c1294106b68",
+      "aggregateCompleted": true,
+      "qualification": "Paired control completed",
+      "positiveCounts": {
+        "tests": 13,
+        "pass": 13,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "duration_ms": 25673.116458
+      },
+      "faultCounts": {
+        "tests": 13,
+        "pass": 11,
+        "fail": 2,
+        "cancelled": 0,
+        "skipped": 0,
+        "duration_ms": 26466.440195
+      }
+    },
+    {
+      "id": "M09",
+      "positive": "intake-extraction-2026-09-22T13-10-52-248Z-bb209552",
+      "fault": "intake-extraction-2026-09-22T13-12-11-217Z-81de6e76",
+      "aggregate": "preparation-2026-09-22T13-08-51-781Z-cc102e6b-d929-43f4-9b13-8c1294106b68",
+      "aggregateCompleted": true,
+      "qualification": "Paired control completed",
+      "positiveCounts": {
+        "tests": 12,
+        "pass": 12,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "duration_ms": 44518.841848
+      },
+      "faultCounts": {
+        "tests": 12,
+        "pass": 9,
+        "fail": 3,
+        "cancelled": 0,
+        "skipped": 0,
+        "duration_ms": 31467.994142
+      }
+    },
+    {
+      "id": "M10",
+      "positive": "intake-extraction-2026-09-22T13-13-19-828Z-fec95530",
+      "fault": "intake-extraction-2026-09-22T13-14-29-671Z-8e3a6e4f",
+      "aggregate": "preparation-2026-09-22T13-08-51-781Z-cc102e6b-d929-43f4-9b13-8c1294106b68",
+      "aggregateCompleted": true,
+      "qualification": "Paired control completed",
+      "positiveCounts": {
+        "tests": 7,
+        "pass": 7,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "duration_ms": 16570.185125
+      },
+      "faultCounts": {
+        "tests": 6,
+        "pass": 4,
+        "fail": 2,
+        "cancelled": 0,
+        "skipped": 0,
+        "duration_ms": 16559.019545
+      }
+    },
+    {
+      "id": "M11",
+      "positive": "intake-extraction-2026-09-22T13-20-12-182Z-3535b974",
+      "fault": "intake-extraction-2026-09-22T13-21-01-078Z-11792283",
+      "aggregate": "workspace-2026-09-22T13-20-12-135Z-329142ec-c618-4c09-ae52-02f3dec88caa",
+      "aggregateCompleted": true,
+      "qualification": "Paired control completed",
+      "positiveCounts": {
+        "tests": 4,
+        "pass": 4,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "duration_ms": 15421.39089
+      },
+      "faultCounts": {
+        "tests": 4,
+        "pass": 2,
+        "fail": 2,
+        "cancelled": 0,
+        "skipped": 0,
+        "duration_ms": 21103.954153
+      }
+    },
+    {
+      "id": "M12a",
+      "positive": "intake-t02-2026-09-22T12-44-02-067Z-a17d8923",
+      "fault": "intake-t02-2026-09-22T12-45-34-031Z-3795efe8",
+      "aggregate": "producer-2026-09-22T12-44-02-020Z-82298fdf-e88c-499e-999a-cc630b705fff",
+      "aggregateCompleted": true,
+      "qualification": "Paired control completed",
+      "positiveCounts": {
+        "tests": 32,
+        "pass": 32,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "duration_ms": 30224.374077
+      },
+      "faultCounts": {
+        "tests": 32,
+        "pass": 30,
+        "fail": 2,
+        "cancelled": 0,
+        "skipped": 0,
+        "duration_ms": 24033.875388
+      }
+    },
+    {
+      "id": "M12b",
+      "positive": "intake-t02-2026-09-22T12-46-18-331Z-842a2524",
+      "fault": "intake-t02-2026-09-22T12-47-13-545Z-aa7bb07b",
+      "aggregate": "producer-2026-09-22T12-44-02-020Z-82298fdf-e88c-499e-999a-cc630b705fff",
+      "aggregateCompleted": true,
+      "qualification": "Paired control completed",
+      "positiveCounts": {
+        "tests": 18,
+        "pass": 18,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "duration_ms": 32431.545799
+      },
+      "faultCounts": {
+        "tests": 18,
+        "pass": 12,
+        "fail": 6,
+        "cancelled": 0,
+        "skipped": 0,
+        "duration_ms": 43148.55409
+      }
+    }
+  ],
+  "supplemental": [
+    {
+      "runId": "access-t06-1a5fed45-51be-4253-986b-4e97dbe939e2",
+      "family": "access-journey",
+      "command": [
+        "npm",
+        "run",
+        "test:access:journey"
+      ],
+      "image": "sha256:fdeaa8aaaf20f57ef701fdeb9fa8a5c551c0bd49a11174723b5547ef7e37f526",
+      "startedAt": "2026-09-22T13:32:29.277Z",
+      "finishedAt": "2026-09-22T13:33:34.723Z",
+      "code": 0,
+      "cleaned": true,
+      "evidenceCopied": true,
+      "counts": {
+        "tests": 28,
+        "pass": 28,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "duration_ms": 43536.967493
+      },
+      "files": [
+        {
+          "file": "run.json",
+          "sha256": "a7b3b580c3bc46b1ff3b33b40f137232cd7bf2417ce77d8f4fac27ff0ecf1354"
+        },
+        {
+          "file": "run.log",
+          "sha256": "0d855a3e0d7167a9a31a2760b4e22b9db40160cc8876b1af7083970423c62ee3"
+        },
+        {
+          "file": "source-composition.json",
+          "sha256": "1e3597432577bd6094fbbc1773dc17fe1975c0f266956edd332ffa060118d16a"
+        },
+        {
+          "file": "composition.json",
+          "sha256": "bb5a740b622ac468461114ba716133dae5673d7e42d1446b60234d41f07794cd"
+        },
+        {
+          "file": "temporal-boundary.json",
+          "sha256": "8d9f515b36acfb07ebebe5968c909c8aec7622834098bef966cae04cda7f5784"
+        }
+      ]
+    },
+    {
+      "runId": "s2-2026-09-22T13-32-16.902Z-4ece4b5b",
+      "family": "host-adapter",
+      "command": [
+        "node",
+        "--experimental-strip-types",
+        "tests/intake/extraction/references/run.mjs"
+      ],
+      "node": "v22.16.0",
+      "platform": "win32",
+      "startedAt": "2026-09-22T13:32:16.950Z",
+      "finishedAt": "2026-09-22T13:32:23.109Z",
+      "execution": {
+        "code": 0,
+        "signal": null
+      },
+      "counts": {
+        "tests": 18,
+        "pass": 18,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "duration_ms": 6089.0392
+      },
+      "manifestSha256": "2c042365e1df5c49b3506949bc03c1be56be7397dcc16726305f8517c480d558",
+      "limitation": "Current host adapter evidence, not a Linux fixed-entry or containment execution; the run-id prefix is inherited from the existing runner."
+    }
+  ],
+  "staticChecks": [
+    {
+      "id": "final-checks-2026-09-22T13-40-01-780Z",
+      "completed": false,
+      "manifestSha256": "ff8e7420b30af057df93ff1a65b230e339824e52fd2181c39103f488d64a2dea",
+      "sourceSha256": "9ba0cd67a0eb9bc0ac5b541217674de0e5e8aa16e4f6203850955d8a3690064e",
+      "results": [
+        {
+          "file": "01.json",
+          "program": "node",
+          "args": [
+            "--experimental-strip-types",
+            "--test",
+            "tests/intake/t02/test_ci_wiring.mjs",
+            "tests/intake/extraction/ci_evidence.mjs",
+            "tests/intake/preparation/test_ci.mjs",
+            "tests/intake/ui/test_ci.mjs"
+          ],
+          "code": 0,
+          "signal": null,
+          "milliseconds": 11480,
+          "counts": {
+            "tests": 61,
+            "pass": 61,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "duration_ms": 11423.8564
+          },
+          "sha256": "0d4e011b261d172eda2133f558f0cafede6d18e1e6ca83eea93b5b1016152d05"
+        },
+        {
+          "file": "02.json",
+          "program": "node",
+          "args": [
+            "ci/intake_ci_check.mjs"
+          ],
+          "code": 0,
+          "signal": null,
+          "milliseconds": 436,
+          "counts": {},
+          "sha256": "976ab7a90bd79554b462520fa735ba9efa6ff1dd927e0899a024d1ad351bf02a"
+        },
+        {
+          "file": "03.json",
+          "program": "node",
+          "args": [
+            "ci/intake_boundary_check.mjs"
+          ],
+          "code": 0,
+          "signal": null,
+          "milliseconds": 498,
+          "counts": {},
+          "sha256": "34d931a43063edbc15c5e8d09d11d62aadccbec4ec2b781276d1556202c04048"
+        },
+        {
+          "file": "04.json",
+          "program": "node",
+          "args": [
+            "ci/access_boundary_check.mjs"
+          ],
+          "code": 0,
+          "signal": null,
+          "milliseconds": 483,
+          "counts": {},
+          "sha256": "0a218a7e47401024844f687904b37613f3ac478e8622ac04b1e609450a675ae7"
+        },
+        {
+          "file": "05.json",
+          "program": "node",
+          "args": [
+            "ci/reading_boundary_check.mjs"
+          ],
+          "code": 0,
+          "signal": null,
+          "milliseconds": 576,
+          "counts": {},
+          "sha256": "f55abd50da3776781ce01bb246c787696318f7503702755bb76a755c8e3f4e56"
+        },
+        {
+          "file": "06.json",
+          "program": "node",
+          "args": [
+            "node_modules/typescript/bin/tsc",
+            "--noEmit"
+          ],
+          "code": 0,
+          "signal": null,
+          "milliseconds": 809,
+          "counts": {},
+          "sha256": "117d9fc353f8492af7edb2f124682ab1d2a64f49b233c33c846b7011674fdbdf"
+        },
+        {
+          "file": "07.json",
+          "program": "node",
+          "args": [
+            "node_modules/typescript/bin/tsc",
+            "--noEmit",
+            "-p",
+            "tsconfig.app.json"
+          ],
+          "code": 0,
+          "signal": null,
+          "milliseconds": 1102,
+          "counts": {},
+          "sha256": "ee064a3b135abc7c7cf2dc6fbaddf46b3f125f8a24c58c06500008a4967c9fda"
+        },
+        {
+          "file": "08.json",
+          "program": "bash",
+          "args": [
+            "ci/check.sh"
+          ],
+          "code": 1,
+          "signal": null,
+          "milliseconds": 2135,
+          "counts": {},
+          "sha256": "cee63331c591a91956441b65d6095760d58e73f768e92c2f517051c8c9f25d2c"
+        }
+      ]
+    },
+    {
+      "id": "final-checks-2026-09-22T13-41-32-651Z",
+      "completed": true,
+      "manifestSha256": "5af891fc370302a59e4bb07d4c223aa2ce05ee19978a0ed6c816d1a15b4ee73c",
+      "sourceSha256": "6a29498a9374da5bfcd01b0aaa5ef6a2d908d5706c940ad7b5eb6f278ff761ca",
+      "results": [
+        {
+          "file": "01.json",
+          "program": "Git Bash",
+          "args": [
+            "ci/check.sh"
+          ],
+          "code": 0,
+          "signal": null,
+          "milliseconds": 35829,
+          "counts": {
+            "tests": 115,
+            "pass": 115,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "duration_ms": 316.6026
+          },
+          "sha256": "8767571b303bc39cdc29dfe312389562363c19be0e83d28f0c6c9e66aa13608a"
+        },
+        {
+          "file": "02.json",
+          "program": "git",
+          "args": [
+            "diff",
+            "--check"
+          ],
+          "code": 0,
+          "signal": null,
+          "milliseconds": 126,
+          "counts": {},
+          "sha256": "5e549b7b0d3e20cf2b328b88c5480d3c36a10be14053c6b5b7fccf82b0727d0e"
+        }
+      ]
+    }
+  ],
+  "independentFixtureInspection": {
+    "reference": "Fixed literal transformations of the retained original, checked with .NET ZIP rather than SheetJS or the extractor",
+    "results": [
+      {
+        "file": "repacked.xlsx",
+        "parts": 9,
+        "bytes": 13210,
+        "sha256": "8f41d9c9eb7e4c75de43eb5fe1b51ad03eb095fdbd392fc6d29480a4cff6d8fd",
+        "exactExpectedParts": true
+      },
+      {
+        "file": "macro-declared.xlsx",
+        "parts": 9,
+        "bytes": 13188,
+        "sha256": "7280c0b66269ba7079472c40b848abf8a281ab666c8cc065b210cc8be6db4199",
+        "exactExpectedParts": true
+      },
+      {
+        "file": "entity-declared.xlsx",
+        "parts": 9,
+        "bytes": 13296,
+        "sha256": "57abd574ff96e532e2069b4fb5b233d167ef909284865d1c38377d0fc6e0ca17",
+        "exactExpectedParts": true
+      }
+    ],
+    "checkedAt": "2026-09-22T13:25:39.2641995Z"
+  },
+  "retained": {
+    "workflow": 35689209957,
+    "head": "bbedc4a8ccc7c4a8b10af9d39dcb42bc32b6ca9d",
+    "attempt": 1,
+    "tree": "d738261ac9182db027672b0f7c8d9a98daab0403",
+    "sourceClass": "Retained actual-main CI, not a new T06 execution",
+    "runs": [
+      {
+        "runId": "intake-extraction-2026-09-22T05-03-54-923Z-5e4c52a9",
+        "job": "intake-extraction-admission",
+        "step": "Run node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases authority-original",
+        "manifestSha256": "2ab50b02cd777c5d11d366383447365693bd2277a4f771514706d7f1d2418f55",
+        "counts": [
+          {
+            "observation": 230,
+            "tests": 7,
+            "pass": 7,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 233,
+            "tests": 7,
+            "pass": 7,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          }
+        ],
+        "resources": {
+          "recorded": 22,
+          "cleaned": 22
+        },
+        "artifactSha256": "90fd118b7e3ec7816112ea588bf60416788e8074638289a7506064c0143a602a"
+      },
+      {
+        "runId": "intake-extraction-2026-09-22T05-05-57-098Z-a9ec3981",
+        "job": "intake-extraction-admission",
+        "step": "Run node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases authority-result",
+        "manifestSha256": "1bda85677b7f34d1250581f01893818e9aac583592a41e049296c67a815cf727",
+        "counts": [
+          {
+            "observation": 232,
+            "tests": 7,
+            "pass": 7,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 235,
+            "tests": 7,
+            "pass": 7,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          }
+        ],
+        "resources": {
+          "recorded": 22,
+          "cleaned": 22
+        },
+        "artifactSha256": "4d6340ffc7380ef44bc5e12457eed65733df9a929f7203be74cf3c365d904bc1"
+      },
+      {
+        "runId": "intake-extraction-2026-09-22T05-06-46-287Z-6e477be6",
+        "job": "intake-extraction-admission",
+        "step": "Run node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases authority-effect",
+        "manifestSha256": "2343ff7633440029f7beb02743a56a17a8b4b6c6b0bf333f7c3c200bab1e05da",
+        "counts": [
+          {
+            "observation": 222,
+            "tests": 7,
+            "pass": 7,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 225,
+            "tests": 7,
+            "pass": 7,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          }
+        ],
+        "resources": {
+          "recorded": 22,
+          "cleaned": 22
+        },
+        "artifactSha256": "e22e1f4ab81b30c2ac7231d1a286f707c7808533fddf318afb464f44c607f1e3"
+      },
+      {
+        "runId": "intake-extraction-2026-09-22T05-07-31-522Z-2d41abe5",
+        "job": "intake-extraction-admission",
+        "step": "Run node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases compatibility",
+        "manifestSha256": "ae9c32845579b17fa0d79e31ee112f1446247f2bfb270850170a9d698f511123",
+        "counts": [
+          {
+            "observation": 77,
+            "tests": 4,
+            "pass": 4,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 80,
+            "tests": 4,
+            "pass": 4,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          }
+        ],
+        "resources": {
+          "recorded": 22,
+          "cleaned": 22
+        },
+        "artifactSha256": "7277ee7dfcb07c1040dad5ea390624ea0e016d843b2bf3052980362ccd477e93"
+      },
+      {
+        "runId": "intake-extraction-2026-09-22T05-07-44-661Z-7535e7b2",
+        "job": "intake-extraction-admission",
+        "step": "Run node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases capacity",
+        "manifestSha256": "c90ffb7276904a5fb6b717e43aa0e2fb382b6655a9f5f0912cc2ba68fa1d5175",
+        "counts": [
+          {
+            "observation": 370,
+            "tests": 11,
+            "pass": 11,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 373,
+            "tests": 11,
+            "pass": 11,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          }
+        ],
+        "resources": {
+          "recorded": 22,
+          "cleaned": 22
+        },
+        "artifactSha256": "2e144d6e7488bc96246ef6afc0856fa6754ee86b1fb6ffd263caa7c6dbebf9e9"
+      },
+      {
+        "runId": "intake-extraction-2026-09-22T05-09-08-053Z-a529e3c7",
+        "job": "intake-extraction-admission",
+        "step": "Run node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases extraction-privileges",
+        "manifestSha256": "0ed4649e9252ba8f0fbd7b1d22cf7d3789dd77a1a84cb0739535f5d82cf7be36",
+        "counts": [
+          {
+            "observation": 78,
+            "tests": 4,
+            "pass": 4,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 81,
+            "tests": 4,
+            "pass": 4,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          }
+        ],
+        "resources": {
+          "recorded": 22,
+          "cleaned": 22
+        },
+        "artifactSha256": "02718337d41d7ed3828c1f8aabc75e616ea8b41d0cb49de56a84e9dc31f4e150"
+      },
+      {
+        "runId": "intake-extraction-2026-09-22T05-03-54-765Z-fd29cec8",
+        "job": "intake-extraction-boundaries",
+        "step": "Run node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases resources",
+        "manifestSha256": "80facf95063ef9ae6479c48c303736ce1de9912a6572f7916b38572ac7f02e54",
+        "counts": [
+          {
+            "observation": 127,
+            "tests": 7,
+            "pass": 7,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 130,
+            "tests": 7,
+            "pass": 7,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          }
+        ],
+        "resources": {
+          "recorded": 22,
+          "cleaned": 22
+        },
+        "artifactSha256": "e1cf9fe170a1c3bba42700665020c841c352b11f49fd93418b75af96a192e93f"
+      },
+      {
+        "runId": "intake-extraction-2026-09-22T05-05-30-574Z-3a7c0398",
+        "job": "intake-extraction-boundaries",
+        "step": "Run node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases associations",
+        "manifestSha256": "fd9bb7759082e53a3944ba9122e12f97ed95d8bd865632a6d2b1c3ad7876cc85",
+        "counts": [
+          {
+            "observation": 102,
+            "tests": 10,
+            "pass": 10,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 105,
+            "tests": 10,
+            "pass": 10,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          }
+        ],
+        "resources": {
+          "recorded": 22,
+          "cleaned": 22
+        },
+        "artifactSha256": "998f936353cbdea0cad8e81c24a4922c20aba0651c65503e443c07cd975293c9"
+      },
+      {
+        "runId": "intake-extraction-2026-09-22T05-05-54-490Z-28204ad1",
+        "job": "intake-extraction-boundaries",
+        "step": "Run node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases lineage",
+        "manifestSha256": "6234e902b5741deba7b374dd5cb3c69c8bf03921c17f3c33027eeb4ee6e6842c",
+        "counts": [
+          {
+            "observation": 92,
+            "tests": 4,
+            "pass": 4,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 95,
+            "tests": 4,
+            "pass": 4,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          }
+        ],
+        "resources": {
+          "recorded": 22,
+          "cleaned": 22
+        },
+        "artifactSha256": "cfd3048e75d21657bba6807ee927cbb1d51fbace76e36f3bfb7d8d92492f8bc5"
+      },
+      {
+        "runId": "intake-extraction-2026-09-22T05-06-06-965Z-7eb54337",
+        "job": "intake-extraction-boundaries",
+        "step": "Run node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases browser-disconnect",
+        "manifestSha256": "64bf6235bac8bc0f7aebeb1ca8687eb9961de183e411213863eafd0f327df65f",
+        "counts": [
+          {
+            "observation": 104,
+            "tests": 4,
+            "pass": 4,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 107,
+            "tests": 4,
+            "pass": 4,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          }
+        ],
+        "resources": {
+          "recorded": 22,
+          "cleaned": 22
+        },
+        "artifactSha256": "e0f8ad18b46b59c4993e2dd3014bb182577782acb02a8f70d41296dacf9ac047"
+      },
+      {
+        "runId": "intake-extraction-2026-09-22T05-06-21-771Z-f6e37c8f",
+        "job": "intake-extraction-boundaries",
+        "step": "Run node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases containment",
+        "manifestSha256": "9abf9bc5f0cdeea66c6e7c6db1a0c3b873b733914b3936c9403d5c21741a2a73",
+        "counts": [
+          {
+            "observation": 125,
+            "tests": 5,
+            "pass": 5,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 128,
+            "tests": 5,
+            "pass": 5,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          }
+        ],
+        "resources": {
+          "recorded": 22,
+          "cleaned": 22
+        },
+        "artifactSha256": "22c893e73dff6a44d1445a479fe83f335611366d3f5546c060bd402381588026"
+      },
+      {
+        "runId": "intake-extraction-2026-09-22T05-06-47-528Z-880de120",
+        "job": "intake-extraction-boundaries",
+        "step": "Run node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases private-loss",
+        "manifestSha256": "65880cadc77c834658b5284a6164237b52374cc56e9e027cc08d253b2da6db12",
+        "counts": [
+          {
+            "observation": 106,
+            "tests": 5,
+            "pass": 5,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 109,
+            "tests": 5,
+            "pass": 5,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          }
+        ],
+        "resources": {
+          "recorded": 24,
+          "cleaned": 24
+        },
+        "artifactSha256": "43e072ef8da2ab4c2f744f0eb0c790125617b59c20c02738ce381682dbec990d"
+      },
+      {
+        "runId": "intake-extraction-2026-09-22T05-07-02-362Z-61913803",
+        "job": "intake-extraction-boundaries",
+        "step": "Run node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases controller-loss",
+        "manifestSha256": "7bc004307f1f541adc5d61aaa0821b0619d4b6a42cea194d03ee61338b98e5fa",
+        "counts": [
+          {
+            "observation": 84,
+            "tests": 5,
+            "pass": 5,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 87,
+            "tests": 5,
+            "pass": 5,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          }
+        ],
+        "resources": {
+          "recorded": 22,
+          "cleaned": 22
+        },
+        "artifactSha256": "92ea744eb0bb45762c9eabd1bb95ce18b381abeb122aaf895d17112251bedfb3"
+      },
+      {
+        "runId": "intake-extraction-2026-09-22t05-03-58-740z-39c704af",
+        "job": "intake-extraction",
+        "step": "Run npm run test:intake:extraction:unit",
+        "manifestSha256": "7235383db841f20fde74476c0a6457f729d003368f9981a2b5540617c0a59117",
+        "counts": [
+          {
+            "observation": 1,
+            "tests": 45,
+            "pass": 45,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          }
+        ],
+        "resources": {
+          "recorded": 0,
+          "cleaned": 0
+        },
+        "artifactSha256": "0a3a85aa172399bccc238f70e66a96563439c00d70f44658b4523bf6904dd501"
+      },
+      {
+        "runId": "intake-extraction-2026-09-22t05-04-01-298z-2e426394",
+        "job": "intake-extraction",
+        "step": "Run npm run test:intake:extraction:schema",
+        "manifestSha256": "a9eedf1756d27b5c24d0cbb8a10d17b970af984c0b44a7a7a0df3a6741ab0c3f",
+        "counts": [],
+        "resources": {
+          "recorded": 1,
+          "cleaned": 1
+        },
+        "artifactSha256": "df360ccb1a47c50f56ce8850632395f62fa30607c43cbac762172787a5b0de87"
+      },
+      {
+        "runId": "intake-extraction-2026-09-22t05-04-05-312z-ec783805",
+        "job": "intake-extraction",
+        "step": "Run npm run test:intake:extraction:worker -- --qualified-memory",
+        "manifestSha256": "d99a0ab43f191939b2d71e3ca368c7d280a9ba70ab8d2dfc081c2365a92d264f",
+        "counts": [],
+        "resources": {
+          "recorded": 25,
+          "cleaned": 25
+        },
+        "artifactSha256": "eb6e921476bbc9003d6a96809744e474ac46f5d149d8837f7b871fbb4c24fbe6"
+      },
+      {
+        "runId": "intake-extraction-2026-09-22T05-04-57-416Z-beb2b22e",
+        "job": "intake-extraction",
+        "step": "Run npm run test:intake:extraction:service",
+        "manifestSha256": "2fd6a4367d6e16e82d83ba36f74c38536c5e6d62d9f4567bdbaacf51f78eabeb",
+        "counts": [
+          {
+            "observation": 231,
+            "tests": 15,
+            "pass": 15,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 234,
+            "tests": 15,
+            "pass": 15,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          }
+        ],
+        "resources": {
+          "recorded": 22,
+          "cleaned": 22
+        },
+        "artifactSha256": "9e4091c22079909264e3d5851192d286822386d516a7305715e27a2cb57d7395"
+      },
+      {
+        "runId": "intake-extraction-2026-09-22T05-07-01-576Z-358f6799",
+        "job": "intake-extraction",
+        "step": "Run node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases retry",
+        "manifestSha256": "27d4819753c08501b5da537a66bc364b49f649b0824dccd6361b4a9ad99f5503",
+        "counts": [
+          {
+            "observation": 141,
+            "tests": 5,
+            "pass": 5,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 144,
+            "tests": 5,
+            "pass": 5,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          }
+        ],
+        "resources": {
+          "recorded": 22,
+          "cleaned": 22
+        },
+        "artifactSha256": "896d470983de3046945676033ecdeecb9f6e7bf799e0f3ba76a8ebb4addff3cf"
+      },
+      {
+        "runId": "intake-extraction-2026-09-22T05-07-31-274Z-651d9a7e",
+        "job": "intake-extraction",
+        "step": "Run npm run test:intake:extraction:formats",
+        "manifestSha256": "86422a762158caa9cb1bf1caabd518a35eab86eb0c41cec2c5bff401e8ed3504",
+        "counts": [
+          {
+            "observation": 362,
+            "tests": 19,
+            "pass": 19,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 365,
+            "tests": 19,
+            "pass": 19,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          }
+        ],
+        "resources": {
+          "recorded": 22,
+          "cleaned": 22
+        },
+        "artifactSha256": "1f66f95277b6f0175e18b05207d0b3ad357c7cacc7e520ddde911f60ec1fb735"
+      },
+      {
+        "runId": "intake-extraction-2026-09-22T05-09-23-676Z-1b69933e",
+        "job": "intake-extraction",
+        "step": "Run npm run test:intake:extraction:budgets",
+        "manifestSha256": "9ef7a8c61d33fc64e88f1c7f33338f0615e41ccf734ae97a973494c2783e3d81",
+        "counts": [
+          {
+            "observation": 127,
+            "tests": 5,
+            "pass": 5,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 130,
+            "tests": 5,
+            "pass": 5,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          }
+        ],
+        "resources": {
+          "recorded": 22,
+          "cleaned": 22
+        },
+        "artifactSha256": "b5f665e66e057ed04731a9e4a9c3a717613bc907778c272f75437b39e06edb87"
+      },
+      {
+        "runId": "intake-extraction-2026-09-22T05-09-58-074Z-0670fdf6",
+        "job": "intake-extraction",
+        "step": "Run npm run test:intake:extraction:semantics",
+        "manifestSha256": "c82f1cd50b74d8d6ea25f6f5ddb3de42a27d46759d4992bc9552777fd8f7a6cc",
+        "counts": [
+          {
+            "observation": 91,
+            "tests": 4,
+            "pass": 4,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 94,
+            "tests": 4,
+            "pass": 4,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          }
+        ],
+        "resources": {
+          "recorded": 22,
+          "cleaned": 22
+        },
+        "artifactSha256": "2f062f7f476e2a08097d127d9acb64f403e570e9071f0f5a89048aca882acdd4"
+      },
+      {
+        "runId": "intake-extraction-2026-09-22T05-10-16-013Z-ded8fa3a",
+        "job": "intake-extraction",
+        "step": "Run npm run test:intake:extraction:mixed",
+        "manifestSha256": "9c9f214f311bba43378c89ee6766e84df75d9fcc74418b16fd9cd3a7f71d3308",
+        "counts": [
+          {
+            "observation": 77,
+            "tests": 3,
+            "pass": 3,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 80,
+            "tests": 3,
+            "pass": 3,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          }
+        ],
+        "resources": {
+          "recorded": 22,
+          "cleaned": 22
+        },
+        "artifactSha256": "a31e4993c9da3af958cb7c34e43efc6aff1719a9e8d8d22aa4713f259a714097"
+      },
+      {
+        "runId": "intake-extraction-2026-09-22T05-03-58-772Z-6e2fcb26",
+        "job": "intake-extraction-recovery",
+        "step": "Run npm run test:intake:extraction:restart",
+        "manifestSha256": "324d17dd3d8f52d167c78a92bb1caed389f2b86942b701c3d81bc431bc73949c",
+        "counts": [
+          {
+            "observation": 167,
+            "tests": 8,
+            "pass": 8,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 170,
+            "tests": 8,
+            "pass": 8,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          }
+        ],
+        "resources": {
+          "recorded": 22,
+          "cleaned": 22
+        },
+        "artifactSha256": "c42586ea707aa92617961c1ad3ff7f887994ffeb420de3e9310b943f5dbe9941"
+      },
+      {
+        "runId": "intake-extraction-2026-09-22T05-05-54-485Z-9e364355",
+        "job": "intake-extraction-recovery",
+        "step": "Run npm run test:intake:extraction:restore",
+        "manifestSha256": "c89349f93270c757d2ce3d64e6360f2d3752467c74f994326db0ef1423dc48dc",
+        "counts": [
+          {
+            "observation": 157,
+            "tests": 10,
+            "pass": 10,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 160,
+            "tests": 10,
+            "pass": 10,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          }
+        ],
+        "resources": {
+          "recorded": 22,
+          "cleaned": 22
+        },
+        "artifactSha256": "945e93647881eb127439575f48e29c656bbeb5fc6ff304a00cb2ea206c866994"
+      },
+      {
+        "runId": "intake-extraction-2026-09-22T05-06-29-839Z-b4081141",
+        "job": "intake-extraction-recovery",
+        "step": "Run npm run test:intake:extraction:storage-recovery",
+        "manifestSha256": "7ee76bb1d1799309a3857ba23361f78880bdda62914e69b083968fb53d5a734a",
+        "counts": [
+          {
+            "observation": 187,
+            "tests": 7,
+            "pass": 7,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 190,
+            "tests": 7,
+            "pass": 7,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          }
+        ],
+        "resources": {
+          "recorded": 26,
+          "cleaned": 26
+        },
+        "artifactSha256": "6880b07b703a3f8476bb3e9d78a9d6727781ea75c819dac9d81542482f5221af"
+      },
+      {
+        "runId": "intake-extraction-2026-09-22T05-07-04-972Z-04b86264",
+        "job": "intake-extraction-recovery",
+        "step": "Run npm run test:intake:extraction:temporal",
+        "manifestSha256": "36f87399db4dcea7b96a15c0e57991fff8599ed4496f9f7a76d30a1c5beda566",
+        "counts": [
+          {
+            "observation": 725,
+            "tests": 16,
+            "pass": 16,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 728,
+            "tests": 16,
+            "pass": 16,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          }
+        ],
+        "resources": {
+          "recorded": 22,
+          "cleaned": 22
+        },
+        "artifactSha256": "2d25dcb75f7b1543302d7fa0da18a99ed8e62bdf36605e0f473d5e278bbb45e1"
+      },
+      {
+        "runId": "intake-extraction-2026-09-22T05-10-07-290Z-54a17567",
+        "job": "intake-extraction-recovery",
+        "step": "Run npm run test:intake:extraction:fencing",
+        "manifestSha256": "1ab9be7bab20758320a0440351588c1bc4fa8ac26e581715455c925610209ee3",
+        "counts": [
+          {
+            "observation": 370,
+            "tests": 9,
+            "pass": 9,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 373,
+            "tests": 9,
+            "pass": 9,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          }
+        ],
+        "resources": {
+          "recorded": 22,
+          "cleaned": 22
+        },
+        "artifactSha256": "d38fe609866225f413aa4d97f22a1df6fd9039f8203bdc40c8184865be61a368"
+      },
+      {
+        "runId": "intake-extraction-2026-09-22T05-03-58-526Z-7d90cded",
+        "job": "intake-preparation-admission",
+        "step": "Run node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases preparation --preparation-cases identity",
+        "manifestSha256": "95a5437fe709ed07e1ba15cfa96df7da91be9759e79f405a293473aab80a61bc",
+        "counts": [
+          {
+            "observation": 15,
+            "tests": 31,
+            "pass": 31,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 128,
+            "tests": 13,
+            "pass": 13,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 131,
+            "tests": 13,
+            "pass": 13,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          }
+        ],
+        "resources": {
+          "recorded": 23,
+          "cleaned": 23
+        },
+        "artifactSha256": "9166b160c0f3f1c4dc62fdb5753983f380044a989e22b4b81c839a23da3c5c5c"
+      },
+      {
+        "runId": "intake-extraction-2026-09-22T05-05-49-296Z-c4f709d5",
+        "job": "intake-preparation-admission",
+        "step": "Run node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases preparation --preparation-cases concurrency",
+        "manifestSha256": "d9212b6b92400598d864327d282b094f4032f2f13af3a8a04a2dbaa21daf5c1a",
+        "counts": [
+          {
+            "observation": 15,
+            "tests": 31,
+            "pass": 31,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 103,
+            "tests": 9,
+            "pass": 9,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 106,
+            "tests": 9,
+            "pass": 9,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          }
+        ],
+        "resources": {
+          "recorded": 23,
+          "cleaned": 23
+        },
+        "artifactSha256": "d2225f67a4b4e12ed2b752eeb1e56950452c234d831b793f95af92252aea221d"
+      },
+      {
+        "runId": "intake-extraction-2026-09-22T05-06-11-150Z-ad117c02",
+        "job": "intake-preparation-admission",
+        "step": "Run node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases preparation --preparation-cases prior-act",
+        "manifestSha256": "54917acc9796c91ec0c217e45cbd3b3c57383f84d648f6a1bfc4fdad03eb9505",
+        "counts": [
+          {
+            "observation": 15,
+            "tests": 31,
+            "pass": 31,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 102,
+            "tests": 11,
+            "pass": 11,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 105,
+            "tests": 11,
+            "pass": 11,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          }
+        ],
+        "resources": {
+          "recorded": 23,
+          "cleaned": 23
+        },
+        "artifactSha256": "06b29bc086096388a4accc4876d407881aacf625498f0017c8cbfae29dd2f349"
+      },
+      {
+        "runId": "intake-extraction-2026-09-22T05-06-33-005Z-707d73ea",
+        "job": "intake-preparation-admission",
+        "step": "Run node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases preparation --preparation-cases temporal",
+        "manifestSha256": "924a6a8a49b75f1d4b06aa357d30d64f2a29121162dc5fee5e8009800a818bdd",
+        "counts": [
+          {
+            "observation": 15,
+            "tests": 31,
+            "pass": 31,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 169,
+            "tests": 15,
+            "pass": 15,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 172,
+            "tests": 15,
+            "pass": 15,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          }
+        ],
+        "resources": {
+          "recorded": 23,
+          "cleaned": 23
+        },
+        "artifactSha256": "6e4a8af2a30238036332cbc562cfde19db314018c99102e9f810489b9ee1ae19"
+      },
+      {
+        "runId": "intake-extraction-2026-09-22T05-07-21-089Z-641b4d5d",
+        "job": "intake-preparation-admission",
+        "step": "Run node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases preparation --preparation-cases ordering",
+        "manifestSha256": "29265a44703576060d03aa5590b4527e04ada3bb7b4982b73d84b0be7754b5a9",
+        "counts": [
+          {
+            "observation": 15,
+            "tests": 31,
+            "pass": 31,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 114,
+            "tests": 15,
+            "pass": 15,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 117,
+            "tests": 15,
+            "pass": 15,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          }
+        ],
+        "resources": {
+          "recorded": 23,
+          "cleaned": 23
+        },
+        "artifactSha256": "836174acb2abfae343cfcb14f0a1487ed8101d1b406f46cb17384b1432dc1e08"
+      },
+      {
+        "runId": "intake-extraction-2026-09-22T05-07-49-770Z-5561b3f9",
+        "job": "intake-preparation-admission",
+        "step": "Run node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases preparation --preparation-cases recovery",
+        "manifestSha256": "0f8787c0dd5c0ac86499c3cb49a1cf6f84e455cfa5dd59815c8e0e7c5f9d5003",
+        "counts": [
+          {
+            "observation": 15,
+            "tests": 31,
+            "pass": 31,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 195,
+            "tests": 20,
+            "pass": 20,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 198,
+            "tests": 20,
+            "pass": 20,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          }
+        ],
+        "resources": {
+          "recorded": 23,
+          "cleaned": 23
+        },
+        "artifactSha256": "bb8cb1eee7af16d16398304c6259f63705686014a5273c1df9eb815c4d9d9a83"
+      },
+      {
+        "runId": "intake-extraction-2026-09-22T05-08-34-523Z-79951536",
+        "job": "intake-preparation-admission",
+        "step": "Run node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases preparation --preparation-cases disclosure",
+        "manifestSha256": "60a85838b2f375b21aefd83ba07da30606f2151295180f1ea6a500ab74e1f0ac",
+        "counts": [
+          {
+            "observation": 15,
+            "tests": 31,
+            "pass": 31,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 164,
+            "tests": 12,
+            "pass": 12,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 167,
+            "tests": 12,
+            "pass": 12,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          }
+        ],
+        "resources": {
+          "recorded": 23,
+          "cleaned": 23
+        },
+        "artifactSha256": "beb14d874d98b5a4a7361ded1a8410e4ab7252c7a25b053792b9bd21c516449b"
+      },
+      {
+        "runId": "intake-extraction-2026-09-22T05-04-12-498Z-7c33aaa6",
+        "job": "intake-preparation-behavior",
+        "step": "Run node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases preparation --preparation-cases fidelity",
+        "manifestSha256": "a9158ba122448c106158fb25b3d1e38d7de538e2792c8b849e57a2f01a73558f",
+        "counts": [
+          {
+            "observation": 15,
+            "tests": 31,
+            "pass": 31,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 102,
+            "tests": 15,
+            "pass": 15,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 105,
+            "tests": 15,
+            "pass": 15,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          }
+        ],
+        "resources": {
+          "recorded": 23,
+          "cleaned": 23
+        },
+        "artifactSha256": "4d97cfb7a0523fa9ba13dd839454a621214b6ebfbc9d686cd241148888ba9c57"
+      },
+      {
+        "runId": "intake-extraction-2026-09-22T05-06-01-589Z-8ff8a25f",
+        "job": "intake-preparation-behavior",
+        "step": "Run node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases preparation --preparation-cases formats",
+        "manifestSha256": "0165388b0d67dd268205cae468c937c923633e3def2a0f0cebba139ef4db4bab",
+        "counts": [
+          {
+            "observation": 15,
+            "tests": 31,
+            "pass": 31,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 288,
+            "tests": 11,
+            "pass": 11,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 291,
+            "tests": 11,
+            "pass": 11,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          }
+        ],
+        "resources": {
+          "recorded": 23,
+          "cleaned": 23
+        },
+        "artifactSha256": "7be5b6aeb89340021b67f2c46b76ea7ac2a96d685b9b88dd0e0326089142100c"
+      },
+      {
+        "runId": "intake-extraction-2026-09-22T05-07-24-278Z-226570f9",
+        "job": "intake-preparation-behavior",
+        "step": "Run node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases preparation --preparation-cases resources",
+        "manifestSha256": "fc5b6e4fab5ff3729b3f28902ed7e61358bad1a7cedf6f0e94744ee89fa8c7dc",
+        "counts": [
+          {
+            "observation": 15,
+            "tests": 31,
+            "pass": 31,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 158,
+            "tests": 12,
+            "pass": 12,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 161,
+            "tests": 12,
+            "pass": 12,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          }
+        ],
+        "resources": {
+          "recorded": 23,
+          "cleaned": 23
+        },
+        "artifactSha256": "03addb4d1723b1f49123cc805709914806e9829372fd1aa94b259ea952924628"
+      },
+      {
+        "runId": "intake-extraction-2026-09-22T05-08-03-386Z-f11e5f79",
+        "job": "intake-preparation-behavior",
+        "step": "Run node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases preparation --preparation-cases mixed",
+        "manifestSha256": "4c22037361f3d39a6acece32d820695ddaf6df794325a3cb0f3547ce0021bcd3",
+        "counts": [
+          {
+            "observation": 15,
+            "tests": 31,
+            "pass": 31,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 146,
+            "tests": 10,
+            "pass": 10,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 149,
+            "tests": 10,
+            "pass": 10,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          }
+        ],
+        "resources": {
+          "recorded": 23,
+          "cleaned": 23
+        },
+        "artifactSha256": "3e29eea4d352198d5897c735b1aa3c555615da971fc014592fe00d2a7105ea8d"
+      },
+      {
+        "runId": "intake-extraction-2026-09-22T05-08-45-098Z-095640e6",
+        "job": "intake-preparation-behavior",
+        "step": "Run node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases preparation --preparation-cases units",
+        "manifestSha256": "1dd232fd4280060ffa6ed1b6374f095ab9d68546c45d79670f496f3c72f032a4",
+        "counts": [
+          {
+            "observation": 15,
+            "tests": 31,
+            "pass": 31,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 114,
+            "tests": 11,
+            "pass": 11,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 117,
+            "tests": 11,
+            "pass": 11,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          }
+        ],
+        "resources": {
+          "recorded": 23,
+          "cleaned": 23
+        },
+        "artifactSha256": "69f586d55efdb0ec47b306fc946311a533cc97429c9cea1cf4e39f15d813a0fe"
+      },
+      {
+        "runId": "intake-extraction-2026-09-22T05-09-07-140Z-744afcf8",
+        "job": "intake-preparation-behavior",
+        "step": "Run node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases preparation --preparation-cases bounds",
+        "manifestSha256": "a4d48f5be18d3a85434c64ff48e3d32525e8c317352ddceea1823b43cf6afb64",
+        "counts": [
+          {
+            "observation": 15,
+            "tests": 31,
+            "pass": 31,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 205,
+            "tests": 11,
+            "pass": 11,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 208,
+            "tests": 11,
+            "pass": 11,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          }
+        ],
+        "resources": {
+          "recorded": 23,
+          "cleaned": 23
+        },
+        "artifactSha256": "3e581b7b200a1cac8d2f3619a7e8be7aa2af8a01393418150c5211d4f759d728"
+      },
+      {
+        "runId": "intake-extraction-2026-09-22T05-04-01-836Z-5b9caa3f",
+        "job": "intake-workspace-admission",
+        "step": "Run node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases preparation --preparation-cases ui-protection",
+        "completed": true,
+        "role": "retained-positive",
+        "manifestSha256": "9f0c11973c7b4265c8ef5e74b7c832458a710dc4e6012d5c6462ec1be6181dbf",
+        "counts": [
+          {
+            "observation": 15,
+            "tests": 31,
+            "pass": 31,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 133,
+            "tests": 13,
+            "pass": 13,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 136,
+            "tests": 13,
+            "pass": 13,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          }
+        ],
+        "resources": {
+          "recorded": 23,
+          "cleaned": 23
+        },
+        "artifactSha256": "910de49473e92be39e43ca047c536b15b7728ff473a775ab152c754166c82141"
+      },
+      {
+        "runId": "intake-extraction-2026-09-22T05-06-28-783Z-f4aaa6d4",
+        "job": "intake-workspace-admission",
+        "step": "Run node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases preparation --preparation-cases ui-adoption-reception",
+        "completed": true,
+        "role": "retained-positive",
+        "manifestSha256": "b494ce08edef0322ec85f1dfb899070d55bbae2357e7e59128b8192db1816516",
+        "counts": [
+          {
+            "observation": 15,
+            "tests": 31,
+            "pass": 31,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 165,
+            "tests": 16,
+            "pass": 16,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 168,
+            "tests": 16,
+            "pass": 16,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          }
+        ],
+        "resources": {
+          "recorded": 23,
+          "cleaned": 23
+        },
+        "artifactSha256": "045f0db4a9d0d41d7996b2945f605cddc97c9895efb4c0b533459495eea23342"
+      },
+      {
+        "runId": "intake-extraction-2026-09-22T05-07-20-017Z-bec8aef4",
+        "job": "intake-workspace-admission",
+        "step": "Run node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases preparation --preparation-cases ui-adoption-preparation",
+        "completed": true,
+        "role": "retained-positive",
+        "manifestSha256": "dec50e360f7ecd2b9b7017c2bedc1b2a6106b2b00cd17a5eba5dc0e0190b799b",
+        "counts": [
+          {
+            "observation": 15,
+            "tests": 31,
+            "pass": 31,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 208,
+            "tests": 18,
+            "pass": 18,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 211,
+            "tests": 18,
+            "pass": 18,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          }
+        ],
+        "resources": {
+          "recorded": 23,
+          "cleaned": 23
+        },
+        "artifactSha256": "1e938e1d432f320ad9ae75fb0b1182070c71e8998c97b2e500dbc3bc665743b0"
+      },
+      {
+        "runId": "intake-extraction-2026-09-22T05-08-37-334Z-9d9866c1",
+        "job": "intake-workspace-admission",
+        "step": "Run node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases preparation --preparation-cases ui-disclosure-navigation",
+        "completed": true,
+        "role": "retained-positive",
+        "manifestSha256": "5ec6ce563f5eff40d78f48864a3309f29e676da049f8043a23ba1a1578141e74",
+        "counts": [
+          {
+            "observation": 15,
+            "tests": 31,
+            "pass": 31,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 111,
+            "tests": 6,
+            "pass": 6,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 114,
+            "tests": 6,
+            "pass": 6,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          }
+        ],
+        "resources": {
+          "recorded": 23,
+          "cleaned": 23
+        },
+        "artifactSha256": "3ec63e02273f42a132070988eef4c532324f87afe7635b799983c85c15bf4138"
+      },
+      {
+        "runId": "intake-extraction-2026-09-22T05-09-08-260Z-7a922fe8",
+        "job": "intake-workspace-admission",
+        "step": "Run node ci/intake_workspace_guards.mjs",
+        "completed": true,
+        "role": "retained-positive",
+        "manifestSha256": "32f57f7cb592e2cb89d4308af9c604714ae4bece3f5ae725458cb726b1175321",
+        "counts": [
+          {
+            "observation": 15,
+            "tests": 31,
+            "pass": 31,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 90,
+            "tests": 4,
+            "pass": 4,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 93,
+            "tests": 4,
+            "pass": 4,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          }
+        ],
+        "resources": {
+          "recorded": 23,
+          "cleaned": 23
+        },
+        "artifactSha256": "7c5aecba79df0cb14ba7aa7a982a5b32f80fe3a3fee97bd3f61a7caec4366de2"
+      },
+      {
+        "runId": "intake-extraction-2026-09-22T05-09-28-536Z-7ae8ce9f",
+        "job": "intake-workspace-admission",
+        "step": "Run node ci/intake_workspace_guards.mjs",
+        "completed": false,
+        "role": "retained-directed-fault",
+        "manifestSha256": "d2732bae3c390a82ddf1f3814bd193a3eaac01917b4c1f8541c306e91fb0d358",
+        "counts": [
+          {
+            "observation": 15,
+            "tests": 31,
+            "pass": 31,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 100,
+            "tests": 4,
+            "pass": 2,
+            "fail": 2,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 103,
+            "tests": 4,
+            "pass": 2,
+            "fail": 2,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          }
+        ],
+        "resources": {
+          "recorded": 23,
+          "cleaned": 23
+        },
+        "artifactSha256": "20bab1e88ae215058437828bebad15920d4586b54f6c933eab0ee163066308bd"
+      },
+      {
+        "runId": "intake-extraction-2026-09-22T05-04-04-952Z-32651acd",
+        "job": "intake-workspace-behavior",
+        "step": "Run node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases preparation --preparation-cases ui-first-slice",
+        "completed": true,
+        "role": "retained-positive",
+        "manifestSha256": "49fd29432d0316441db89d25c74ab6cd3958f0714874964b4471c141846cc076",
+        "counts": [
+          {
+            "observation": 15,
+            "tests": 31,
+            "pass": 31,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 91,
+            "tests": 5,
+            "pass": 5,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 94,
+            "tests": 5,
+            "pass": 5,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          }
+        ],
+        "resources": {
+          "recorded": 23,
+          "cleaned": 23
+        },
+        "artifactSha256": "c846bb02464ae2a4c31a96bb2fc1245b9a949e3f3b2a3d1fed8ea399388a6c30"
+      },
+      {
+        "runId": "intake-extraction-2026-09-22T05-06-16-806Z-b5b51766",
+        "job": "intake-workspace-behavior",
+        "step": "Run node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases preparation --preparation-cases ui-reception",
+        "completed": true,
+        "role": "retained-positive",
+        "manifestSha256": "accc27d7a602978626e2e0e6ba287f8aab64baeac40592fa38b3acf36d4f0682",
+        "counts": [
+          {
+            "observation": 15,
+            "tests": 31,
+            "pass": 31,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 169,
+            "tests": 8,
+            "pass": 8,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 172,
+            "tests": 8,
+            "pass": 8,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          }
+        ],
+        "resources": {
+          "recorded": 23,
+          "cleaned": 23
+        },
+        "artifactSha256": "eb975420aa11ba3ab3d5b7818856f8ba433b28e26192d72dfb47aec28597e2e5"
+      },
+      {
+        "runId": "intake-extraction-2026-09-22T05-07-06-205Z-c1c8cc2b",
+        "job": "intake-workspace-behavior",
+        "step": "Run node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases preparation --preparation-cases ui-preparation",
+        "completed": true,
+        "role": "retained-positive",
+        "manifestSha256": "58602bf6e9209a3b8e26d4d763466c540e2e2bac20bb5b90aa289734f0fcfaeb",
+        "counts": [
+          {
+            "observation": 15,
+            "tests": 31,
+            "pass": 31,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 264,
+            "tests": 9,
+            "pass": 9,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 267,
+            "tests": 9,
+            "pass": 9,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          }
+        ],
+        "resources": {
+          "recorded": 23,
+          "cleaned": 23
+        },
+        "artifactSha256": "a06d9779d7ade024f49ad277dd3946eceafc79b0050b2a9daf397aa01b880d2c"
+      },
+      {
+        "runId": "intake-extraction-2026-09-22T05-08-32-258Z-6f5dfb98",
+        "job": "intake-workspace-behavior",
+        "step": "Run node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases preparation --preparation-cases ui-resources",
+        "completed": true,
+        "role": "retained-positive",
+        "manifestSha256": "3bc59037fd5633bbc09b89eea0b336eaa79d99736f6c71576e0efe46a8ad90e6",
+        "counts": [
+          {
+            "observation": 15,
+            "tests": 31,
+            "pass": 31,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 125,
+            "tests": 11,
+            "pass": 11,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          },
+          {
+            "observation": 128,
+            "tests": 11,
+            "pass": 11,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          }
+        ],
+        "resources": {
+          "recorded": 23,
+          "cleaned": 23
+        },
+        "artifactSha256": "1c7f13d41b21d6afd60656a455d5c647d07ada80797b2e03c824bb7a34a0d962"
+      }
+    ],
+    "receptionGroups": [
+      {
+        "runId": "intake-t02-2026-09-22T05-03-47-984Z-77b555ea",
+        "job": "intake-reception-mutations",
+        "step": "Run node ci/intake_t02_producer_checks.mjs"
+      },
+      {
+        "runId": "intake-t02-2026-09-22T05-05-39-109Z-72df9678",
+        "job": "intake-reception-mutations",
+        "step": "Run node ci/intake_t02_producer_checks.mjs"
+      },
+      {
+        "runId": "intake-t02-2026-09-22T05-06-28-322Z-00756e55",
+        "job": "intake-reception-mutations",
+        "step": "Run node ci/intake_t02_producer_checks.mjs"
+      },
+      {
+        "runId": "intake-t02-2026-09-22T05-06-48-240Z-4c6d456b",
+        "job": "intake-reception-mutations",
+        "step": "Run node ci/intake_t02_producer_checks.mjs"
+      },
+      {
+        "runId": "intake-t02-2026-09-22T05-07-19-784Z-f6e40ee7",
+        "job": "intake-reception-mutations",
+        "step": "Run node ci/intake_t02_producer_checks.mjs"
+      },
+      {
+        "runId": "intake-t02-2026-09-22T05-07-51-382Z-96919226",
+        "job": "intake-reception-mutations",
+        "step": "Run node ci/intake_t02_producer_checks.mjs"
+      },
+      {
+        "runId": "intake-t02-2026-09-22T05-08-21-519Z-cb3e79be",
+        "job": "intake-reception-mutations",
+        "step": "Run node ci/intake_t02_producer_checks.mjs"
+      },
+      {
+        "runId": "intake-t02-2026-09-22T05-08-52-759Z-d683bd66",
+        "job": "intake-reception-mutations",
+        "step": "Run node ci/intake_t02_producer_checks.mjs"
+      },
+      {
+        "runId": "intake-t02-2026-09-22T05-09-18-018Z-acd727f9",
+        "job": "intake-reception-mutations",
+        "step": "Run node ci/intake_t02_producer_checks.mjs"
+      },
+      {
+        "runId": "intake-t02-2026-09-22T05-09-32-031Z-7195b308",
+        "job": "intake-reception-mutations",
+        "step": "Run node ci/intake_t02_producer_checks.mjs"
+      },
+      {
+        "runId": "intake-t02-2026-09-22T05-09-46-697Z-ad35b126",
+        "job": "intake-reception-mutations",
+        "step": "Run node ci/intake_t02_producer_checks.mjs"
+      },
+      {
+        "runId": "intake-t02-2026-09-22T05-10-10-134Z-e7e11d2e",
+        "job": "intake-reception-mutations",
+        "step": "Run node ci/intake_t02_producer_checks.mjs"
+      },
+      {
+        "runId": "intake-t02-2026-09-22T05-10-24-753Z-4f671963",
+        "job": "intake-reception-mutations",
+        "step": "Run node ci/intake_t02_producer_checks.mjs"
+      },
+      {
+        "runId": "intake-t02-2026-09-22T05-10-40-423Z-8259cb51",
+        "job": "intake-reception-mutations",
+        "step": "Run node ci/intake_t02_producer_checks.mjs"
+      },
+      {
+        "runId": "intake-t02-2026-09-22T05-03-56-558Z-d881e09d",
+        "job": "intake-reception-recovery",
+        "step": "Run node ci/intake_t02_matrix.mjs --suite recovery-with-access",
+        "completed": true
+      },
+      {
+        "runId": "intake-t02-2026-09-22T05-05-40-315Z-213e13c0",
+        "job": "intake-reception-recovery",
+        "step": "Run node ci/intake_t02_matrix.mjs --suite recovery-with-access",
+        "completed": true
+      },
+      {
+        "runId": "intake-t02-2026-09-22T05-05-52-620Z-1138a7b3",
+        "job": "intake-reception-recovery",
+        "step": "Run node ci/intake_t02_matrix.mjs --suite recovery-with-access",
+        "completed": true
+      },
+      {
+        "runId": "intake-t02-2026-09-22T05-06-12-398Z-35d15866",
+        "job": "intake-reception-recovery",
+        "step": "Run node ci/intake_t02_matrix.mjs --suite recovery-with-access",
+        "completed": true
+      },
+      {
+        "runId": "intake-t02-2026-09-22T05-06-32-157Z-b3d545c4",
+        "job": "intake-reception-recovery",
+        "step": "Run node ci/intake_t02_matrix.mjs --suite recovery-with-access",
+        "completed": true
+      },
+      {
+        "runId": "intake-t02-2026-09-22T05-06-51-915Z-0cc5acc1",
+        "job": "intake-reception-recovery",
+        "step": "Run node ci/intake_t02_matrix.mjs --suite recovery-with-access",
+        "completed": true
+      },
+      {
+        "runId": "intake-t02-2026-09-22T05-07-09-419Z-e69adab6",
+        "job": "intake-reception-recovery",
+        "step": "Run node ci/intake_t02_matrix.mjs --suite recovery-with-access",
+        "completed": true
+      },
+      {
+        "runId": "intake-t02-2026-09-22T05-07-26-107Z-86087608",
+        "job": "intake-reception-recovery",
+        "step": "Run node ci/intake_t02_matrix.mjs --suite recovery-with-access",
+        "completed": true
+      },
+      {
+        "runId": "intake-t02-2026-09-22T05-07-43-304Z-72eb6bfe",
+        "job": "intake-reception-recovery",
+        "step": "Run node ci/intake_t02_matrix.mjs --suite recovery-with-access",
+        "completed": true
+      },
+      {
+        "runId": "intake-t02-2026-09-22T05-08-00-436Z-d22c3c76",
+        "job": "intake-reception-recovery",
+        "step": "Run node ci/intake_t02_matrix.mjs --suite recovery-with-access",
+        "completed": true
+      },
+      {
+        "runId": "intake-t02-2026-09-22T05-08-28-052Z-da1fca15",
+        "job": "intake-reception-recovery",
+        "step": "Run node ci/intake_t02_matrix.mjs --suite recovery-with-access",
+        "completed": true
+      },
+      {
+        "runId": "intake-t02-2026-09-22T05-08-45-401Z-6137e25b",
+        "job": "intake-reception-recovery",
+        "step": "Run node ci/intake_t02_matrix.mjs --suite recovery-with-access",
+        "completed": true
+      },
+      {
+        "runId": "intake-t02-2026-09-22T05-09-09-996Z-70a7fa98",
+        "job": "intake-reception-recovery",
+        "step": "Run node ci/intake_t02_matrix.mjs --suite recovery-with-access",
+        "completed": true
+      },
+      {
+        "runId": "intake-t02-2026-09-22T05-09-27-194Z-22b494ff",
+        "job": "intake-reception-recovery",
+        "step": "Run node ci/intake_t02_matrix.mjs --suite recovery-with-access",
+        "completed": true
+      },
+      {
+        "runId": "intake-t02-2026-09-22T05-09-42-594Z-a9849921",
+        "job": "intake-reception-recovery",
+        "step": "Run node ci/intake_t02_matrix.mjs --suite recovery-with-access",
+        "completed": true
+      },
+      {
+        "runId": "intake-t02-2026-09-22T05-03-50-988Z-7a0a6127",
+        "job": "intake-reception-behavior",
+        "step": "Run node ci/intake_t02_matrix.mjs --suite behavior",
+        "completed": true
+      },
+      {
+        "runId": "intake-t02-2026-09-22T05-04-01-194Z-3323ae96",
+        "job": "intake-reception-behavior",
+        "step": "Run node ci/intake_t02_matrix.mjs --suite behavior",
+        "completed": true
+      },
+      {
+        "runId": "intake-t02-2026-09-22T05-05-41-542Z-3207487c",
+        "job": "intake-reception-behavior",
+        "step": "Run node ci/intake_t02_matrix.mjs --suite behavior",
+        "completed": true
+      },
+      {
+        "runId": "intake-t02-2026-09-22T05-05-55-647Z-83252172",
+        "job": "intake-reception-behavior",
+        "step": "Run node ci/intake_t02_matrix.mjs --suite behavior",
+        "completed": true
+      },
+      {
+        "runId": "intake-t02-2026-09-22T05-06-15-855Z-efd0ce4d",
+        "job": "intake-reception-behavior",
+        "step": "Run node ci/intake_t02_matrix.mjs --suite behavior",
+        "completed": true
+      },
+      {
+        "runId": "intake-t02-2026-09-22T05-06-32-006Z-7bb521d1",
+        "job": "intake-reception-behavior",
+        "step": "Run node ci/intake_t02_matrix.mjs --suite behavior",
+        "completed": true
+      },
+      {
+        "runId": "intake-t02-2026-09-22T05-06-40-145Z-ec7c56e8",
+        "job": "intake-reception-behavior",
+        "step": "Run node ci/intake_t02_matrix.mjs --suite behavior",
+        "completed": true
+      },
+      {
+        "runId": "intake-t02-2026-09-22T05-06-42-296Z-5a7b26c6",
+        "job": "intake-reception-behavior",
+        "step": "Run node ci/intake_t02_matrix.mjs --suite behavior",
+        "completed": true
+      },
+      {
+        "runId": "intake-t02-2026-09-22T05-06-57-707Z-24ded16d",
+        "job": "intake-reception-behavior",
+        "step": "Run node ci/intake_t02_matrix.mjs --suite behavior",
+        "completed": true
+      },
+      {
+        "runId": "intake-t02-2026-09-22T05-07-05-516Z-357e8119",
+        "job": "intake-reception-behavior",
+        "step": "Run node ci/intake_t02_matrix.mjs --suite behavior",
+        "completed": true
+      },
+      {
+        "runId": "intake-t02-2026-09-22T05-07-14-527Z-e2a03db9",
+        "job": "intake-reception-behavior",
+        "step": "Run node ci/intake_t02_matrix.mjs --suite behavior",
+        "completed": true
+      },
+      {
+        "runId": "intake-t02-2026-09-22T05-07-49-906Z-d02aa8a5",
+        "job": "intake-reception-behavior",
+        "step": "Run node ci/intake_t02_matrix.mjs --suite behavior",
+        "completed": true
+      },
+      {
+        "runId": "intake-t02-2026-09-22T05-07-59-374Z-3b5a4015",
+        "job": "intake-reception-behavior",
+        "step": "Run node ci/intake_t02_matrix.mjs --suite behavior",
+        "completed": true
+      },
+      {
+        "runId": "intake-t02-2026-09-22T05-08-07-701Z-b99d55da",
+        "job": "intake-reception-behavior",
+        "step": "Run node ci/intake_t02_matrix.mjs --suite behavior",
+        "completed": true
+      },
+      {
+        "runId": "intake-t02-2026-09-22T05-08-18-818Z-3e54afb6",
+        "job": "intake-reception-behavior",
+        "step": "Run node ci/intake_t02_matrix.mjs --suite behavior",
+        "completed": true
+      },
+      {
+        "runId": "intake-t02-2026-09-22T05-08-39-797Z-1aa05571",
+        "job": "intake-reception-behavior",
+        "step": "Run node ci/intake_t02_matrix.mjs --suite behavior",
+        "completed": true
+      },
+      {
+        "runId": "intake-t02-2026-09-22T05-09-00-190Z-79537388",
+        "job": "intake-reception-behavior",
+        "step": "Run node ci/intake_t02_matrix.mjs --suite behavior",
+        "completed": true
+      },
+      {
+        "runId": "intake-t02-2026-09-22T05-09-24-491Z-ce80cc26",
+        "job": "intake-reception-behavior",
+        "step": "Run node ci/intake_t02_matrix.mjs --suite behavior",
+        "completed": true
+      },
+      {
+        "runId": "intake-t02-2026-09-22T05-09-37-340Z-486ebf32",
+        "job": "intake-reception-behavior",
+        "step": "Run node ci/intake_t02_matrix.mjs --suite behavior",
+        "completed": true
+      },
+      {
+        "runId": "intake-t02-2026-09-22T05-09-45-458Z-feec3ffd",
+        "job": "intake-reception-behavior",
+        "step": "Run node ci/intake_t02_matrix.mjs --suite behavior",
+        "completed": true
+      }
+    ]
+  },
+  "limits": [
+    "Counts include parent/setup tests, not independent guarantees.",
+    "Fault failures require their own qualifier; failed runs are not generally successful discrimination.",
+    "Retained CI does not replace changed-consumer evidence.",
+    "Docker Desktop is not newly qualified physical-memory evidence.",
+    "R24 and historical unknown causes remain open."
+  ]
+}

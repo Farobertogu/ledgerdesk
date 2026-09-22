@@ -490,6 +490,7 @@ jobs:
       - run: node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases preparation --preparation-cases ui-reception
       - run: node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases preparation --preparation-cases ui-preparation
       - run: node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases preparation --preparation-cases ui-resources
+      - run: node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases preparation --preparation-cases ui-preparation --whole-journey
       - name: Prepare closed-shape public evidence
         if: always()
         run: node ci/intake_extraction_artifacts.mjs
