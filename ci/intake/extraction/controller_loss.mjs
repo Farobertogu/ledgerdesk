@@ -4,6 +4,30 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import {dockerCommand} from './launcher.mjs';
 
+/** Reconcile a concurrent worker exit without treating a failed kill as closure. */
+export async function removeLostControllerWorker({live,image,runId,channel,events},command=dockerCommand){
+  const inspect=async()=>{
+    const value=JSON.parse((await command(['inspect',live.id])).stdout)[0];
+    if(value.Id!==live.id||value.Image!==image||value.Config.Labels?.['intake.t03.run']!==runId||
+      value.Name!=='/intake-t03-'+channel)throw Error('CONTROLLER_LOSS_OWNERSHIP');
+    return value;
+  };
+  let actual=await inspect(),killError;
+  events.push({kind:'worker-after-controller-loss',id:actual.Id,state:actual.State});
+  if(actual.State.Running){
+    try{await command(['kill','--signal','KILL',actual.Id]);}
+    catch(error){
+      killError=error;
+      events.push({kind:'owned-worker-kill-unconfirmed',id:actual.Id,
+        code:Number.isInteger(error.observed?.code)?error.observed.code:null});
+    }
+  }
+  actual=await inspect();
+  if(actual.State.Running||actual.State.Pid!==0||actual.State.Restarting)throw killError??Error('CONTROLLER_LOSS_WORKER_NOT_CLOSED');
+  events.push({kind:'owned-worker-cleanup-observed',id:actual.Id,state:actual.State});
+  await command(['rm',actual.Id]);events.push({kind:'owned-worker-removed',id:actual.Id});
+}
+
 /** Kills an owned real launcher process; cleanup observations are not a worker reply. */
 export async function loseControllerAfterLaunch({request,originalPath,image,runId,observe,directory}){
   const child=fork(fileURLToPath(new URL('./controller_loss_child.mjs',import.meta.url)),[],{
@@ -51,18 +75,14 @@ export async function loseControllerAfterLaunch({request,originalPath,image,runI
     settled=true;
   }finally{
     clearTimeout(timer);
-    if(!observed){child.kill('SIGKILL');await completion;}
-    if(live){
-      let actual=await inspect(live.id);owned(actual);
-      events.push({kind:'worker-after-controller-loss',id:actual.Id,state:actual.State});
-      if(actual.State.Running)await dockerCommand(['kill','--signal','KILL',actual.Id]);
-      actual=await inspect(live.id);owned(actual);
-      if(actual.State.Running||actual.State.Pid!==0||actual.State.Restarting)throw Error('CONTROLLER_LOSS_WORKER_NOT_CLOSED');
-      events.push({kind:'owned-worker-cleanup-observed',id:actual.Id,state:actual.State});
-      await dockerCommand(['rm',actual.Id]);events.push({kind:'owned-worker-removed',id:actual.Id});
+    try{
+      if(!observed){child.kill('SIGKILL');await completion;}
+      if(live)await removeLostControllerWorker({live,image,runId,channel:request.binding.channel_id,events});
+    }finally{
+      // A failed cleanup must not erase the last verified identity and state.
+      await fs.writeFile(path.join(directory,'controller-loss.json'),JSON.stringify({settled,events,
+        meaning:'Actual host controller killed after real worker launch. Subsequent owner cleanup is not a recovered producer result or an acknowledged service stop.'},null,2),{flag:'wx'});
     }
-    await fs.writeFile(path.join(directory,'controller-loss.json'),JSON.stringify({settled,events,
-      meaning:'Actual host controller killed after real worker launch. Subsequent owner cleanup is not a recovered producer result or an acknowledged service stop.'},null,2),{flag:'wx'});
   }
   throw Error('EXTRACTION_HOST_CONTROLLER_LOST');
 }
