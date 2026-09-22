@@ -2,7 +2,12 @@
  * request or the independent expected reference. Used only in source copies. */
 export function semanticFaultCopy(relative,source,variant){
   if(!['omit-condition-store','omit-limitation-store','omit-incident-query','omit-resource-relation-store','read-resource-before-validation','allow-resource-swap',
-    'xlsx-recalculate-store','xlsx-hide-sheet-store','xlsx-context-store'].includes(variant))throw Error('SEMANTIC_MUTATION_SCOPE');
+    'xlsx-recalculate-store','xlsx-hide-sheet-store','xlsx-context-store','unknown-inventory-complete'].includes(variant))throw Error('SEMANTIC_MUTATION_SCOPE');
+  if(relative==='src/server/intake/extraction_output.ts'&&variant==='unknown-inventory-complete'){
+    const anchor='  const normalized=Buffer.from(JSON.stringify(content));\n  if(normalized.length>EXTRACTION_BOUNDS.normalizedBytes)';
+    if(source.split(anchor).length!==2)throw Error('MIXED_COMPLETENESS_MUTATION_ANCHOR');
+    return source.replace(anchor,"  content.inventory='known';content.outcome='completed';outcome='completed';\n"+anchor);
+  }
   if(relative==='src/server/intake/extraction_output.ts'&&variant.startsWith('xlsx-')){
     const anchor='  const normalized=Buffer.from(JSON.stringify(content));\n  if(normalized.length>EXTRACTION_BOUNDS.normalizedBytes)';
     if(source.split(anchor).length!==2)throw Error('XLSX_STORE_MUTATION_ANCHOR');

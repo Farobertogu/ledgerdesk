@@ -63,6 +63,16 @@ export async function streamCases(t,context){
     const incomplete=await eventually(()=>records(r.reception_id),value=>value.reception.state==='interrupted','TRANSFER_NOT_CLASSIFIED');
     assert.deepEqual([incomplete.receipts.length,incomplete.jobs.length,incomplete.attempts[0].actual_bytes],[0,0,41]);
     const current=await request(`/api/intake/receptions/${r.reception_id}`,{client});assert.equal(current.status,200);
+    const expectedActivation={status:409,state:'interrupted',actualBytes:41,receipts:0,jobs:0};
+    writeFileSync('/work/output/incomplete-activation-reference.json',JSON.stringify({expected:expectedActivation,declaredBytes:text.length}),{flag:'wx'});
+    const premature=await request(`/api/intake/receptions/${r.reception_id}/finalize`,{body:{profile:'intake/1',
+      expected_revision:current.body.revision,original:r.original,format_profile:'text-utf8/1'},client,key:randomUUID()});
+    const retained=await records(r.reception_id);
+    const observedActivation={status:premature.status,state:retained.reception.state,actualBytes:retained.attempts[0].actual_bytes,
+      receipts:retained.receipts.length,jobs:retained.jobs.length};
+    writeFileSync('/work/output/incomplete-activation-observed.json',JSON.stringify({observed:observedActivation,declaredBytes:text.length,
+      receiptBytes:retained.receipts.map(row=>row.bytes),attemptState:retained.attempts[0].state}),{flag:'wx'});
+    assert.deepEqual(observedActivation,expectedActivation,'INCOMPLETE_ACTIVATION: interrupted bytes cannot acquire a durable receipt and work');
     const resumed=await request(`/api/intake/receptions/${r.reception_id}/resume`,{body:{profile:'intake/1',expected_revision:current.body.revision,
       expected_generation:1,cause:'interrupted',original:r.original},client,key:randomUUID()});assert.equal(resumed.status,202,JSON.stringify(resumed.body));
     const oldEvidence=storage.find(e=>e.artifactId===r.original.id&&e.kind==='capture').evidenceId;

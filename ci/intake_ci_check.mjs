@@ -22,7 +22,8 @@ const requiredNormal=['units','runtime','boundaries','temporal','integrity','bro
 const requiredRecovery=[['creation'],['fence-sql'],['fence-loss','--loss-kind','sql','--without-worker-stop'],['fence-loss','--loss-kind','runtime','--without-worker-stop'],['fence-loss','--loss-kind','supervisor','--without-worker-stop'],
   ['fence-ack','--ack-kind','append'],['fence-ack','--ack-kind','seal'],['fence-ack','--ack-kind','read'],['fence-ack','--ack-kind','close'],
   ['fence-commit','--commit-kind','rollback'],['fence-commit','--commit-kind','reply-loss'],['fence-continuation'],['fence-ipc'],['fence-restore'],['fence-coupled']];
-const requiredMutations=['original-selection','actual-digest','actual-chunk-cap','type-recognition','compatible-payload','sealed-as-receipt','whole-original-faculty','delivery-evidence','deferred-dispatch','runtime-source'];
+const requiredMutations=['original-selection','actual-digest','actual-chunk-cap','type-recognition','compatible-payload','sealed-as-receipt','whole-original-faculty','delivery-evidence','deferred-dispatch','runtime-source',
+  'incomplete-activation','old-generation','overwrite-original','release-delivery-admission'];
 const same=(a,b,label)=>assert.deepEqual(a,b,label);
 const commands=job=>job.steps.filter(s=>Object.hasOwn(s,'run')).map(s=>s.run);
 // Bounded profile, not a general GitHub expression parser or remote validator.
@@ -125,7 +126,8 @@ export function verifyWiring(workflow,executedPlans=plans,mutations=producerFaul
   }
   same(extractionGuards.resources.map(c=>[c.group,c.name]),[
     ['resources','omit-resource-relation-store'],['resources','read-resource-before-validation'],['resources','allow-resource-swap'],
-    ['semantics','omit-condition-store'],['semantics','omit-limitation-store'],['semantics','omit-incident-query']],'resource and semantic negative inventory');
+    ['semantics','omit-condition-store'],['semantics','omit-limitation-store'],['semantics','omit-incident-query'],
+    ['mixed','unknown-inventory-complete']],'resource and semantic negative inventory');
   same(extractionGuards.formats.map(c=>[c.group,c.name]),[
     ['format-negatives','xlsx-recalculate-store'],['format-negatives','xlsx-hide-sheet-store'],['format-negatives','xlsx-context-store']],'XLSX internal negative inventory');
   for(const name of [...Object.keys(addedExtraction),'intake-extraction-resource-guards','intake-extraction-format-guards']){
@@ -176,6 +178,7 @@ export function verifyWiring(workflow,executedPlans=plans,mutations=producerFaul
       'node --test tests/intake/ui/test_ci.mjs','docker pull postgres:16',
       ...(part==='behavior'?['node --experimental-strip-types ci/intake_ui_check.mjs --group units','node --test tests/intake/ui/views/test_views.mjs']:[]),
       ...cases.map(c=>'node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases preparation --preparation-cases '+c),
+      ...(part==='behavior'?['node --experimental-strip-types ci/intake_t02_check.mjs --group extraction --extraction-cases preparation --preparation-cases ui-preparation --whole-journey']:[]),
       ...(part==='admission'?['node ci/intake_workspace_guards.mjs']:[]),'node ci/intake_extraction_artifacts.mjs'],name+' finite obligations');
     same(job.steps.at(-2).if,'always()');
     same(job.steps.at(-1),{uses:'actions/upload-artifact@v4',if:'always()',with:{name:name+'-evidence',

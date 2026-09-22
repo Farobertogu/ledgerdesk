@@ -10,15 +10,18 @@ import { CSV_REFERENCES, assertCsvReference } from './csv.mjs';
 const fixtures = new URL('../../t01/fixtures/', import.meta.url);
 const boundaries = new URL('../../t01/boundaries/', import.meta.url);
 const originalManifest = JSON.parse(await fs.readFile(new URL('manifest.json', fixtures), 'utf8'));
+const securityFixtures = new URL('security/', import.meta.url);
+const securityManifest = JSON.parse(await fs.readFile(new URL('manifest.json', securityFixtures), 'utf8'));
 export const BOUNDARIES = JSON.parse(await fs.readFile(new URL('expected.json', boundaries), 'utf8')).cases;
 export const TEXT = 'AZ-17\r\nFor procedure AZ-17, receipt Q is required.\r\nUnder condition Z, receipt R replaces receipt Q.\r\nAZ-18\r\nUnder condition Z, receipt S replaces receipt Q.\r\nEspañol: información. Cafe\u0301. 😀\r\n';
 export const MARKDOWN = '# Procedure\n<script>doNotExecute()</script>\n![remote](https://example.invalid/image.png)\nShort substantive rule.\n';
 
 export async function original(name) {
   const boundary = BOUNDARIES.find(row => row.file === name);
-  const reference = boundary ?? originalManifest.files.find(row => row.name === name);
+  const security = securityManifest.files.find(row => row.name === name);
+  const reference = boundary ?? security ?? originalManifest.files.find(row => row.name === name);
   assert.ok(reference, `No fixed reference for ${name}`);
-  const location = new URL(name, boundary ? boundaries : fixtures);
+  const location = new URL(name, boundary ? boundaries : security ? securityFixtures : fixtures);
   const bytes = await fs.readFile(location);
   assert.deepEqual({ bytes: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex') },
     { bytes: reference.bytes, sha256: reference.sha256 }, 'Original identity changed');
@@ -66,9 +69,9 @@ export function assertLiteralObservation(name, observation, bytes) {
   else {
     const boundary = BOUNDARIES.find(row => row.file === name);
     if (boundary) assertBoundary(observation, boundary);
-    else if (['baseline.xlsx', 'cache-discrepant.xlsx', 'cache-missing.xlsx', 'cache-zero.xlsx'].includes(name)) {
+    else if (['baseline.xlsx', 'repacked.xlsx', 'cache-discrepant.xlsx', 'cache-missing.xlsx', 'cache-zero.xlsx'].includes(name)) {
       const d2 = observation.extraction.elements[0].cells.find(cell => cell.address === 'D2');
-      const lexical = { 'baseline.xlsx': '25.00', 'cache-discrepant.xlsx': '24.00', 'cache-zero.xlsx': '0' }[name];
+      const lexical = { 'baseline.xlsx': '25.00', 'repacked.xlsx': '25.00', 'cache-discrepant.xlsx': '24.00', 'cache-zero.xlsx': '0' }[name];
       assert.equal(d2.formula.storedExpression, 'B2*C2');
       assert.deepEqual(d2.formula.cached, lexical === undefined ? { availability: 'not_available' } :
         { availability: 'observed', lexical, sourceType: 'n' });
@@ -84,7 +87,7 @@ export async function runFixedEntryCases(invoke) {
   const positive = [
     ['short.txt', 'text-utf8/1'], ['text.txt', 'text-utf8/1'], ['inert.md', 'markdown-inert/1'],
     ['table.csv', 'csv-utf8/1'], ['unicode-records.csv', 'csv-utf8/1'],
-    ...['baseline.xlsx', 'cache-discrepant.xlsx', 'cache-missing.xlsx', 'cache-zero.xlsx'].map(name => [name, 'xlsx-cells/1']),
+    ...['baseline.xlsx', 'repacked.xlsx', 'cache-discrepant.xlsx', 'cache-missing.xlsx', 'cache-zero.xlsx'].map(name => [name, 'xlsx-cells/1']),
     ...BOUNDARIES.filter(row => row.expected === 'completed').map(row => [row.file, 'xlsx-cells/1']),
   ];
   for (const [name, format] of positive) {
@@ -102,6 +105,8 @@ export async function runFixedEntryCases(invoke) {
   for (const [name, format, code] of [
     ['invalid-utf8.txt', 'text-utf8/1', 'invalid_utf8'], ['invalid-utf8.csv', 'csv-utf8/1', 'invalid_utf8'],
     ['utf16.csv', 'csv-utf8/1', 'unsupported_encoding'],
+    ['macro-declared.xlsx', 'xlsx-cells/1', 'unsupported_workbook_type'],
+    ['entity-declared.xlsx', 'xlsx-cells/1', 'xml_declaration_forbidden'],
     ...BOUNDARIES.filter(row => row.expected !== 'completed').map(row => [row.file, 'xlsx-cells/1', row.expected]),
   ]) {
     const input = await requestFor(name, format);

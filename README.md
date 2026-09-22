@@ -12,7 +12,7 @@ definition of the current product.
 
 ## Current implementation
 
-Status at 22 September 2026:
+Status at 23 September 2026:
 
 | Delivery | Available within its accepted experimental scope |
 |---|---|
@@ -22,10 +22,14 @@ Status at 22 September 2026:
 | INC-03 T03 | Separately authorized bounded text/Markdown, CSV and XLSX extraction, protected result queries and explicit recovery; synthetic scope only |
 | INC-03 T04 | Exact preparation and candidate constitution, with retained antecedents, differences and distinct candidate/related/blocked results; no approval or publication |
 | INC-03 T05 | Integrated [intake workspace](docs/INC-03-T05.md) for the accepted reception, extraction and preparation operations; bounded synthetic scope only |
+| INC-03 T06 | Verified [whole intake journey](docs/INC-03-T06.md) from an empty corpus to an exact candidate and downstream handoff; accepted bounded synthetic scope, not editorial publication |
 
 T05 was accepted on 21 September 2026 under [ADR-039](adr/ADR-039-intake-workspace.md)
 and merged through [PR #36](https://github.com/Farobertogu/ledgerdesk/pull/36).
-INC-03 T06 has not started; acceptance of T01–T05 does not close the whole increment.
+The bounded synthetic T06 scope was accepted on 23 September 2026 after independent review.
+Its [publication record in PR #39](https://github.com/Farobertogu/ledgerdesk/pull/39)
+records hosted checks and merge separately from the experimental acceptance documented
+in the [T06 report](docs/INC-03-T06.md). INC-04 does not start automatically.
 
 `/material` is the integrated credential-free trial viewer; `/access/material` is the
 session-bearing viewer. Their profiles are explicit and never selected by automatic fallback.

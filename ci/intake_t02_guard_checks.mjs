@@ -19,10 +19,14 @@ export function qualifyGuard(c,m,s,logs){
   return true;
 }
 if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url)){
+  const flags=process.argv.slice(2);let cases=guardCases;
+  if(flags.length){assert.equal(flags.length,2);assert.equal(flags[0],'--cases');const names=flags[1].split(',');
+    assert.ok(names.length&&new Set(names).size===names.length&&names.every(n=>cases.some(c=>c.name===n)),'Known unique guard cases required');
+    cases=cases.filter(c=>names.includes(c.name));}
   const output=path.join(root,'test-results/intake-t02/guard-controls','guards-'+new Date().toISOString().replace(/[:.]/g,'-')+'-'+randomUUID());
   await fs.mkdir(output,{recursive:true});await fs.copyFile(fileURLToPath(import.meta.url),path.join(output,'guard_checks.mjs'),fs.constants.COPYFILE_EXCL);
   const rows=[];let failure=null;
-  try{for(const c of guardCases)for(const mutation of [false,true]){
+  try{for(const c of cases)for(const mutation of [false,true]){
     const args=['ci/intake_t02_check.mjs','--group',c.group,...(mutation?c.args:[])];let tail='';const start=Date.now();
     const result=await new Promise((resolve,reject)=>{const child=spawn(process.execPath,args,{cwd:root,windowsHide:true,stdio:['ignore','pipe','inherit']});
       child.stdout.on('data',b=>tail=(tail+b).slice(-262144));child.once('error',reject);child.once('close',(code,signal)=>resolve({code,signal}));});

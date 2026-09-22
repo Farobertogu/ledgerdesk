@@ -1,6 +1,36 @@
 /** Directed construction regressions in a captured source copy only. */
 export function preparationFaultCopy(relative,source,variant){
-  if(!['drop-retained-context','drop-retained-limitation','swap-resource-at-birth','swap-resource-at-consume','flatten-component-causes','ignore-c9-conditions','drop-item-lock','drop-prior-target'].includes(variant))throw Error('PREPARATION_MUTATION_SCOPE');
+  if(!['drop-retained-context','drop-retained-limitation','swap-resource-at-birth','swap-resource-at-consume','flatten-component-causes','ignore-c9-conditions','drop-item-lock','drop-prior-target',
+    'hash-identity','hidden-duplicate-status','auto-publish-candidate'].includes(variant))throw Error('PREPARATION_MUTATION_SCOPE');
+  if(variant==='hash-identity'){
+    if(relative!=='src/server/intake/preparation/proposals.ts')return source;
+    const pattern=/const disposition = comparisonDisposition\(([^\n]+)\);/g;
+    if([...source.matchAll(pattern)].length!==2)throw Error('PREPARATION_HASH_MUTATION_ANCHOR');
+    // Exercise both real consumers without disabling the helper's unit guard.
+    return source.replace(pattern,(_whole,args)=>{
+      const [target,,identity]=args.split(',').map(value=>value.trim());
+      return `const disposition = ((value: string) => value==='possible_duplicate'&&${target}.kind==='relationship'&&`+
+        `${identity}===compared?.candidate.content_identity?'relationship_recorded':value)(comparisonDisposition(${args}));`;
+    });
+  }
+  if(variant==='hidden-duplicate-status'){
+    if(relative!=='src/server/intake/preparation/comparison.ts')return source;
+    const anchor="  if (!meta || !same(current, meta.context)) throw new IntakeFailure(404);";
+    if(source.split(anchor).length!==2)throw Error('PREPARATION_COMPARISON_MUTATION_ANCHOR');
+    return source.replace(anchor,
+      '  if (!meta) throw new IntakeFailure(404);\n  if (!same(current, meta.context)) throw new IntakeFailure(409);');
+  }
+  if(variant==='auto-publish-candidate'){
+    let anchor,replacement;
+    if(relative==='src/server/intake/postgres/008_preparation_data.sql'){
+      anchor="editorial_state text NOT NULL CHECK(editorial_state='candidate')";
+      replacement="editorial_state text NOT NULL CHECK(editorial_state IN ('candidate','published'))";
+    }else if(relative==='src/server/intake/preparation/proposals.ts'){
+      anchor="$8,$9,$10,\\'candidate\\')";replacement="$8,$9,$10,\\'published\\')";
+    }else return source;
+    if(source.split(anchor).length!==2)throw Error('PREPARATION_EDITORIAL_MUTATION_ANCHOR');
+    return source.replace(anchor,replacement);
+  }
   if(variant==='drop-prior-target'){
     if(relative!=='src/server/intake/preparation/prior_act.ts')return source;
     const anchor='  if (!same(prior.body.target, expected)) throw new IntakeFailure(404);';

@@ -20,6 +20,10 @@ const names={
   'delivery-evidence':'governed JSON and original share durable evidence and idle SQL before handoff',
   'deferred-dispatch':'finalization produces one receipt and a distinct unstarted job',
   'runtime-source':'tests/intake/t02/test_runtime.mjs',
+  'incomplete-activation':'interrupted real transfer resumes as a new fenced physical generation',
+  'old-generation':'resume fences an unused generation',
+  'overwrite-original':'original travels as exact protected bytes',
+  'release-delivery-admission':'original handoff is ordered before an overlapping real invalidator',
 };
 const rows=[];let failure=null;
 const requested=process.argv.includes('--faults')?process.argv[process.argv.indexOf('--faults')+1].split(','):Object.keys(producerFaultGroups);
@@ -51,9 +55,33 @@ async function execute(group,fault=null){
   }
   else{
     assert.equal(result.code,1);assert.equal(manifest.completed,false);assert.equal(manifest.failure?.message,'T02_RUNTIME_FAILED');
-    assert.equal(row.changed.filter(r=>r.fault==='producer-'+fault).length,1);
+    assert.equal(row.changed.filter(r=>r.fault==='producer-'+fault).length,fault==='incomplete-activation'?2:1);
     assert.ok(row.failedNames.some(name=>name.includes(names[fault])),JSON.stringify(row.failedNames));
-    if(fault!=='runtime-source')assert.ok(logs.includes('INTAKE_T02_RUNTIME_CLEANED'));
+    if(fault!=='runtime-source'){
+      assert.ok(logs.includes('INTAKE_T02_RUNTIME_CLEANED'));
+      const executions=commands.filter(c=>c.program==='docker'&&c.args?.[0]==='start'&&c.args?.[1]==='-a'&&c.args?.[2]?.endsWith('-runtime'));
+      assert.equal(executions.length,1);const runtime=executions[0];
+      assert.equal(runtime.code,1);assert.equal(runtime.reason??null,null);
+      assert.match(runtime.stdout,/^# cancelled 0$/m);assert.doesNotMatch(runtime.stdout,/testTimeoutFailure/);
+      const blocks=runtime.stdout.split(/(?=^\s*(?:not )?ok \d+ - )/m);
+      assert.ok(blocks.some(b=>b.split('\n')[0].includes('not ok ')&&b.split('\n')[0].includes(names[fault])&&
+        b.includes("code: 'ERR_ASSERTION'")),fault+': intended assertion, not unrelated failure');
+    }
+    if(fault==='overwrite-original'){
+      const observations=(await fs.readFile(path.join(summary.directory,'objects/t06-overwrites.ndjson'),'utf8')).trim().split('\n').map(JSON.parse);
+      assert.ok(observations.some(o=>o.bytes===17&&o.beforeSha256==='8ab8151d61e1d71204824d7cbc2cfa3f2718028368ac812a260bc86ea26b42f9'&&o.afterSha256!==o.beforeSha256),
+        'Actual retained-file replacement must be observed, not merely a failed retrieval');
+    }
+    if(fault==='incomplete-activation'){
+      assert.deepEqual(row.changed.map(r=>r.path).sort(),['src/server/intake/postgres/002_data.sql','src/server/intake/service.ts']);
+      const reference=JSON.parse(await fs.readFile(path.join(summary.directory,'runtime/incomplete-activation-reference.json'),'utf8'));
+      const observed=JSON.parse(await fs.readFile(path.join(summary.directory,'runtime/incomplete-activation-observed.json'),'utf8'));
+      assert.deepEqual(reference.expected,{status:409,state:'interrupted',actualBytes:41,receipts:0,jobs:0});
+      assert.deepEqual(observed.observed,{status:200,state:'received',actualBytes:41,receipts:1,jobs:1});
+      assert.ok(observed.declaredBytes>41);assert.equal(observed.declaredBytes,reference.declaredBytes);
+      assert.deepEqual(observed.receiptBytes,[reference.declaredBytes]);assert.equal(observed.attemptState,'interrupted');
+      row.classification='compound fault: application trusts declaration; SQL permits interrupted predecessor; incomplete bytes acquire durable receipt and work';
+    }
     if(fault==='runtime-source'){
       assert.ok(logs.includes("Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/work/src/server/intake/authority.ts'"));
       assert.ok(!logs.includes('INTAKE_RUNTIME_IDENTITY'),'Omission fails actual module loading before the runtime or database is initialized');
