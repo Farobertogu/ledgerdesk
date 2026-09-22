@@ -2,13 +2,17 @@
 
 ## New-system construction
 
+Status at 22 September 2026.
+
 The active new-system work follows the adjusted construction plan (INC-01 through INC-15),
 not the historical 25-card roadmap below. The latter is preserved as provenance, not inherited
 product requirements. INC-01 and INC-02 are accepted within their documented synthetic
 experimental scopes. INC-03 T01–T04 are separately accepted within their bounded
-synthetic scopes. T05 is accepted within its bounded synthetic scope under ADR-039
-on 2026-09-21. Its documentary final-head and actual-main verification remain separate
-integration requirements. T06 has not started.
+synthetic scopes. T05 was accepted within its bounded synthetic scope under ADR-039
+on 2026-09-21 and merged through [PR #36](https://github.com/Farobertogu/ledgerdesk/pull/36);
+its final-head and actual-main verification are complete. The subsequent bounded evidence
+update was merged through [PR #37](https://github.com/Farobertogu/ledgerdesk/pull/37).
+T06 has not started.
 The [system overview](docs/SYSTEM_OVERVIEW.md) explains this boundary and the
 [documentation index](docs/README.md) separates current guides from dated evidence.
 LR-AC21 remains partial and R24 is an observed temporal failure; no real-data or production
@@ -19,8 +23,10 @@ its named tests are green and the owner has reviewed the PR (merge `--no-ff`).**
 the final head's complete required workflow, not an earlier green revision. The current
 accepted intake composition has nineteen jobs, including three preparation and two
 workspace producers. All fifteen producers required by `reading` must succeed.
-Implementation CI has exercised this composition; the documentary final-head workflow
-remains a separate pre-merge requirement, followed by verification of the actual main revision. See the delivery record for each executed composition. Historical tags and the 25-card roadmap
+As a general integration rule, the documentary final-head workflow requires its own
+verification before merge, followed by verification of the actual main revision. The T05
+Done row records the completed verification for PRs #36 and #37. See the delivery record
+for each executed composition. Historical tags and the 25-card roadmap
 below are retained provenance, not the new-system build order.
 
 ## In review
@@ -32,7 +38,7 @@ below are retained provenance, not the new-system build order.
 
 | Card | Increment | Closing evidence |
 |---|---|---|
-| INC-03 | Material intake: I03-T01 through I03-T05 accepted experimentally; I03-T06 not started | Foundation, reception, bounded extraction, exact preparation and the integrated workspace retain their separate finite acceptance. The [workspace delivery](docs/INC-03-T05.md) records T05 separately. R24 remains adverse. No real-data or production activation. |
+| INC-03 | Material intake: I03-T01 through I03-T05 accepted experimentally; I03-T06 not started | Foundation, reception, bounded extraction, exact preparation and the integrated workspace retain their separate finite acceptance. T05 is merged in PR #36; the subsequent PR #37 improves bounded evidence export only. The [workspace delivery](docs/INC-03-T05.md) and T05 Done row distinguish acceptance from integration. R24 remains adverse. No real-data or production activation. |
 
 Active access follow-up: [tracked browser failures and closure criteria](docs/INC-02-T03.md#tracked-browser-follow-up).
 
@@ -102,9 +108,12 @@ it for a row that used to be there.
 
 ### New-system experimental deliveries
 
+Each dated row retains the requirements and outcomes recorded at its delivery stage. Read it
+alongside the current status above and its closing PR for subsequent integration evidence.
+
 | Card | Increment | Evidence |
 |---|---|---|
-| I03-T05 | Integrated intake workspace — experimental acceptance | Accepted on 2026-09-21 under [ADR-039](adr/ADR-039-intake-workspace.md). The [report and response-observation learning](docs/INC-03-T05.md#response-observation-correction-and-learning) preserve finite evidence and failed attempts. [Implementation CI 35599086923](https://github.com/Farobertogu/ledgerdesk/actions/runs/35599086923), attempt 1, passed all 19 jobs for head b987108d39407e6f9f3f9836b48107640aef67f0. [PR #36](https://github.com/Farobertogu/ledgerdesk/pull/36) must pass its documentary final-head workflow before authorized merge; final-head and actual-main identities are recorded there only when observed. R24 remains adverse; BROWSER-I03/J19 and historical unknown causes stay open. No real data, production, full temporal conformity or T06 is accepted. |
+| I03-T05 | Integrated intake workspace — experimental acceptance | Accepted on 2026-09-21 under [ADR-039](adr/ADR-039-intake-workspace.md). The [report and response-observation learning](docs/INC-03-T05.md#response-observation-correction-and-learning) preserve finite evidence and failed attempts. [Implementation CI 35599086923](https://github.com/Farobertogu/ledgerdesk/actions/runs/35599086923), attempt 1, passed all 19 jobs for head b987108d39407e6f9f3f9836b48107640aef67f0. [PR #36](https://github.com/Farobertogu/ledgerdesk/pull/36) completed final-head verification and merged at main `1e56330`; [main CI 35610197603](https://github.com/Farobertogu/ledgerdesk/actions/runs/35610197603) passed 19/19 jobs on attempt 1. The subsequent [PR #37 evidence update](https://github.com/Farobertogu/ledgerdesk/pull/37#issuecomment-5770667712) merged on 2026-09-22 at main `16618e7`; [PR CI 35680354684](https://github.com/Farobertogu/ledgerdesk/actions/runs/35680354684) and [main CI 35681307441](https://github.com/Farobertogu/ledgerdesk/actions/runs/35681307441) each passed 19/19 jobs on attempt 1, without reruns. That update improves bounded bootstrap-failure evidence export; the historical bootstrap cause remains unknown. R24 remains adverse; BROWSER-I03/J19 and historical unknown causes stay open. No real data, production, full temporal conformity or T06 is accepted. |
 | I03-T04 | Exact preparation and candidate constitution — experimental acceptance | Accepted on 2026-09-20 under the localized [ADR-038 preparation amendment](adr/ADR-038-intake-foundation.md#exact-preparation-and-constitution--proposed-2026-09-19). [Implementation and finite coverage](docs/INC-03-T04.md) preserve local and independent verification separately. [Implementation CI 35447349126](https://github.com/Farobertogu/ledgerdesk/actions/runs/35447349126), attempt 1, passed all 17 jobs for head 4a860cb7e615637bdbfe9e93d3c4a6627a1cc4fd. [PR #35](https://github.com/Farobertogu/ledgerdesk/pull/35) must pass its subsequent documentary final-head workflow before authorized merge; final-head and actual-main identities are recorded there only when observed. R24 remains four observed temporal violations; BROWSER-I03/J19 and historical unknown causes stay open. No real data, production, T05/T06 or full temporal conformity is accepted. |
 | I03-T03 | Bounded extraction — experimental acceptance | Accepted on 2026-09-19 with the localized [ADR-038 extraction amendment](adr/ADR-038-intake-foundation.md#bounded-extraction--proposed-2026-09-15). [Current T03 status](docs/INC-03-T03.md#current-status) records the bounded implementation, complementary reviews, preserved failed runs and Linux setup repair. [Implementation CI 35399188463](https://github.com/Farobertogu/ledgerdesk/actions/runs/35399188463) passed all 14 jobs on attempt 1 for head 9ae920ac3f8d3dc3ac719989cc9620bec0214a82 and supplies qualified current-image memory evidence. [PR #34](https://github.com/Farobertogu/ledgerdesk/pull/34) must pass the subsequent documentary final-head checks before authorized merge; final and actual-main identities are recorded there only when observed. R24, BROWSER-I03/J19 and the unknown historical finite-quota cause remain open. No full temporal conformity, preparation, candidate, real-data or production acceptance. |
 | I03-T02 | Durable reception and protected originals — experimental acceptance | Accepted on 2026-09-14 with the localized [ADR-038 amendment](adr/ADR-038-intake-foundation.md#amendments). [Producer/review qualification](docs/INC-03-T02.md#status) and [21-obligation/53-variant map](docs/INC-03-T02-coverage.md#current-qualification) retain their measured limits. [Implementation CI 34810451606](https://github.com/Farobertogu/ledgerdesk/actions/runs/34810451606) passed all eight jobs on attempt 1 for head 299f3dbe17919f0359f0db27a002a0df98261c51. [PR #31](https://github.com/Farobertogu/ledgerdesk/pull/31) merged after successful [final-head CI 34814803912](https://github.com/Farobertogu/ledgerdesk/actions/runs/34814803912); its [actual-main run 34815842388](https://github.com/Farobertogu/ledgerdesk/actions/runs/34815842388) failed and remains failed. The separately merged [PR #32 repair](docs/L03-exclusive-reference.md) passed its own final-PR and actual-main workflows. R24's four violations, same-original fragment provenance (IC14/fragment-only P/R), BROWSER-I03/J19 and the historical L03 cause remain open. No later processing, full temporal conformity, real data or production use is accepted. |
