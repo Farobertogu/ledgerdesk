@@ -4,6 +4,8 @@ Start with the [system overview](SYSTEM_OVERVIEW.md) for the current product and
 boundary. The [repository entry](../README.md) is the short introduction; [BOARD](../BOARD.md)
 tracks construction. This index separates current guidance from dated evidence and the academic
 baseline. A historical result describes its recorded version, not every later revision.
+Dated delivery records retain their original verification requirements and outcomes. For T05,
+the board records the subsequent merge and main-verification status.
 
 ## Current contracts and decisions
 
@@ -32,7 +34,7 @@ not production deployment instructions.
 | Synthetic intake reception | [INC-03 T02](INC-03-T02.md) and its [coverage map](INC-03-T02-coverage.md) |
 | Bounded synthetic extraction | [INC-03 T03](INC-03-T03.md#current-status), with scoped acceptance, qualified implementation CI, preserved correction history and remaining limits |
 | Exact preparation and constitution | [INC-03 T04](INC-03-T04.md#current-status), accepted only in its bounded synthetic scope |
-| Integrated intake workspace | [INC-03 T05](INC-03-T05.md), finite browser evidence and reproduction; review and acceptance are separate |
+| Integrated intake workspace | [INC-03 T05](INC-03-T05.md), finite browser evidence and reproduction; accepted on 21 September 2026 under [ADR-039](../adr/ADR-039-intake-workspace.md) and merged through [PR #36](https://github.com/Farobertogu/ledgerdesk/pull/36); T06 has not started |
 | L03 memory attribution | [Exclusive retained reference](L03-exclusive-reference.md) for the current qualified profile; [bounded diagnostics](L03-diagnostics.md) for the earlier observation method and recorded failures |
 
 The [browser follow-up record](INC-02-T03.md#tracked-browser-follow-up) retains its closure

@@ -1,6 +1,6 @@
 # System overview
 
-Status reference: 20 September 2026. This overview summarizes the current design and its
+Status reference: 22 September 2026. This overview summarizes the current design and its
 implementation boundary. It is not a replacement construction plan or a claim that every
 designed capability is available. [BOARD](../BOARD.md) tracks delivery; the contracts and dated
 records linked below specify and evidence the implemented profiles.
@@ -80,9 +80,11 @@ implemented response shapes, transport profiles and remaining limits.
 | Reception of originals | INC-03 T02, nine admitted handlers under explicit isolated configuration | Does not activate worker-result acceptance, preparation, candidate constitution or publication |
 | Bounded extraction | INC-03 T03, separately admitted worker processing, protected result acceptance/query, finite conservation and explicit recovery | Text/Markdown, CSV and cell-oriented XLSX within the documented synthetic profile; no preparation, candidate, native visual extraction or universal semantic/memory guarantee |
 | Exact preparation | INC-03 T04, retained selection, antecedents, differences and exact candidate constitution | Candidate, related and blocked remain distinct; no approval, publication or real data |
+| Integrated intake workspace | INC-03 T05, browser access to the accepted reception, extraction and preparation operations | Bounded synthetic profile; no whole-increment, real-data or production acceptance |
 
-The [T05 workspace](INC-03-T05.md) implements their integrated browser consumer on its
-working branch. Its delivery/review status is distinct from the accepted rows above.
+The [T05 workspace](INC-03-T05.md) was accepted on 21 September 2026 under
+[ADR-039](../adr/ADR-039-intake-workspace.md) and merged through
+[PR #36](https://github.com/Farobertogu/ledgerdesk/pull/36).
 
 The credential-free `/material` viewer and session-bearing `/access/material` viewer coexist
 explicitly; neither falls back to the other. Next serves the interface; the dedicated terminal
@@ -98,10 +100,14 @@ not an interchangeable total of product guarantees.
 
 ## What remains open
 
-- The remainder of INC-03: workspace review/acceptance and T06 whole-increment
-  acceptance. T01–T04 acceptance does not complete these or authorize production processing.
+- INC-03 T06 whole-increment acceptance has not started. Acceptance of T01–T05 is limited
+  to their separate synthetic scopes and does not authorize production processing.
 - The historical finite-quota failure has no established cause. The current behavior producer
   passes; that result does not retrospectively diagnose or correct the earlier failure.
+- The historical bootstrap failure has no established cause. The subsequent
+  [PR #37 evidence update](https://github.com/Farobertogu/ledgerdesk/pull/37#issuecomment-5770667712),
+  merged on 22 September 2026, preserves bounded failure evidence without establishing or
+  correcting that historical cause.
 - Later construction increments for knowledge response, human handling, editorial publication
   and the remaining designed capabilities. They follow the existing plan, not the old card order.
 - R24: writer-free expiry has produced an observed nonconformity between final evaluation and a
