@@ -11,11 +11,11 @@ export async function lookupBodyObserver(context, {origin, maximum}) {
       if (event.kind === 'headers') {
         if (ticket.status !== null || !Number.isInteger(event.status) || event.status < 100 || event.status > 599) throw Error('Invalid response headers.');
         ticket.status = event.status; ticket.request = event.request;
-        if (event.length !== null && (typeof event.length !== 'string' || !/^(0|[1-9][0-9]*)$/.test(event.length) || Number(event.length) > maximum)) throw Error('Invalid response length.');
+        if (event.length !== null && (typeof event.length !== 'string' || !/^(0|[1-9][0-9]*)$/.test(event.length) || Number(event.length) > ticket.maximum)) throw Error('Invalid response length.');
         ticket.length = event.length === null ? null : Number(event.length);
       } else if (event.kind === 'chunk') {
         if (ticket.status === null || !Array.isArray(event.bytes) || event.bytes.some(n => !Number.isInteger(n) || n < 0 || n > 255)) throw Error('Invalid consumed chunk.');
-        ticket.size += event.bytes.length; if (ticket.size > maximum) throw Error('Consumed body exceeds its bound.');
+        ticket.size += event.bytes.length; if (ticket.size > ticket.maximum) throw Error('Consumed body exceeds its bound.');
         ticket.chunks.push(Buffer.from(event.bytes));
       } else if (event.kind === 'done') {
         if (ticket.status === null || event.size !== ticket.size || ticket.length !== null && ticket.length !== ticket.size) throw Error('Incomplete consumed body.');
@@ -40,6 +40,13 @@ export async function lookupBodyObserver(context, {origin, maximum}) {
     const fetch = window.fetch;
     window.fetch = function (...args) {
       const [input, init] = args; let selected = false;
+      if (armed && !armed.terminal && armed.operation === 'reception' && typeof input === 'string' && init?.method === 'GET' && init.body === undefined) {
+        try {
+          const url = new URL(input, location.href);
+          selected = url.origin === origin && url.pathname === '/api/intake/receptions/' + armed.receptionId &&
+            url.search === '' && url.hash === '' && new Headers(init.headers).get('accept') === armed.representation;
+        } catch {}
+      }
       if (armed && !armed.terminal && typeof input === 'string' && init?.method === 'POST' && typeof init.body === 'string') {
         try {
           const url = new URL(input, location.href), body = JSON.parse(init.body);
@@ -80,6 +87,7 @@ export async function lookupBodyObserver(context, {origin, maximum}) {
       if (ticket && !ticket.terminal) result.then(response => {
         if (ticket.terminal) return;
         try {
+          if (ticket.operation === 'reception' && response.headers.get('content-type')?.split(';')[0] !== ticket.representation) {reject(ticket); return;}
           emit(ticket, {kind: 'headers', status: response.status, length: response.headers.get('content-length'), request: ticket.request});
           if (!response.body) {reject(ticket); return;}
           streams.set(response.body, ticket);
@@ -101,7 +109,7 @@ export async function lookupBodyObserver(context, {origin, maximum}) {
           if (value.done) {emit(ticket, {kind: 'done', size: ticket.size}); ticket.terminal = true;}
           else {
             if (!(value.value instanceof Uint8Array)) {reject(ticket); return;}
-            ticket.size += value.value.byteLength; if (ticket.size > maximum) {reject(ticket); return;}
+            ticket.size += value.value.byteLength; if (ticket.size > ticket.maximum) {reject(ticket); return;}
             emit(ticket, {kind: 'chunk', bytes: Array.from(value.value)});
           }
         } catch {reject(ticket);}
@@ -123,11 +131,12 @@ export async function lookupBodyObserver(context, {origin, maximum}) {
         clearTimeout(timer); page.off('close', closed); signal?.removeEventListener('abort', aborted);
         if (error) reject(error); else resolve(value);
       };
-      pending.set(id, {page, status: null, length: null, chunks: [], size: 0, sequence: 0, finish});
+      const bodyMaximum = selector.maximum ?? maximum;
+      pending.set(id, {page, maximum: bodyMaximum, status: null, length: null, chunks: [], size: 0, sequence: 0, finish});
       page.once('close', closed); signal?.addEventListener('abort', aborted, {once: true});
       timer = setTimeout(() => finish(fail('ERR_RESPONSE_BODY_DEADLINE', 'The consumed lookup body exceeded its deadline.')), timeoutMs);
       if (signal?.aborted) {aborted(); throw signal.reason;}
-      try {await page.evaluate(({id, selector}) => window.__ledgerdeskArmLookup({id, ...selector}), {id, selector});}
+      try {await page.evaluate(({id, selector}) => window.__ledgerdeskArmLookup({id, ...selector}), {id, selector: {...selector, maximum: bodyMaximum}});}
       catch (error) {finish(fail('ERR_RESPONSE_BODY_REJECTED', 'The lookup observation could not be armed.')); throw error;}
       return {result, async dispose() {
         finish(fail('ERR_RESPONSE_BODY_REJECTED', 'The lookup observation ended before completion.'));
@@ -136,6 +145,10 @@ export async function lookupBodyObserver(context, {origin, maximum}) {
     };
   const exact = reference => reference && typeof reference.id === 'string' && Number.isSafeInteger(reference.revision) && typeof reference.sha256 === 'string';
   return {
+    armReception(page, receptionId, options) {
+      if (typeof receptionId !== 'string' || !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(receptionId)) throw Error('An exact reception identifier is required.');
+      return arm(page, {operation: 'reception', receptionId, representation: 'application/vnd.ledgerdesk.intake-workspace+json', maximum: Math.min(maximum, 65536)}, options);
+    },
     arm(page, preparation, options) {
       if (!exact(preparation)) throw Error('An exact preparation reference is required.');
       return arm(page, {operation: 'lookup', preparation}, options);
