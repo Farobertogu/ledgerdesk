@@ -69,3 +69,66 @@ test('a failed mutation needs its own assertion, exact source fault and cleanup,
   assert.throws(()=>qualifyExtractionGuard(c,m,{files:[]},logs));
   assert.throws(()=>qualifyExtractionGuard(c,{...m,resources:[{removed:false}]},s,logs));
 });
+
+// Complete stdout retained from the 2026-09-19 bootstrap failure, command 57.
+const retainedBootstrapTap="TAP version 13\n# (node:12) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time\n# (Use `node --trace-warnings ...` to show where the warning was created)\n# INTAKE_RUNTIME_IDENTITY {\"uid\":1001,\"gid\":1001,\"groups\":[100,1001,20202]}\n# ACCESS_PG_CLEANED\n# INTAKE_T02_RUNTIME_CLEANED\n# Subtest: T02 real identity, grant, durable reception and protected original\nnot ok 1 - T02 real identity, grant, durable reception and protected original\n  ---\n  duration_ms: 4921.832545\n  type: 'test'\n  location: '/work/tests/intake/t02/test_runtime.mjs:31:1'\n  failureType: 'testCodeFailure'\n  error: 'APPLICATION_CLOSED_BEFORE_READY'\n  code: 'ERR_TEST_FAILURE'\n  stack: |-\n    ChildProcess.<anonymous> (file:///work/tests/intake/t02/application_process.mjs:24:17)\n    Object.onceWrapper (node:events:633:26)\n    ChildProcess.emit (node:events:518:28)\n    maybeClose (node:internal/child_process:1101:16)\n    ChildProcess._handle.onexit (node:internal/child_process:304:5)\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 0\n# fail 1\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 5372.211304\n";
+
+const runtimeName='ld-i03-t02-1234abcd-runtime';
+function bootstrapInput(stdout=retainedBootstrapTap){
+  const m=manifest();m.resources=[{type:'container',name:runtimeName,id:'b'.repeat(64),removed:true}];
+  const o={program:'docker',args:['start','-a',runtimeName],code:1,signal:null,stdout,stderr:'',stdoutBytes:Buffer.byteLength(stdout),
+    stdoutRetainedBytes:Buffer.byteLength(stdout),stderrBytes:0,stderrRetainedBytes:0,stdoutEncodingError:false,stderrEncodingError:false,stderrTruncated:false};
+  return {m,o};
+}
+const firstFailure=({m,o})=>extractionPublicSummary(m,'a'.repeat(64),[o]).firstFailure;
+test('the retained bootstrap report identifies its first failure without exporting its message or stack',()=>{
+  assert.deepEqual(firstFailure(bootstrapInput()),{commandOrdinal:1,observation:1,status:'observed',capture:'present',
+    code:'ERR_TEST_FAILURE',failureType:'testCodeFailure',errorReason:'APPLICATION_CLOSED_BEFORE_READY',
+    frames:[{source:'application-process',line:24,column:17}]});
+});
+test('unknown error values, source paths and embedded TAP cannot enter the closed failure projection',()=>{
+  const secret='PRIVATE_BOOTSTRAP_CANARY_319832';
+  const hostile=retainedBootstrapTap.replace("error: 'APPLICATION_CLOSED_BEFORE_READY'","error: |\n    "+secret+"\n    not ok 2 - embedded\n      ---\n      code: 'ERR_ASSERTION'\n      ...")
+    .replace("code: 'ERR_TEST_FAILURE'","code: '"+secret+"'").replace("failureType: 'testCodeFailure'","failureType: '"+secret+"'")
+    .replace('tests/intake/t02/application_process.mjs','private/'+secret+'.mjs');
+  const result=firstFailure(bootstrapInput(hostile));
+  assert.equal(JSON.stringify(result).includes(secret),false);
+  assert.deepEqual(result,{commandOrdinal:1,observation:1,status:'observed',capture:'present',code:null,failureType:null,errorReason:null,frames:[]});
+  const duplicates=firstFailure(bootstrapInput(retainedBootstrapTap.replace("code: 'ERR_TEST_FAILURE'","code: 'ERR_TEST_FAILURE'\n  code: 'ERR_ASSERTION'")));
+  assert.equal(duplicates.code,null);
+});
+test('incomplete or invalid capture never classifies an apparent bootstrap failure',()=>{
+  for(const change of [{stdoutBytes:9999},{stderrTruncated:true},{stdoutEncodingError:true},{stdoutRetainedBytes:0}]){
+    const input=bootstrapInput();Object.assign(input.o,change);const result=firstFailure(input);
+    assert.equal(result.status,'unavailable');assert.ok(['truncated','invalid'].includes(result.capture));assert.equal(result.errorReason,undefined);
+  }
+  const incomplete=firstFailure(bootstrapInput(retainedBootstrapTap.replace('  ...\n','')));
+  assert.equal(incomplete.status,'invalid');assert.equal(incomplete.errorReason,undefined);
+});
+test('only one exact owned runtime start can supply failure evidence; a passing run has no failure',()=>{
+  for(const args of [['logs',runtimeName],['start','-a','ld-i03-t02-ffffffff-runtime'],['start','-a',runtimeName,'extra']]){
+    const input=bootstrapInput();input.o.args=args;assert.deepEqual(firstFailure(input),{status:'invalid',capture:'invalid'});
+  }
+  const input=bootstrapInput(),duplicate=extractionPublicSummary(input.m,'a'.repeat(64),[input.o,input.o]);
+  assert.deepEqual(duplicate.firstFailure,{status:'invalid',capture:'invalid'});
+  input.m.commands[0].code=0;assert.deepEqual(firstFailure(input),{status:'invalid',capture:'invalid'});
+  const passing=bootstrapInput('TAP version 13\nok 1 - accepted identity\n1..1\n# tests 1\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n');
+  passing.o.code=0;passing.m.commands[0].code=0;passing.m.completed=true;
+  assert.deepEqual(firstFailure(passing),{commandOrdinal:1,observation:1,status:'absent',capture:'present'});
+});
+test('the existing exporter carries the bounded bootstrap result and preserves the failed outcome',async()=>{
+  const temporary=await fs.mkdtemp(path.join(os.tmpdir(),'extraction-bootstrap-export-'));
+  try{
+    const input=bootstrapInput(),folder=path.join(temporary,'input',runId),output=path.join(temporary,'output');
+    await fs.mkdir(folder,{recursive:true});
+    await fs.writeFile(path.join(folder,'manifest.json'),JSON.stringify(input.m));
+    await fs.writeFile(path.join(folder,'001-command.json'),JSON.stringify(input.o));
+    assert.equal(await exportExtractionEvidence(path.dirname(folder),output),true);
+    const summary=JSON.parse(await fs.readFile(path.join(output,runId+'.json')));
+    assert.equal(summary.completed,false);assert.deepEqual(summary.firstFailure,firstFailure(input));
+    assert.deepEqual((await fs.readdir(output)).sort(),['PUBLIC-MANIFEST.json',runId+'.json'].sort());
+  }finally{
+    assert.equal(path.dirname(temporary),path.resolve(os.tmpdir()));assert.ok(path.basename(temporary).startsWith('extraction-bootstrap-export-'));
+    await fs.rm(temporary,{recursive:true});
+  }
+});
