@@ -264,17 +264,20 @@ export async function workspaceProtection(t, {env, intake, client, request, cont
     }
     const originalResult = await request(`/api/intake/receptions/${received.id}/original`, {client}); check(originalResult); assert.deepEqual(originalResult.bytes, bytes);
     const beforeReads = storage.length, beforeDownloads = downloads.length, beforeRequests = requests.length; await grant('intake_original', true);
+    let consumed;
     try {
+      consumed = await lookupBodies.armReception(page, received.id, {signal: t.signal});
       const projection = page.waitForResponse(r => r.url().endsWith('/api/intake/receptions/' + received.id) && r.request().headers().accept === workspaceAccept);
       await row.getByRole('button', {name: 'Refresh', exact: true}).click();
-      const response = await projection; assert.equal(response.status(), 200); const body = await response.json();
+      const response = await projection; assert.equal(response.status(), 200);
+      const observed = await consumed.result; assert.equal(observed.status, response.status()); const body = observed.value;
       await page.getByText('Working…', {exact: true}).waitFor({state: 'hidden'});
       assert.deepEqual({offered: body.offers.includes('inspect_original'), action: await row.getByRole('button', {name: 'Inspect original', exact: true}).count(),
         originalRequests: requests.slice(beforeRequests).filter(r => r.path.endsWith('/original')).length, reads: storage.length, downloads: downloads.length},
         {offered: false, action: 0, originalRequests: 0, reads: beforeReads, downloads: beforeDownloads});
       const denied = await request(`/api/intake/receptions/${received.id}/original`, {client});
       assert.deepEqual({status: denied.status, reads: storage.length}, {status: 404, reads: beforeReads});
-    } finally {await grant('intake_original', false);}
+    } finally {await consumed?.dispose(); await grant('intake_original', false);}
     await row.getByRole('button', {name: 'Refresh', exact: true}).click();
     await page.getByText('Working…', {exact: true}).waitFor({state: 'hidden'});
     await mountedOriginal('restored-authority');
