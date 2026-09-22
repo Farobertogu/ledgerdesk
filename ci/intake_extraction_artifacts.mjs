@@ -23,6 +23,7 @@ const bootstrapSources=new Map([
   ['tests/access/runtime_environment.mjs','runtime-environment'],['tests/access/journey_environment.mjs','journey-environment'],
   ['tests/intake/t02/test_runtime.mjs','runtime-test'],['tests/intake/t02/application_process.mjs','application-process'],
   ['tests/intake/t02/application_child.mjs','application-child'],
+  ['tests/intake/ui/runtime_protection.mjs','workspace-protection'],
 ]);
 // Select the attached execution by its owned resource, never docker logs or a
 // later failed bridge poll. Keep only closed fields from the first TAP failure.
@@ -60,7 +61,7 @@ function runtimeFirstFailure(m,observations){
       if(lines[j]===indent+'stack: |-'){stack=true;continue;}
       if(stack&&!lines[j].startsWith(indent+'  '))stack=false;
       if(stack&&frames.length<2){
-        const frame=new RegExp('^'+indent+'  (?:at )?(?:async )?(?:[A-Za-z0-9_.<>]+ \\()?file:///work/([^ :()]+):([1-9][0-9]{0,5}):([1-9][0-9]{0,5})\\)?$').exec(lines[j]);
+        const frame=new RegExp('^'+indent+'  (?:at )?(?:async )?(?:[A-Za-z0-9_.<>]+ \\()?(?:file://)?/work/([^ :()]+):([1-9][0-9]{0,5}):([1-9][0-9]{0,5})\\)?$').exec(lines[j]);
         if(frame&&bootstrapSources.has(frame[1]))frames.push({source:bootstrapSources.get(frame[1]),line:Number(frame[2]),column:Number(frame[3])});
       }
     }
