@@ -86,6 +86,60 @@ test('the retained bootstrap report identifies its first failure without exporti
     code:'ERR_TEST_FAILURE',failureType:'testCodeFailure',errorReason:'APPLICATION_CLOSED_BEFORE_READY',
     frames:[{source:'application-process',line:24,column:17}]});
 });
+
+// Stack lines retained from two failed W18 executions. The error text is a
+// canary, not copied private output; these are projection vectors, not reruns.
+const workspaceFailureTap=frames=>`TAP version 13
+    not ok 9 - W18 stop is a separately admitted real effect and never erases the original
+      ---
+      failureType: 'testCodeFailure'
+      error: 'PRIVATE_WORKSPACE_FAILURE_71833'
+      code: 'ERR_TEST_FAILURE'
+      stack: |-
+${frames.map(frame=>'        '+frame).join('\n')}
+      ...
+not ok 1 - T02 real identity, grant, durable reception and protected original
+  ---
+  failureType: 'subtestsFailed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+`;
+
+test('known W18 path and file-URL frames retain only a fixed source and coordinates',()=>{
+  const vectors=[
+    {frames:['/work/tests/intake/ui/runtime_protection.mjs:178:135',
+      'async workspaceProtection (/work/tests/intake/ui/runtime_protection.mjs:168:3)'],coordinates:[[178,135],[168,3]]},
+    {frames:['check (file:///work/tests/intake/ui/runtime_protection.mjs:33:43)',
+      'file:///work/tests/intake/ui/runtime_protection.mjs:197:103',
+      'async workspaceProtection (file:///work/tests/intake/ui/runtime_protection.mjs:168:3)'],coordinates:[[33,43],[197,103]]},
+  ];
+  for(const {frames,coordinates} of vectors){
+    const input=bootstrapInput(workspaceFailureTap(frames)),out=extractionPublicSummary(input.m,'a'.repeat(64),[input.o]);
+    assert.deepEqual(out.firstFailure,{commandOrdinal:1,observation:1,status:'observed',capture:'present',
+      code:'ERR_TEST_FAILURE',failureType:'testCodeFailure',errorReason:null,
+      frames:coordinates.map(([line,column])=>({source:'workspace-protection',line,column}))});
+    assert.equal(out.completed,false);assert.equal(out.commands[0].exitCode,1);
+    for(const forbidden of ['PRIVATE_WORKSPACE_FAILURE_71833','/work/','runtime_protection.mjs','stack','workspaceProtection'])
+      assert.equal(JSON.stringify(out).includes(forbidden),false);
+  }
+});
+
+test('workspace frame projection rejects other roots, path decorations and diagnostic lookalikes',()=>{
+  const trusted='tests/intake/ui/runtime_protection.mjs',secret='PRIVATE_WORKSPACE_FRAME_81914';
+  const frames=[`/private/${trusted}:178:135`,`/work/private/${secret}.mjs:178:135`,
+    `/work/${trusted}?secret=${secret}:178:135`,`/work/${trusted}#${secret}:178:135`,
+    `/work/tests/intake/ui/../ui/runtime_protection.mjs:178:135`,
+    `https://example.test/work/${trusted}:178:135`,`file://host/work/${trusted}:178:135`,
+    `/work/${trusted}:0:135`,`/work/${trusted}:178:0`,`/work/${trusted}:1000000:135`,
+    `/work/${trusted}:178:135 extra`,`/work/${trusted.toUpperCase()}:178:135`];
+  for(const frame of frames){
+    const result=firstFailure(bootstrapInput(workspaceFailureTap([frame])));
+    assert.deepEqual(result.frames,[],frame);assert.equal(JSON.stringify(result).includes(secret),false);
+  }
+  const decoy=workspaceFailureTap([]).replace("error: 'PRIVATE_WORKSPACE_FAILURE_71833'",
+    `error: |-\n        stack: |-\n          /work/${trusted}:178:135\n          not ok 3 - embedded`);
+  assert.deepEqual(firstFailure(bootstrapInput(decoy)).frames,[]);
+});
 test('unknown error values, source paths and embedded TAP cannot enter the closed failure projection',()=>{
   const secret='PRIVATE_BOOTSTRAP_CANARY_319832';
   const hostile=retainedBootstrapTap.replace("error: 'APPLICATION_CLOSED_BEFORE_READY'","error: |\n    "+secret+"\n    not ok 2 - embedded\n      ---\n      code: 'ERR_ASSERTION'\n      ...")

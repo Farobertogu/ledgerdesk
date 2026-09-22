@@ -41,7 +41,7 @@ below are retained provenance, not the new-system build order.
 
 | Card | Increment | Closing evidence |
 |---|---|---|
-| INC-03 | Post-merge controller-loss harness cleanup | Actual-main run 35748099696 failed image cleanup after 5/5 controller-loss checks. A directed interleaving exposes an owned-worker exit race; the historical hosted cause is not established. Scoped cleanup reconciliation, failure preservation and regression checks are in progress. T06 publication closure remains pending. |
+| INC-03 | Post-merge workspace failure localization | The controller-loss correction merged in PR #40 after 19/19 final-head jobs. Actual-main run 35752515852 failed inside W18, with 8/10 checks passing and 23/23 resources cleaned; the unchanged local selector passed 13/13. A minimal closed-source frame projection improves localization only. The hosted cause remains unknown; T06 publication closure remains pending. |
 
 Active access follow-up: [tracked browser failures and closure criteria](docs/INC-02-T03.md#tracked-browser-follow-up).
 
