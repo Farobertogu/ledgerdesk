@@ -14,8 +14,13 @@ its final-head and actual-main verification are complete. The subsequent bounded
 update was merged through [PR #37](https://github.com/Farobertogu/ledgerdesk/pull/37).
 The bounded synthetic T06 scope was accepted on 2026-09-23 after independent review.
 Its [delivery and finite coverage](docs/INC-03-T06.md) retain the explicit limitations;
-[PR #39](https://github.com/Farobertogu/ledgerdesk/pull/39) is its publication record,
-including final-head checks, protected merge and actual-main verification when observed.
+[PR #39](https://github.com/Farobertogu/ledgerdesk/pull/39) records its implementation,
+followed by the bounded cleanup correction in [PR #40](https://github.com/Farobertogu/ledgerdesk/pull/40)
+and diagnostic-only [PR #41](https://github.com/Farobertogu/ledgerdesk/pull/41).
+PR #41 and its actual-main workflow each passed 19/19 jobs on attempt 1. On
+2026-09-23 the owner accepted the retained W18 uncertainty for this synthetic scope,
+without claiming a causal repair. The final two-document publication still requires
+its own final-head and actual-main results; its closing comment completes that record.
 The [system overview](docs/SYSTEM_OVERVIEW.md) explains this boundary and the
 [documentation index](docs/README.md) separates current guides from dated evidence.
 LR-AC21 remains partial and R24 is an observed temporal failure; no real-data or production
@@ -41,7 +46,22 @@ below are retained provenance, not the new-system build order.
 
 | Card | Increment | Closing evidence |
 |---|---|---|
-| INC-03 | Post-merge workspace failure localization | The controller-loss correction merged in PR #40 after 19/19 final-head jobs. Actual-main run 35752515852 failed inside W18, with 8/10 checks passing and 23/23 resources cleaned; the unchanged local selector passed 13/13. A minimal closed-source frame projection improves localization only. The hosted cause remains unknown; T06 publication closure remains pending. |
+| INC-03 | Final documentary publication | Implementation and bounded experimental acceptance are complete. Only this two-document reconciliation and its protected publication remain: final-head checks, actual-main checks and the closing record on PR #39. The retained W18 defect below is not active diagnostic work and is not marked repaired. |
+
+### Retained, deferred follow-up
+
+`T06-W18-MAIN-35752515852` remains unresolved. [Actual-main run 35752515852](https://github.com/Farobertogu/ledgerdesk/actions/runs/35752515852)
+failed inside W18, with 8/10 runtime checks passing and 23/23 resources cleaned.
+Its cause is unknown. The later [PR #41 final-head run](https://github.com/Farobertogu/ledgerdesk/actions/runs/35754863608)
+and [actual-main run](https://github.com/Farobertogu/ledgerdesk/actions/runs/35756931901)
+each passed 19/19 jobs on attempt 1; both protection executions passed 13/13 and
+cleaned 23/23 resources. These observations do not establish a causal repair.
+The owner accepted this residual uncertainty for bounded synthetic T06 completion
+on 2026-09-23. Investigation is deferred; reopen on recurrence, reproduction or
+relevant new evidence identifying a specific correction. Existing assertions and
+blocking CI remain mandatory. No unlimited reruns, real data or production claim
+follow from this disposition. The [report](docs/INC-03-T06.md#publication-verification-and-residual-failure-disposition)
+preserves the chronology and all other limitations.
 
 Active access follow-up: [tracked browser failures and closure criteria](docs/INC-02-T03.md#tracked-browser-follow-up).
 
@@ -116,7 +136,7 @@ alongside the current status above and its closing PR for subsequent integration
 
 | Card | Increment | Evidence |
 |---|---|---|
-| INC-03 | Material intake: I03-T01 through I03-T06 — bounded experimental acceptance | T06 accepted on 2026-09-23 after independent review. The [delivery](docs/INC-03-T06.md), [36-row map](docs/INC-03-T06-coverage.md) and [exact candidate handoff](docs/INC-03-T06-handoff.md) preserve measured scope. [PR #39](https://github.com/Farobertogu/ledgerdesk/pull/39) records final-head CI, protected merge and actual-main CI separately, only when observed. R24 remains adverse, same-original fragment lineage remains partial, selector-specific expiry is unmeasured, semantic fidelity is unverified and historical causes remain unknown. No real data, production or automatic INC-04. |
+| INC-03 | Material intake: I03-T01 through I03-T06 — bounded experimental acceptance | T06 accepted on 2026-09-23 after independent review. The [delivery](docs/INC-03-T06.md), [36-row map](docs/INC-03-T06-coverage.md) and [exact candidate handoff](docs/INC-03-T06-handoff.md) preserve measured scope. The failed actual-main runs after PRs #39 and #40 remain failed; [PR #41](https://github.com/Farobertogu/ledgerdesk/pull/41) and its actual-main workflow each passed 19/19 jobs on attempt 1. The owner accepted the unresolved W18 uncertainty for this synthetic scope; investigation is deferred under the reopening conditions above, not reported as a repair. The final documentary publication is recorded separately in the closing comment on [PR #39](https://github.com/Farobertogu/ledgerdesk/pull/39) after its own checks. R24 remains adverse, same-original fragment lineage remains partial, selector-specific expiry is unmeasured, semantic fidelity is unverified and historical causes remain unknown. No real data, production or automatic INC-04. |
 | I03-T05 | Integrated intake workspace — experimental acceptance | Accepted on 2026-09-21 under [ADR-039](adr/ADR-039-intake-workspace.md). The [report and response-observation learning](docs/INC-03-T05.md#response-observation-correction-and-learning) preserve finite evidence and failed attempts. [Implementation CI 35599086923](https://github.com/Farobertogu/ledgerdesk/actions/runs/35599086923), attempt 1, passed all 19 jobs for head b987108d39407e6f9f3f9836b48107640aef67f0. [PR #36](https://github.com/Farobertogu/ledgerdesk/pull/36) completed final-head verification and merged at main `1e56330`; [main CI 35610197603](https://github.com/Farobertogu/ledgerdesk/actions/runs/35610197603) passed 19/19 jobs on attempt 1. The subsequent [PR #37 evidence update](https://github.com/Farobertogu/ledgerdesk/pull/37#issuecomment-5770667712) merged on 2026-09-22 at main `16618e7`; [PR CI 35680354684](https://github.com/Farobertogu/ledgerdesk/actions/runs/35680354684) and [main CI 35681307441](https://github.com/Farobertogu/ledgerdesk/actions/runs/35681307441) each passed 19/19 jobs on attempt 1, without reruns. That update improves bounded bootstrap-failure evidence export; the historical bootstrap cause remains unknown. R24 remains adverse; BROWSER-I03/J19 and historical unknown causes stay open. No real data, production, full temporal conformity or T06 is accepted. |
 | I03-T04 | Exact preparation and candidate constitution — experimental acceptance | Accepted on 2026-09-20 under the localized [ADR-038 preparation amendment](adr/ADR-038-intake-foundation.md#exact-preparation-and-constitution--proposed-2026-09-19). [Implementation and finite coverage](docs/INC-03-T04.md) preserve local and independent verification separately. [Implementation CI 35447349126](https://github.com/Farobertogu/ledgerdesk/actions/runs/35447349126), attempt 1, passed all 17 jobs for head 4a860cb7e615637bdbfe9e93d3c4a6627a1cc4fd. [PR #35](https://github.com/Farobertogu/ledgerdesk/pull/35) must pass its subsequent documentary final-head workflow before authorized merge; final-head and actual-main identities are recorded there only when observed. R24 remains four observed temporal violations; BROWSER-I03/J19 and historical unknown causes stay open. No real data, production, T05/T06 or full temporal conformity is accepted. |
 | I03-T03 | Bounded extraction — experimental acceptance | Accepted on 2026-09-19 with the localized [ADR-038 extraction amendment](adr/ADR-038-intake-foundation.md#bounded-extraction--proposed-2026-09-15). [Current T03 status](docs/INC-03-T03.md#current-status) records the bounded implementation, complementary reviews, preserved failed runs and Linux setup repair. [Implementation CI 35399188463](https://github.com/Farobertogu/ledgerdesk/actions/runs/35399188463) passed all 14 jobs on attempt 1 for head 9ae920ac3f8d3dc3ac719989cc9620bec0214a82 and supplies qualified current-image memory evidence. [PR #34](https://github.com/Farobertogu/ledgerdesk/pull/34) must pass the subsequent documentary final-head checks before authorized merge; final and actual-main identities are recorded there only when observed. R24, BROWSER-I03/J19 and the unknown historical finite-quota cause remain open. No full temporal conformity, preparation, candidate, real-data or production acceptance. |
