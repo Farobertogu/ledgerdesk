@@ -27,8 +27,9 @@ Status at 23 September 2026:
 T05 was accepted on 21 September 2026 under [ADR-039](adr/ADR-039-intake-workspace.md)
 and merged through [PR #36](https://github.com/Farobertogu/ledgerdesk/pull/36).
 The bounded synthetic T06 scope was accepted on 23 September 2026 after independent review.
-Its hosted publication is pending; the [T06 record](docs/INC-03-T06.md) separates that
-publication checkpoint from experimental acceptance. INC-04 does not start automatically.
+Its [publication record in PR #39](https://github.com/Farobertogu/ledgerdesk/pull/39)
+records hosted checks and merge separately from the experimental acceptance documented
+in the [T06 report](docs/INC-03-T06.md). INC-04 does not start automatically.
 
 `/material` is the integrated credential-free trial viewer; `/access/material` is the
 session-bearing viewer. Their profiles are explicit and never selected by automatic fallback.

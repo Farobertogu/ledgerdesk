@@ -35,7 +35,7 @@ not production deployment instructions.
 | Bounded synthetic extraction | [INC-03 T03](INC-03-T03.md#current-status), with scoped acceptance, qualified implementation CI, preserved correction history and remaining limits |
 | Exact preparation and constitution | [INC-03 T04](INC-03-T04.md#current-status), accepted only in its bounded synthetic scope |
 | Integrated intake workspace | [INC-03 T05](INC-03-T05.md), finite browser evidence and reproduction; accepted on 21 September 2026 under [ADR-039](../adr/ADR-039-intake-workspace.md) and merged through [PR #36](https://github.com/Farobertogu/ledgerdesk/pull/36) |
-| Intake whole journey | [INC-03 T06](INC-03-T06.md), [36-row map](INC-03-T06-coverage.md) and [editorial handoff](INC-03-T06-handoff.md); bounded synthetic scope accepted on 23 September 2026 after independent review; hosted publication pending |
+| Intake whole journey | [INC-03 T06](INC-03-T06.md), [36-row map](INC-03-T06-coverage.md) and [editorial handoff](INC-03-T06-handoff.md); bounded synthetic scope accepted on 23 September 2026 after independent review; [PR #39 publication record](https://github.com/Farobertogu/ledgerdesk/pull/39) |
 | L03 memory attribution | [Exclusive retained reference](L03-exclusive-reference.md) for the current qualified profile; [bounded diagnostics](L03-diagnostics.md) for the earlier observation method and recorded failures |
 
 The [browser follow-up record](INC-02-T03.md#tracked-browser-follow-up) retains its closure

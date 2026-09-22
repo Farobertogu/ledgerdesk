@@ -81,7 +81,7 @@ implemented response shapes, transport profiles and remaining limits.
 | Bounded extraction | INC-03 T03, separately admitted worker processing, protected result acceptance/query, finite conservation and explicit recovery | Text/Markdown, CSV and cell-oriented XLSX within the documented synthetic profile; no preparation, candidate, native visual extraction or universal semantic/memory guarantee |
 | Exact preparation | INC-03 T04, retained selection, antecedents, differences and exact candidate constitution | Candidate, related and blocked remain distinct; no approval, publication or real data |
 | Integrated intake workspace | INC-03 T05, browser access to the accepted reception, extraction and preparation operations | Bounded synthetic profile; no whole-increment, real-data or production acceptance |
-| Integrated intake acceptance | INC-03 T06, empty-corpus visible journey, exact durable candidate and downstream references; accepted on 23 September 2026 | Bounded synthetic scope only; hosted publication pending; no real data, production or automatic INC-04 |
+| Integrated intake acceptance | INC-03 T06, empty-corpus visible journey, exact durable candidate and downstream references; accepted on 23 September 2026 | Bounded synthetic scope only; [PR #39 publication record](https://github.com/Farobertogu/ledgerdesk/pull/39); no real data, production or automatic INC-04 |
 
 The [T05 workspace](INC-03-T05.md) was accepted on 21 September 2026 under
 [ADR-039](../adr/ADR-039-intake-workspace.md) and merged through
@@ -102,7 +102,8 @@ not an interchangeable total of product guarantees.
 ## What remains open
 
 - [INC-03 T06](INC-03-T06.md) was accepted on 23 September 2026 within its reviewed
-  synthetic scope. Hosted publication and final-head/actual-main verification remain pending;
+  synthetic scope. [PR #39](https://github.com/Farobertogu/ledgerdesk/pull/39) records
+  hosted publication and final-head/actual-main verification separately when observed;
   acceptance does not authorize production processing or automatically start INC-04.
 - The historical finite-quota failure has no established cause. The current behavior producer
   passes; that result does not retrospectively diagnose or correct the earlier failure.
