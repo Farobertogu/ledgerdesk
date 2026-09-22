@@ -48,6 +48,9 @@ export function extractionHostBridge({broker,image,runId,directory,docker}){
       await docker(['cp',path.join(target,'raw.bin'),broker+':/output/queue/'+item.channel+'/raw.pending']);
       completion={requestId:item.id,subject:item.subject,closed:true,failed:metadata.reason!==null,metadata};
     }catch(error){
+      // The controller-loss test expects one precise injected failure. A cleanup
+      // or setup error is a harness failure, even if the service stays uncertain.
+      if(controllerLoss&&error.message!=='EXTRACTION_HOST_CONTROLLER_LOST')failure=error;
       // A failed CREATE with no later close is uncertain, never a successful stop.
       const neverIssued=events.length===0&&error.message==='EXTRACTION_STOPPED_BEFORE_CREATE';
       const closed=neverIssued||events.some(e=>e.kind==='cleaned');

@@ -60,9 +60,9 @@ async function schema() {
   await save('schema-result.json', {version, ...result});
 }
 async function units() {
-  const args = ['--experimental-strip-types', '--test', 'tests/intake/extraction/collector.mjs',
+  const args = ['--experimental-strip-types', '--experimental-vm-modules', '--test', 'tests/intake/extraction/collector.mjs',
     'tests/intake/extraction/interface.mjs', 'tests/intake/extraction/representations.mjs','tests/intake/extraction/output.mjs','tests/intake/extraction/private_contract.mjs','tests/intake/extraction/source_classification.mjs',
-    'tests/intake/extraction/memory_qualification.mjs', 'tests/intake/extraction/setup.mjs'];
+    'tests/intake/extraction/memory_qualification.mjs', 'tests/intake/extraction/setup.mjs', 'tests/intake/extraction/controller_cleanup.mjs'];
   const child = spawn(process.execPath, args, {cwd: root, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe']});
   const output = collectProcessOutput(child.stdout, child.stderr, {outputBytes: 1048576, stop: () => child.kill()});
   const timer = setTimeout(() => output.terminate('unit_timeout'), 60000);
@@ -120,7 +120,7 @@ try {
     'ci/seam_check.mjs','src/alg/channels.ts','src/alg/escalation.ts','agents/triage/schema.ts','agents/gateway.ts',
     'ci/intake_l03_linux.mjs','ci/intake_l03_reference.mjs','ci/intake_l03_observer.mjs','ci/intake_kernel_origin.mjs','ci/l03_profile_hierarchy.mjs',
     'tests/intake/t01/reviewed/process-output.mjs','tests/intake/t01/probe.mjs','tests/intake/t01/l03_gate.mjs',
-    'tests/intake/extraction/memory_qualification.mjs', 'tests/intake/extraction/setup.mjs']) await source(item);
+    'tests/intake/extraction/memory_qualification.mjs', 'tests/intake/extraction/setup.mjs', 'tests/intake/extraction/controller_cleanup.mjs']) await source(item);
   if (group === 'schema') await schema(); else if (group === 'worker') await worker(); else if(group==='composition')await composition();else await units();
   requireMemoryProof(qualifiedMemory,memoryImage,memoryProof);
   outcome = 'passed';
